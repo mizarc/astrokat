@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+jspm_packages/
+web_modules/
+
+# Production Build Output
+dist/
+build/
+out/
+
+# Development / Execution artifacts
+.tsx/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache
+
+# Local Environment Secrets & Configuration
+.env
+.env.local
+.env.*.local
+
+# IDEs and System files
+.DS_Store
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj

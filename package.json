@@ -1,0 +1,19 @@
+{
+  "name": "spacecat",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/node": "^25.9.1",
+    "discord.js": "^14.26.4",
+    "fluxer.ts": "^0.3.0",
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3"
+  }
+}
