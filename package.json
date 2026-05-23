@@ -2,13 +2,15 @@
   "name": "spacecat",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "type": "module",
+  "main": "src/index.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Mizarc <contact@mizarc.dev>",
+  "license": "MIT",
   "dependencies": {
     "@types/node": "^25.9.1",
     "discord.js": "^14.26.4",
