@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "node --env-file=.env ./node_modules/tsx/dist/cli.mjs watch src/index.ts",
     "start": "node --env-file=.env ./node_modules/tsx/dist/cli.mjs src/index.ts",
-    "deploy": "node --env-file=.env ./node_modules/tsx/dist/cli.mjs scripts/deploy-commands.ts"
+    "deploy": "node --env-file=.env ./node_modules/tsx/dist/cli.mjs scripts/deploy-commands.ts",
+    "build": "tsc"
   },
   "keywords": [],
   "author": "Mizarc <contact@mizarc.dev>",
