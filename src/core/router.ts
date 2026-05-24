@@ -1,10 +1,12 @@
 import type { BotCommand, UnifiedMessage } from './types.js';
 import { PingCommand } from './commands/ping.js';
 import { WikiCommand } from './commands/wiki.js';
+import { ThesaurusCommand } from './commands/thesaurus.js';
 
 const commands = new Map<string, BotCommand>();
 commands.set(PingCommand.name, PingCommand);
 commands.set(WikiCommand.name, WikiCommand);
+commands.set(ThesaurusCommand.name, ThesaurusCommand);
 
 /**
  * The Router: Now handles both text-based parsing and pre-parsed slash commands.
