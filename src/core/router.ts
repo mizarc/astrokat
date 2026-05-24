@@ -1,12 +1,42 @@
 import type { BotCommand, UnifiedMessage } from './types.js';
-import { PingCommand } from './commands/ping.js';
-import { WikiCommand } from './commands/wiki.js';
-import { ThesaurusCommand } from './commands/thesaurus.js';
+import { readdirSync } from 'fs';
+import { fileURLToPath, pathToFileURL } from 'url';
+import { dirname, join, extname } from 'path';
 
-const commands = new Map<string, BotCommand>();
-commands.set(PingCommand.name, PingCommand);
-commands.set(WikiCommand.name, WikiCommand);
-commands.set(ThesaurusCommand.name, ThesaurusCommand);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const commandsDir = join(__dirname, 'commands');
+
+async function loadCommands(): Promise<Map<string, BotCommand>> {
+  const commands = new Map<string, BotCommand>();
+  const files = readdirSync(commandsDir).filter(
+    (file) => extname(file) === '.ts' && file !== 'index.ts'
+  );
+
+  for (const file of files) {
+    const filePath = join(commandsDir, file);
+    const fileUrl = pathToFileURL(filePath).href;
+    
+    try {
+      const module = await import(fileUrl);
+      // Look for exported command following the pattern: [Name]Command
+      const commandName = file.replace('.ts', '');
+      const exportKey = `${commandName.charAt(0).toUpperCase()}${commandName.slice(1)}Command`;
+      
+      const command = module[exportKey];
+      if (command && command.name) {
+        commands.set(command.name, command);
+        console.log(`Loaded command: ${command.name}`);
+      }
+    } catch (error) {
+      console.error(`Failed to load command from ${file}:`, error);
+    }
+  }
+
+  return commands;
+}
+
+const commands = await loadCommands();
 
 /**
  * The Router: Now handles both text-based parsing and pre-parsed slash commands.
