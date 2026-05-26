@@ -8,6 +8,9 @@
     "dev": "node --env-file=.env ./node_modules/tsx/dist/cli.mjs watch src/index.ts",
     "start": "node --env-file=.env ./node_modules/tsx/dist/cli.mjs src/index.ts",
     "deploy": "node --env-file=.env ./node_modules/tsx/dist/cli.mjs scripts/deploy-commands.ts",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
     "build": "tsc"
   },
   "keywords": [],
@@ -19,5 +22,8 @@
     "discord.js": "^14.26.4",
     "tsx": "^4.22.3",
     "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.7"
   }
 }
