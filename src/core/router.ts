@@ -1,5 +1,5 @@
 import type { BotCommand, UnifiedMessage } from './types.js';
-import { readdirSync } from 'fs';
+import { readdirSync, statSync } from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { dirname, join, extname } from 'path';
 
@@ -9,30 +9,45 @@ const commandsDir = join(__dirname, 'commands');
 
 async function loadCommands(): Promise<Map<string, BotCommand>> {
   const commands = new Map<string, BotCommand>();
-  const files = readdirSync(commandsDir).filter(
-    (file) => extname(file) === '.ts' && file !== 'index.ts' && !file.endsWith('.test.ts')
-  );
+  
+  async function loadFromDirectory(dirPath: string): Promise<void> {
+    const files = readdirSync(dirPath);
 
-  for (const file of files) {
-    const filePath = join(commandsDir, file);
-    const fileUrl = pathToFileURL(filePath).href;
-    
-    try {
-      const module = await import(fileUrl);
-      // Look for exported command following the pattern: [Name]Command
-      const commandName = file.replace('.ts', '');
-      const exportKey = `${commandName.charAt(0).toUpperCase()}${commandName.slice(1)}Command`;
+    for (const file of files) {
+      const filePath = join(dirPath, file);
+      const stat = statSync(filePath);
       
-      const command = module[exportKey];
-      if (command && command.name) {
-        commands.set(command.name, command);
-        console.log(`Loaded command: ${command.name}`);
+      // Recursively load from subdirectories
+      if (stat.isDirectory()) {
+        await loadFromDirectory(filePath);
+        continue;
       }
-    } catch (error) {
-      console.error(`Failed to load command from ${file}:`, error);
+
+      // Skip test files and non-TS files
+      if (!file.endsWith('.ts') || file.endsWith('.test.ts')) {
+        continue;
+      }
+
+      try {
+        const fileUrl = pathToFileURL(filePath).href;
+        const module = await import(fileUrl);
+        
+        // Look for exported command following the pattern: [Name]Command
+        const commandName = file.replace('.ts', '');
+        const exportKey = `${commandName.charAt(0).toUpperCase()}${commandName.slice(1)}Command`;
+        
+        const command = module[exportKey];
+        if (command && command.name) {
+          commands.set(command.name, command);
+          console.log(`Loaded command: ${command.name} (${command.category})`);
+        }
+      } catch (error) {
+        console.error(`Failed to load command from ${file}:`, error);
+      }
     }
   }
 
+  await loadFromDirectory(commandsDir);
   return commands;
 }
 

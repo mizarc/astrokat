@@ -1,8 +1,9 @@
-import type { BotCommand } from '../types.js';
+import type { BotCommand } from '../../types.js';
 
 export const ThesaurusCommand: BotCommand = {
   name: 'thesaurus',
   description: 'Fetches synonyms and antonyms for a word using the Free Dictionary API.',
+  category: 'knowledge',
   async execute(message, args) {
     if (args.length === 0) {
       await message.reply('Please provide a word to look up.');

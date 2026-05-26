@@ -105,10 +105,8 @@ describe('getThesaurus', () => {
           word: 'big',
           meanings: [
             {
-              synonyms: ['huge', 'large', 'giant', 'massive', 'enormous', 'vast', 'immense', 
-                'colossal', 'titanic', 'whopping', 'ginormous', 'extra-large'],
-              antonyms: ['small', 'tiny', 'little', 'miniature', 'petite', 'compact', 
-                'diminutive', 'itsy-bitsy', 'wee', 'microscopic', 'nano'],
+              synonyms: ['huge', 'large', 'giant', 'massive', 'enormous', 'vast', 'immense', 'colossal', 'titanic', 'whopping', 'ginormous', 'extra-large'],
+              antonyms: ['small', 'tiny', 'little', 'miniature', 'petite', 'compact', 'diminutive', 'itsy-bitsy', 'wee', 'microscopic', 'nano'],
             },
           ],
         },

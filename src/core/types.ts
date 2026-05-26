@@ -19,5 +19,6 @@ export interface UnifiedMessage {
 export interface BotCommand {
   name: string;
   description: string;
+  category: 'automation' | 'knowledge' | 'social' | 'utility';
   execute: (message: UnifiedMessage, args: string[]) => Promise<void>;
 }

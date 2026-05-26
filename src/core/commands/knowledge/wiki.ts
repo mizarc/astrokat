@@ -1,8 +1,9 @@
-import type { BotCommand } from '../types.js';
+import type { BotCommand } from '../../types.js';
 
 export const WikiCommand: BotCommand = {
   name: 'wiki',
   description: 'Fetches a Wikipedia article summary based on a search term.',
+  category: 'knowledge',
   async execute(message, args) {
     if (args.length === 0) {
       await message.reply('Please provide a search term.');
