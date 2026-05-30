@@ -13,7 +13,12 @@ export interface UnifiedMessage {
   /**
    * Universal method to send a reply back to the originating platform.
    */
-  reply: (content: string) => Promise<void>;
+  reply: (content: string) => Promise<any>;
+
+  /**
+   * Universal method to edit the last sent reply.
+   */
+  edit: (content: string) => Promise<any>;
 }
 
 export interface BotCommand {

@@ -25,10 +25,13 @@ export function startDiscordBot() {
       interaction: interaction,
       reply: async (text) => {
         if (interaction.deferred || interaction.replied) {
-          await interaction.editReply(text);
+          return await interaction.editReply(text);
         } else {
-          await interaction.reply(text);
+          return await interaction.reply(text);
         }
+      },
+      edit: async (text) => {
+        return await interaction.editReply(text);
       }
     };
 
