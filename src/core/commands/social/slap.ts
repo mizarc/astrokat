@@ -11,7 +11,7 @@ const TEMPLATE_PATH = resolve(
 );
 
 const PROFILE_SIZE = 60;
-const FLASH_FRAMES = new Set([7, 12, 17, 22, 27, 32, 35, 40, 46, 50]);
+const FLASH_FRAMES = new Set([7, 12, 17, 22, 27, 32, 35, 40, 46]);
 
 export const SlapCommand: BotCommand = {
   name: 'slap',
@@ -82,6 +82,12 @@ export async function generateSlap(
   // Create red-flashed version of profile pic
   const flashedPng = await createFlashedProfile(profilePng);
 
+  // Create squashed version for slap-impact frames
+  const squashedFlashingPng = await squashProfile(flashedPng);
+  const squashMeta = await sharp(squashedFlashingPng).metadata();
+  const squashW = squashMeta.width!;
+  const squashH = squashMeta.height!;
+
   // Compute tracking points via keyframe interpolation
   const trackingPoints = getTrackingPoints(numFrames);
 
@@ -101,13 +107,18 @@ export async function generateSlap(
   for (let i = 0; i < numFrames; i++) {
     const framePng = await sharp(TEMPLATE_PATH, { page: i }).png().toBuffer();
     const [tx, ty] = trackingPoints[i]!;
-    const activeProfile = FLASH_FRAMES.has(i) ? flashedPng : profilePng;
+
+    // Use squashed+flashed profile on impact frames, normal circle otherwise
+    const isFlash = FLASH_FRAMES.has(i);
+    const activeProfile = isFlash ? squashedFlashingPng : profilePng;
+    const pw = isFlash ? squashW : PROFILE_SIZE;
+    const ph = isFlash ? squashH : PROFILE_SIZE;
 
     const composited = await sharp(framePng)
       .composite([{
         input: activeProfile,
-        top: Math.round(ty - PROFILE_SIZE / 2),
-        left: Math.round(tx - PROFILE_SIZE / 2),
+        top: Math.round(ty - ph / 2),
+        left: Math.round(tx - pw / 2),
       }])
       .ensureAlpha()
       .raw()
@@ -139,6 +150,33 @@ export async function cropToCircle(
     .resize(size, size, { fit: 'cover' })
     .composite([{
       input: Buffer.from(svg),
+      blend: 'dest-in',
+    }])
+    .png()
+    .toBuffer();
+}
+
+/**
+ * Creates a squashed version of the profile picture for slap-impact flash frames.
+ * Compresses horizontally and slightly vertically to show the face getting smacked.
+ */
+export async function squashProfile(
+  profilePng: Buffer,
+): Promise<Buffer> {
+  const { width, height } = await sharp(profilePng).metadata();
+  const size = width!;
+
+  const squashW = Math.round(size * 0.90);
+  const squashH = Math.round(size * 0.95);
+
+  const ellipseSvg = `<svg width="${squashW}" height="${squashH}">
+    <ellipse cx="${squashW / 2}" cy="${squashH / 2}" rx="${squashW / 2}" ry="${squashH / 2}" fill="white"/>
+  </svg>`;
+
+  return await sharp(profilePng)
+    .resize(squashW, squashH, { fit: 'fill' })
+    .composite([{
+      input: Buffer.from(ellipseSvg),
       blend: 'dest-in',
     }])
     .png()
