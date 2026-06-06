@@ -1,3 +1,4 @@
+import { t } from '../../i18n.js';
 import type { BotCommand } from '../../types.js';
 
 export const EchoCommand: BotCommand = {
@@ -8,10 +9,7 @@ export const EchoCommand: BotCommand = {
     const text = args.join(' ').trim();
 
     if (!text) {
-      await message.reply(
-        '❌ Please provide something to echo.\n' +
-        'Usage: `!echo Hello, world!`'
-      );
+      await message.reply(t('commands.echo.noInput'));
       return;
     }
 

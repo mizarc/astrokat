@@ -1,3 +1,4 @@
+import { t } from '../../i18n.js';
 import type { BotCommand } from '../../types.js';
 
 export const ThesaurusCommand: BotCommand = {
@@ -6,17 +7,17 @@ export const ThesaurusCommand: BotCommand = {
   category: 'knowledge',
   async execute(message, args) {
     if (args.length === 0) {
-      await message.reply('Please provide a word to look up.');
+      await message.reply(t('commands.thesaurus.noWord'));
       return;
     }
-    console.log(`Fetching thesaurus for: ${args.join(' ')}`);
+    console.log(t('commands.thesaurus.fetching', { word: args.join(' ') }));
 
     try {
       const result = await getThesaurus(args.join(' '));
-      await message.reply(`## 📚 ${result.word}\n\n${result.formatted}`);
+      await message.reply(t('commands.thesaurus.result', { word: result.word, formatted: result.formatted }));
     } catch (error) {
       console.error(error);
-      await message.reply('An error occurred while fetching the word definition.');
+      await message.reply(t('commands.thesaurus.error'));
     }
   }
 };
@@ -50,15 +51,15 @@ export async function getThesaurus(word: string) {
   let formatted = '';
 
   if (allSynonyms.size > 0) {
-    formatted += `✓ Synonyms: ${Array.from(allSynonyms).slice(0, 10).join(', ')}\n`;
+    formatted += t('commands.thesaurus.synonyms', { synonyms: Array.from(allSynonyms).slice(0, 10).join(', ') }) + '\n';
   }
 
   if (allAntonyms.size > 0) {
-    formatted += `✗ Antonyms: ${Array.from(allAntonyms).slice(0, 10).join(', ')}\n`;
+    formatted += t('commands.thesaurus.antonyms', { antonyms: Array.from(allAntonyms).slice(0, 10).join(', ') }) + '\n';
   }
 
   if (!formatted) {
-    formatted = 'No synonyms or antonyms found.';
+    formatted = t('commands.thesaurus.noneFound');
   }
 
   return {

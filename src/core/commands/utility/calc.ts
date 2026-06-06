@@ -1,4 +1,5 @@
 import { evaluate } from 'mathjs';
+import { t } from '../../i18n.js';
 import type { BotCommand } from '../../types.js';
 
 export interface CalcResult {
@@ -23,19 +24,15 @@ export const CalcCommand: BotCommand = {
     const expression = args.join(' ');
 
     if (!expression) {
-      await message.reply(
-        '❌ Please provide an expression to evaluate.\nUsage: `!calc <expression>`'
-      );
+      await message.reply(t('commands.calc.noExpression'));
       return;
     }
 
     try {
       const { expression: expr, result } = calculate(expression);
-      await message.reply(`🧮 ${expr} = **${result}**`);
+      await message.reply(t('commands.calc.result', { expression: expr, result: String(result) }));
     } catch {
-      await message.reply(
-        '❌ Invalid expression. Use numbers and operators like `+`, `-`, `*`, `/`, `^`, `()`'
-      );
+      await message.reply(t('commands.calc.invalidExpression'));
     }
   }
 };

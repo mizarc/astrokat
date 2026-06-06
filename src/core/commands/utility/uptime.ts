@@ -1,3 +1,4 @@
+import { t } from '../../i18n.js';
 import type { BotCommand } from '../../types.js';
 
 function formatUptime(seconds: number): string {
@@ -7,10 +8,10 @@ function formatUptime(seconds: number): string {
   const secs = Math.floor(seconds % 60);
 
   const parts: string[] = [];
-  if (days > 0) parts.push(`${days}d`);
-  if (hours > 0) parts.push(`${hours}h`);
-  if (minutes > 0) parts.push(`${minutes}m`);
-  parts.push(`${secs}s`);
+  if (days > 0) parts.push(t('commands.uptime.days', { days }));
+  if (hours > 0) parts.push(t('commands.uptime.hours', { hours }));
+  if (minutes > 0) parts.push(t('commands.uptime.minutes', { minutes }));
+  parts.push(t('commands.uptime.seconds', { seconds: secs }));
 
   return parts.join(' ');
 }
@@ -22,6 +23,6 @@ export const UptimeCommand: BotCommand = {
   async execute(message) {
     const uptime = process.uptime();
     const formatted = formatUptime(uptime);
-    await message.reply(`🤖 Bot has been up for **${formatted}**`);
+    await message.reply(t('commands.uptime.result', { formatted }));
   }
 };

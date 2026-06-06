@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 import type { BotCommand, UnifiedMessage } from './types.js';
 import { readdirSync, statSync } from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
@@ -39,10 +40,10 @@ async function loadCommands(): Promise<Map<string, BotCommand>> {
         const command = module[exportKey];
         if (command && command.name) {
           commands.set(command.name, command);
-          console.log(`Loaded command: ${command.name} (${command.category})`);
+          console.log(t('system.loadedCommand', { name: command.name, category: command.category }));
         }
       } catch (error) {
-        console.error(`Failed to load command from ${file}:`, error);
+        console.error(t('system.failedLoadCommand', { file }), error);
       }
     }
   }
@@ -82,10 +83,10 @@ export async function handleIncomingMessage(
   const command = commands.get(commandName);
 
   if (command) {
-    console.log(`Executing '${commandName}' via ${isSlashCommand ? 'Slash' : 'Text'} command.`);
+    console.log(t('system.executingCommand', { commandName, type: isSlashCommand ? 'Slash' : 'Text' }));
     await command.execute(message, args);
   } else {
     // Only reply if it was a text command (don't clutter Discord slash UI)
-    if (!isSlashCommand) await message.reply("Command not found.");
+    if (!isSlashCommand) await message.reply(t('system.commandNotFound'));
   }
 }

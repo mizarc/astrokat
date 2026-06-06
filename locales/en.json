@@ -1,0 +1,140 @@
+{
+  "system": {
+    "starting": "Spacecat is starting...",
+    "missingTokens": "Missing required tokens in .env",
+    "allAdaptersConnected": "All adapters connected.",
+    "loadedCommand": "Loaded command: {name} ({category})",
+    "failedLoadCommand": "Failed to load command from {file}:",
+    "executingCommand": "Executing '{commandName}' via {type} command.",
+    "commandNotFound": "Command not found."
+  },
+  "fluxer": {
+    "receivedMessage": "[FLUXER] Received message: {content} from {username}",
+    "connectionError": "[FLUXER] Connection error (will auto-reconnect):",
+    "tokenMissing": "FLUXER_TOKEN is not defined in .env"
+  },
+  "reminder": {
+    "listeningDiscord": "[REMINDER] Listening for reminders on Discord.",
+    "listeningFluxer": "[REMINDER] Listening for reminders on Fluxer.",
+    "dueGeneric": "🔔 **Reminder** — {message}",
+    "dueMention": "<@{userId}> 🔔 **Reminder** — {message}",
+    "failedDispatchDiscord": "[REMINDER] Failed to dispatch Discord reminder:",
+    "failedDispatchFluxer": "[REMINDER] Failed to dispatch Fluxer reminder:",
+    "restored": "[REMINDER] Restored {loaded} pending, {expired} expired reminders.",
+    "failedPersist": "[REMINDER] Failed to persist reminder:",
+    "failedDelete": "[REMINDER] Failed to delete reminder from store:",
+    "failedCleanup": "[REMINDER] Failed to clean up dispatched reminder:",
+    "dispatchError": "[REMINDER] Error during reminder dispatch:",
+    "backend": "[REMINDER] Using {backend} backend."
+  },
+  "commands": {
+    "remindme": {
+      "noInput": "❌ Please provide a time and reminder message.\nUsage: `!remindme in 5 minutes Take a break`\nExamples:\n`!remindme in 30 minutes Check the oven`\n`!remindme tomorrow at 9am Team meeting`\n`!remindme in 2 hours Walk the dog`",
+      "invalidTime": "❌ Could not parse time. Try something like:\n`in 5 minutes`, `tomorrow at 3pm`, `15 seconds`",
+      "pastTime": "❌ Time must be in the future.",
+      "defaultMessage": "Reminder",
+      "success": "🔔 Reminder set for <t:{time}:R>."
+    },
+    "thesaurus": {
+      "noWord": "Please provide a word to look up.",
+      "fetching": "Fetching thesaurus for: {word}",
+      "result": "## 📚 {word}\n\n{formatted}",
+      "error": "An error occurred while fetching the word definition.",
+      "synonyms": "✓ Synonyms: {synonyms}",
+      "antonyms": "✗ Antonyms: {antonyms}",
+      "noneFound": "No synonyms or antonyms found."
+    },
+    "translate": {
+      "noInput": "Please provide a language code and text. Example: `!translate es Hello` or `!translate fr:es Bonjour`",
+      "translating": "Translating {sourceLang} → {targetLang}: \"{text}\"",
+      "result": "🌍 **Translation ({sourceLang} → {targetLang}):** {translation}",
+      "error": "Translation service is currently unavailable."
+    },
+    "wiki": {
+      "noSearchTerm": "Please provide a search term.",
+      "fetching": "Fetching Wikipedia summary for: {query}",
+      "result": "## 📖 {title}\n{summary}\n\n🔗 <{url}>",
+      "error": "An error occurred while fetching the Wikipedia article."
+    },
+    "coinflip": {
+      "result": "🪙 The coin lands on... **{result}**!"
+    },
+    "diceroll": {
+      "result": "🎲 You rolled a {result}!"
+    },
+    "slap": {
+      "userNotFound": "❌ Could not find that user.",
+      "avatarNotFound": "❌ Could not retrieve avatar.",
+      "result": "**{slapper}** slapped **{target}**!",
+      "generationFailed": "❌ Failed to generate slap animation."
+    },
+    "wheelspin": {
+      "noOptions": "❌ Please provide at least two options.\nUsage: `!wheelspin pizza sushi tacos`",
+      "spinning": "## 🎡 Spinning the wheel!\n{display}",
+      "winner": "⬅ **WINNER**"
+    },
+    "avatar": {
+      "notFound": "❌ Could not retrieve avatar."
+    },
+    "calc": {
+      "noExpression": "❌ Please provide an expression to evaluate.\nUsage: `!calc <expression>`",
+      "result": "🧮 {expression} = **{result}**",
+      "invalidExpression": "❌ Invalid expression. Use numbers and operators like `+`, `-`, `*`, `/`, `^`, `()`"
+    },
+    "color": {
+      "noColor": "❌ Please provide a hex color.\nUsage: `!color FF5733`",
+      "invalid": "❌ Invalid hex color. Use format like `FF5733` or `#FF5733`.",
+      "embedTitle": ":art: {hex}",
+      "fieldRgb": "RGB",
+      "fieldHsl": "HSL",
+      "fieldCmyk": "CMYK",
+      "parseError": "Invalid hex color. Use format like FF5733 or #FF5733.",
+      "formatted": "**{hex}**\n• RGB:  {rgb}\n• HSL:  {hsl}\n• CMYK: {cmyk}"
+    },
+    "echo": {
+      "noInput": "❌ Please provide something to echo.\nUsage: `!echo Hello, world!`"
+    },
+    "ping": {
+      "calculating": "Calculating latency...",
+      "result": "🏓 Pong! Bot latency is: **{latency}ms**"
+    },
+    "qrcode": {
+      "noInput": "❌ Please provide text or a URL to encode.\nUsage: `!qrcode https://example.com`",
+      "tooLong": "❌ Input too long ({length} chars). Maximum is {max} characters.",
+      "failed": "❌ Failed to generate QR code.",
+      "embedTitle": "📱 QR Code",
+      "embedFooter": "Data: {length} chars"
+    },
+    "timestamp": {
+      "formatShortTime": "Short Time",
+      "formatLongTime": "Long Time",
+      "formatShortDate": "Short Date",
+      "formatLongDate": "Long Date",
+      "formatShortDateTime": "Short Date/Time",
+      "formatLongDateTime": "Long Date/Time",
+      "formatRelativeTime": "Relative Time",
+      "noInput": "❌ Please provide a date or time.\nUsage: `!timestamp tomorrow at 3pm`",
+      "invalid": "❌ Sorry, I couldn't understand that time format.",
+      "resultLine": "**{name}:** `{code}` -> {code}"
+    },
+    "uptime": {
+      "result": "🤖 Bot has been up for **{formatted}**",
+      "days": "{days}d",
+      "hours": "{hours}h",
+      "minutes": "{minutes}m",
+      "seconds": "{seconds}s"
+    }
+  },
+  "deploy": {
+    "pingDescription": "Replies with Pong!",
+    "wikiDescription": "Fetches Wikipedia information.",
+    "wikiQueryDescription": "The topic to search for",
+    "colorDescription": "Shows a color preview with RGB, HSL, and CMYK values.",
+    "colorHexDescription": "The hex color to display",
+    "remindmeDescription": "Sets a reminder for a specified time.",
+    "remindmeTimeDescription": "When to remind you (e.g. \"in 5 minutes\", \"tomorrow at 3pm\")",
+    "remindmeMessageDescription": "What to remind you about",
+    "starting": "Started refreshing application (/) commands.",
+    "success": "Successfully reloaded application (/) commands."
+  }
+}

@@ -1,3 +1,4 @@
+import { t } from '../../i18n.js';
 import type { BotCommand } from '../../types.js';
 
 /**
@@ -32,7 +33,7 @@ export const AvatarCommand: BotCommand = {
     }
 
     if (!avatarUrl) {
-      await message.reply('❌ Could not retrieve avatar.');
+      await message.reply(t('commands.avatar.notFound'));
       return;
     }
 

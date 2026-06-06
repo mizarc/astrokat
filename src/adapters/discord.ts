@@ -1,3 +1,4 @@
+import { t } from '../core/i18n.js';
 import { Client, GatewayIntentBits, type Message, Events } from 'discord.js';
 import type { UnifiedMessage } from '../core/types.js';
 import { handleIncomingMessage } from '../core/router.js';
@@ -27,8 +28,8 @@ export function startDiscordBot() {
         };
         const textChannel = channel as TC;
 
-        const content = `🔔 **Reminder** — ${reminder.message}`;
-        const contentWithMention = `<@${reminder.userId}> 🔔 **Reminder** — ${reminder.message}`;
+        const content = t('reminder.dueGeneric', { message: reminder.message });
+        const contentWithMention = t('reminder.dueMention', { userId: reminder.userId, message: reminder.message });
 
         // Try to reply to the original message if we have the ID
         if (reminder.referenceMessageId) {
@@ -43,10 +44,10 @@ export function startDiscordBot() {
 
         await textChannel.send(contentWithMention);
       } catch (error) {
-        console.error('[REMINDER] Failed to dispatch Discord reminder:', error);
+        console.error(t('reminder.failedDispatchDiscord'), error);
       }
     });
-    console.log('[REMINDER] Listening for reminders on Discord.');
+    console.log(t('reminder.listeningDiscord'));
   });
 
   client.on(Events.InteractionCreate, async (interaction) => {

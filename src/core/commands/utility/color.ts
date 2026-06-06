@@ -1,4 +1,5 @@
 import sharp from 'sharp';
+import { t } from '../../i18n.js';
 import type { BotCommand } from '../../types.js';
 
 export interface ColorInfo {
@@ -22,9 +23,7 @@ export const ColorCommand: BotCommand = {
     const hexCode = args[0];
 
     if (!hexCode) {
-      await message.reply(
-        '❌ Please provide a hex color.\nUsage: `!color FF5733`'
-      );
+      await message.reply(t('commands.color.noColor'));
       return;
     }
 
@@ -32,9 +31,7 @@ export const ColorCommand: BotCommand = {
     try {
       result = generateColor(hexCode);
     } catch {
-      await message.reply(
-        '❌ Invalid hex color. Use format like `FF5733` or `#FF5733`.'
-      );
+      await message.reply(t('commands.color.invalid'));
       return;
     }
 
@@ -61,13 +58,13 @@ export const ColorCommand: BotCommand = {
       files: [imageBuffer],
       embeds: [
         {
-          title: `:art: ${info.hex}`,
+          title: t('commands.color.embedTitle', { hex: info.hex }),
           color: decimalColor,
           thumbnail: { url: 'attachment://image.png' },
           fields: [
-            { name: 'RGB', value: info.rgb, inline: false },
-            { name: 'HSL', value: info.hsl, inline: false },
-            { name: 'CMYK', value: info.cmyk, inline: false },
+            { name: t('commands.color.fieldRgb'), value: info.rgb, inline: false },
+            { name: t('commands.color.fieldHsl'), value: info.hsl, inline: false },
+            { name: t('commands.color.fieldCmyk'), value: info.cmyk, inline: false },
           ],
         },
       ],
@@ -84,7 +81,7 @@ export function generateColor(hexCode: string): ColorResult {
 
   // Validate
   if (!/^[0-9a-fA-F]{6}$/.test(cleanHex)) {
-    throw new Error('Invalid hex color. Use format like FF5733 or #FF5733.');
+    throw new Error(t('commands.color.parseError'));
   }
 
   // Parse RGB
@@ -136,11 +133,7 @@ export function generateColor(hexCode: string): ColorResult {
     ].join(', '),
   };
 
-  const formatted =
-    `**${info.hex}**\n` +
-    `• RGB:  ${info.rgb}\n` +
-    `• HSL:  ${info.hsl}\n` +
-    `• CMYK: ${info.cmyk}`;
+  const formatted = t('commands.color.formatted', { hex: info.hex, rgb: info.rgb, hsl: info.hsl, cmyk: info.cmyk });
 
   return { info, imageBuffer: Buffer.alloc(0), formatted };
 }

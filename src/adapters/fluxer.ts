@@ -1,3 +1,4 @@
+import { t } from '../core/i18n.js';
 import { Client, EmbedBuilder, Events } from '@fluxerjs/core';
 import type { UnifiedMessage, ReplyEmbed } from '../core/types.js';
 import { handleIncomingMessage } from '../core/router.js';
@@ -32,7 +33,7 @@ export function startFluxerBot() {
   client.on(Events.MessageCreate, async (message) => {
     // 1. Ignore bot messages to prevent infinite loops
     if (message.author?.bot) return;
-    console.log(`[FLUXER] Received message: ${message.content} from ${message.author?.username}`);
+    console.log(t('fluxer.receivedMessage', { content: message.content, username: message.author?.username ?? 'unknown' }));
 
     const conversationId = `${message.channelId}-${message.author.id}`;
 
@@ -114,8 +115,8 @@ export function startFluxerBot() {
         };
         const textChannel = channel as TC;
 
-        const content = `🔔 **Reminder** — ${reminder.message}`;
-        const contentWithMention = `<@${reminder.userId}> 🔔 **Reminder** — ${reminder.message}`;
+        const content = t('reminder.dueGeneric', { message: reminder.message });
+        const contentWithMention = t('reminder.dueMention', { userId: reminder.userId, message: reminder.message });
 
         // Try to reply to the original message if we have the ID
         if (reminder.referenceMessageId && textChannel.messages?.fetch) {
@@ -130,20 +131,20 @@ export function startFluxerBot() {
 
         await textChannel.send(contentWithMention);
       } catch (error) {
-        console.error('[REMINDER] Failed to dispatch Fluxer reminder:', error);
+        console.error(t('reminder.failedDispatchFluxer'), error);
       }
     });
-    console.log('[REMINDER] Listening for reminders on Fluxer.');
+    console.log(t('reminder.listeningFluxer'));
   });
 
   // Gracefully handle connection drops (sleep/wake, network blips)
   client.on('error', (err: Error) => {
-    console.warn('[FLUXER] Connection error (will auto-reconnect):', err.message);
+    console.warn(t('fluxer.connectionError'), err.message);
   });
 
   const fluxerToken = process.env.FLUXER_TOKEN;
   if (!fluxerToken) {
-    console.error("FLUXER_TOKEN is not defined in .env");
+    console.error(t('fluxer.tokenMissing'));
     process.exit(1); // Stop the bot
   }
   client.login(fluxerToken);

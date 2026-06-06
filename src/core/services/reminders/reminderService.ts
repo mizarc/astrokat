@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import { t } from '../../i18n.js';
 import type { Reminder, ReminderStore, Platform } from './reminderStore.js';
 
 export interface ReminderDueEvent {
@@ -48,7 +49,7 @@ class ReminderService extends EventEmitter<ReminderServiceEvents> {
     }
 
     if (loaded > 0 || expired > 0) {
-      console.log(`[REMINDER] Restored ${loaded} pending, ${expired} expired reminders.`);
+      console.log(t('reminder.restored', { loaded, expired }));
     }
   }
 
@@ -85,7 +86,7 @@ class ReminderService extends EventEmitter<ReminderServiceEvents> {
 
     // Fire-and-forget persistence — failures are logged but don't block the reply
     this.persistence.save(reminder).catch((err) =>
-      console.error('[REMINDER] Failed to persist reminder:', err),
+      console.error(t('reminder.failedPersist'), err),
     );
 
     return reminder;
@@ -101,7 +102,7 @@ class ReminderService extends EventEmitter<ReminderServiceEvents> {
     this.memoryStore.delete(id);
 
     await this.persistence.delete(id).catch((err) =>
-      console.error('[REMINDER] Failed to delete reminder from store:', err),
+      console.error(t('reminder.failedDelete'), err),
     );
     return true;
   }
@@ -133,13 +134,13 @@ class ReminderService extends EventEmitter<ReminderServiceEvents> {
   private fireReminder(reminder: Reminder): void {
     // Remove from persistence first so a crash during emit doesn't cause duplicates
     this.persistence.delete(reminder.id).catch((err) =>
-      console.error('[REMINDER] Failed to clean up dispatched reminder:', err),
+      console.error(t('reminder.failedCleanup'), err),
     );
 
     try {
       this.emit('reminderDue', { reminder });
     } catch (error) {
-      console.error('[REMINDER] Error during reminder dispatch:', error);
+      console.error(t('reminder.dispatchError'), error);
     }
   }
 }
@@ -159,6 +160,6 @@ const store = process.env.DATABASE_URL
   ? new PostgresReminderStore()
   : new SqliteReminderStore();
 
-console.log(`[REMINDER] Using ${process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite'} backend.`);
+console.log(t('reminder.backend', { backend: process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite' }));
 
 export const reminderService = new ReminderService(store);

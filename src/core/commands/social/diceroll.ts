@@ -1,3 +1,4 @@
+import { t } from '../../i18n.js';
 import type { BotCommand } from '../../types.js';
 
 export const DicerollCommand: BotCommand = {
@@ -15,6 +16,6 @@ export const DicerollCommand: BotCommand = {
     }
 
     const result = Math.floor(Math.random() * sides) + 1;
-    await message.reply(`🎲 You rolled a ${result}!`);
+    await message.reply(t('commands.diceroll.result', { result }));
   },
 };

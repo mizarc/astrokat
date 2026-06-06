@@ -1,3 +1,4 @@
+import { t } from '../../i18n.js';
 import type { BotCommand } from '../../types.js';
 
 export const TranslateCommand: BotCommand = {
@@ -8,10 +9,7 @@ export const TranslateCommand: BotCommand = {
   category: 'knowledge',
   async execute(message, args) {
     if (args.length < 2) {
-      await message.reply(
-        'Please provide a language code and text. '
-        + 'Example: `!translate es Hello` or `!translate fr:es Bonjour`',
-      );
+      await message.reply(t('commands.translate.noInput'));
       return;
     }
 
@@ -23,14 +21,14 @@ export const TranslateCommand: BotCommand = {
     const sourceLang = colonIndex !== -1 ? langArg.slice(0, colonIndex) : 'en';
     const targetLang = colonIndex !== -1 ? langArg.slice(colonIndex + 1) : langArg;
 
-    console.log(`Translating ${sourceLang} → ${targetLang}: "${text}"`);
+    console.log(t('commands.translate.translating', { sourceLang, targetLang, text }));
 
     try {
       const translation = await translate(text, targetLang, sourceLang);
-      await message.reply(`🌍 **Translation (${sourceLang} → ${targetLang}):** ${translation}`);
+      await message.reply(t('commands.translate.result', { sourceLang, targetLang, translation }));
     } catch (error) {
       console.error(error);
-      await message.reply('Translation service is currently unavailable.');
+      await message.reply(t('commands.translate.error'));
     }
   },
 };

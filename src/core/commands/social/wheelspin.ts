@@ -1,3 +1,4 @@
+import { t } from '../../i18n.js';
 import type { BotCommand } from '../../types.js';
 
 export const WheelspinCommand: BotCommand = {
@@ -6,10 +7,7 @@ export const WheelspinCommand: BotCommand = {
   category: 'social',
   async execute(message, args) {
     if (args.length < 2) {
-      await message.reply(
-        '❌ Please provide at least two options.\n' +
-        'Usage: `!wheelspin pizza sushi tacos`'
-      );
+      await message.reply(t('commands.wheelspin.noOptions'));
       return;
     }
 
@@ -39,7 +37,7 @@ export const WheelspinCommand: BotCommand = {
       lastIdx = currentIdx;
 
       const content =
-        `## 🎡 Spinning the wheel!\n${buildDisplay(options, currentIdx)}`;
+        t('commands.wheelspin.spinning', { display: buildDisplay(options, currentIdx) });
 
       if (i === 0) {
         await message.reply(content);
@@ -49,7 +47,7 @@ export const WheelspinCommand: BotCommand = {
 
         if (i === steps - 1) {
           await message.edit(
-            content.replace('⬅', '⬅ **WINNER**'),
+            content.replace('⬅', t('commands.wheelspin.winner')),
           );
         } else {
           await message.edit(content);

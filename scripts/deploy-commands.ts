@@ -1,36 +1,37 @@
 import { REST, Routes, SlashCommandBuilder } from 'discord.js';
+import { t } from '../src/core/i18n.js';
 
 const commands = [
   new SlashCommandBuilder()
     .setName('ping')
-    .setDescription('Replies with Pong!'),
+    .setDescription(t('deploy.pingDescription')),
   new SlashCommandBuilder()
     .setName('wiki')
-    .setDescription('Fetches Wikipedia information.')
+    .setDescription(t('deploy.wikiDescription'))
     .addStringOption(option => 
     option.setName('query')
-      .setDescription('The topic to search for')
+      .setDescription(t('deploy.wikiQueryDescription'))
       .setRequired(true) // Force the user to provide a search term
     ),
   new SlashCommandBuilder()
     .setName('color')
-    .setDescription('Shows a color preview with RGB, HSL, and CMYK values.')
+    .setDescription(t('deploy.colorDescription'))
     .addStringOption(option => 
     option.setName('hex')
-      .setDescription('The hex color to display')
+      .setDescription(t('deploy.colorHexDescription'))
       .setRequired(true)
     ),
   new SlashCommandBuilder()
     .setName('remindme')
-    .setDescription('Sets a reminder for a specified time.')
+    .setDescription(t('deploy.remindmeDescription'))
     .addStringOption(option =>
       option.setName('time')
-        .setDescription('When to remind you (e.g. "in 5 minutes", "tomorrow at 3pm")')
+        .setDescription(t('deploy.remindmeTimeDescription'))
         .setRequired(true)
     )
     .addStringOption(option =>
       option.setName('message')
-        .setDescription('What to remind you about')
+        .setDescription(t('deploy.remindmeMessageDescription'))
         .setRequired(false)
     )
 ];
@@ -39,12 +40,12 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN!);
 
 (async () => {
   try {
-    console.log('Started refreshing application (/) commands.');
+    console.log(t('deploy.starting'));
     await rest.put(
       Routes.applicationCommands(process.env.DISCORD_ID!), 
       { body: commands },
     );
-    console.log('Successfully reloaded application (/) commands.');
+    console.log(t('deploy.success'));
   } catch (error) {
     console.error(error);
   }

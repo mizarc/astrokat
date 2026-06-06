@@ -1,3 +1,4 @@
+import { t } from '../../i18n.js';
 import type { BotCommand } from '../../types.js';
 
 export const WikiCommand: BotCommand = {
@@ -6,17 +7,17 @@ export const WikiCommand: BotCommand = {
   category: 'knowledge',
   async execute(message, args) {
     if (args.length === 0) {
-      await message.reply('Please provide a search term.');
+      await message.reply(t('commands.wiki.noSearchTerm'));
       return;
     }
-    console.log(`Fetching Wikipedia summary for: ${args.join(' ')}`);
+    console.log(t('commands.wiki.fetching', { query: args.join(' ') }));
 
     try {
       const summary = await getWikipediaSummary(args.join(' '));
-      await message.reply(`## 📖 ${summary.title}\n${summary.summary}\n\n🔗 <${summary.pageUrl}>`);
+      await message.reply(t('commands.wiki.result', { title: summary.title, summary: summary.summary, url: summary.pageUrl }));
     } catch (error) {
       console.error(error);
-      await message.reply('An error occurred while fetching the Wikipedia article.');
+      await message.reply(t('commands.wiki.error'));
     }
   }
 };

@@ -1,4 +1,5 @@
 import * as chrono from 'chrono-node';
+import { t } from '../../i18n.js';
 import type { BotCommand } from '../../types.js';
 import { reminderService } from '../../services/reminders/reminderService.js';
 
@@ -10,14 +11,7 @@ export const RemindmeCommand: BotCommand = {
     const input = args.join(' ').trim();
 
     if (!input) {
-      await message.reply(
-        '❌ Please provide a time and reminder message.\n' +
-        'Usage: `!remindme in 5 minutes Take a break`\n' +
-        'Examples:\n' +
-        '`!remindme in 30 minutes Check the oven`\n' +
-        '`!remindme tomorrow at 9am Team meeting`\n' +
-        '`!remindme in 2 hours Walk the dog`',
-      );
+      await message.reply(t('commands.remindme.noInput'));
       return;
     }
 
@@ -35,10 +29,7 @@ export const RemindmeCommand: BotCommand = {
     }
 
     if (!parsedTime) {
-      await message.reply(
-        '❌ Could not parse time. Try something like:\n' +
-        '`in 5 minutes`, `tomorrow at 3pm`, `15 seconds`',
-      );
+      await message.reply(t('commands.remindme.invalidTime'));
       return;
     }
 
@@ -46,14 +37,14 @@ export const RemindmeCommand: BotCommand = {
     const targetTimestamp = Math.floor(parsedTime.getTime() / 1000);
 
     if (targetTimestamp <= currentTime) {
-      await message.reply('❌ Time must be in the future.');
+      await message.reply(t('commands.remindme.pastTime'));
       return;
     }
 
     // Extract the reminder message (everything after the time expression)
     const results = chrono.parse(parseInput);
     const firstResult = results[0];
-    let reminderMessage = 'Reminder';
+    let reminderMessage = t('commands.remindme.defaultMessage');
 
     if (firstResult) {
       const afterTime = parseInput.slice(firstResult.index + firstResult.text.length).trim();
@@ -73,6 +64,6 @@ export const RemindmeCommand: BotCommand = {
       message.id,
     );
 
-    await message.reply(`🔔 Reminder set for <t:${reminder.dispatchTime}:R>.`);
+    await message.reply(t('commands.remindme.success', { time: reminder.dispatchTime }));
   },
 };

@@ -1,3 +1,4 @@
+import { t } from '../../i18n.js';
 import type { BotCommand } from '../../types.js';
 import sharp from 'sharp';
 import GIFEncoder from 'gif-encoder';
@@ -29,7 +30,7 @@ export const SlapCommand: BotCommand = {
         targetAvatarUrl = user.avatarUrl;
         targetUsername = user.username;
       } else {
-        await message.reply('❌ Could not find that user.');
+        await message.reply(t('commands.slap.userNotFound'));
         return;
       }
     } else {
@@ -38,7 +39,7 @@ export const SlapCommand: BotCommand = {
     }
 
     if (!targetAvatarUrl) {
-      await message.reply('❌ Could not retrieve avatar.');
+      await message.reply(t('commands.slap.avatarNotFound'));
       return;
     }
 
@@ -51,11 +52,11 @@ export const SlapCommand: BotCommand = {
       const slapBuffer = await generateSlap(avatarBuffer);
 
       await message.reply({
-        content: `**${message.username}** slapped **${targetUsername}**!`,
+        content: t('commands.slap.result', { slapper: message.username, target: targetUsername }),
         files: [{ name: 'slap.webp', data: slapBuffer }],
       });
     } catch {
-      await message.reply('❌ Failed to generate slap animation.');
+      await message.reply(t('commands.slap.generationFailed'));
     }
   },
 };

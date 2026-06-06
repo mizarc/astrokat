@@ -1,12 +1,13 @@
+import { t } from './core/i18n.js';
 import { startDiscordBot } from './adapters/discord.js';
 import { startFluxerBot } from './adapters/fluxer.js';
 import { reminderService } from './core/services/reminders/reminderService.js';
 
-console.log("Spacecat is starting...");
+console.log(t('system.starting'));
 
 // Validate tokens
 if (!process.env.DISCORD_TOKEN || !process.env.FLUXER_TOKEN) {
-  console.error("Missing required tokens in .env");
+  console.error(t('system.missingTokens'));
   process.exit(1);
 }
 
@@ -17,4 +18,4 @@ await reminderService.init();
 startDiscordBot();
 startFluxerBot();
 
-console.log("All adapters connected.");  
+console.log(t('system.allAdaptersConnected'));  

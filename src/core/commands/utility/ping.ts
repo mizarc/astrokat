@@ -1,3 +1,4 @@
+import { t } from '../../i18n.js';
 import type { BotCommand } from '../../types.js';
 
 export const PingCommand: BotCommand = {
@@ -6,8 +7,8 @@ export const PingCommand: BotCommand = {
   category: 'utility',
   async execute(message) {
     const startTime = performance.now();
-    await message.reply('Calculating latency...');
+    await message.reply(t('commands.ping.calculating'));
     const latency = Math.round(performance.now() - startTime);
-    await message.edit(`🏓 Pong! Bot latency is: **${latency}ms**`);
+    await message.edit(t('commands.ping.result', { latency }));
   }
 };

@@ -1,3 +1,4 @@
+import { t } from '../../i18n.js';
 import type { BotCommand } from '../../types.js';
 
 export const CoinflipCommand: BotCommand = {
@@ -6,6 +7,6 @@ export const CoinflipCommand: BotCommand = {
   category: 'social',
   async execute(message, _args) {
     const result = Math.random() < 0.5 ? 'heads' : 'tails';
-    await message.reply(`🪙 The coin lands on... **${result}**!`);
+    await message.reply(t('commands.coinflip.result', { result }));
   },
 };
