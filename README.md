@@ -1,8 +1,15 @@
-# Astrokat — A Chat Bot for All
+# Astrokat — A Chat Companion for All
 
-A multi-platform chat bot that runs on **Discord** and **Fluxer** with a shared command system and persistent reminders.
+A multi-platform chat bot that brings a shared set of fun and useful commands to **Fluxer** and **Discord**. Whether you need to do a quick calculation, a Wikipedia lookup, perform automated tasks, or a GIF of someone getting slapped, Astrokat has you covered!
 
----
+## ✨ Features
+
+- **Multi-platform by design** - Built on a shared command system. Write a command once, it works everywhere. Currently supports Discord and Fluxer.
+- **20+ commands** - From utility (ping, calc, QR codes, timestamps) to social (coinflip, diceroll, wheelspin, slap with animated GIFs) to knowledge (Wikipedia, thesaurus, translations).
+- **Persistent reminders** - Set `!remindme in 30 minutes ...` and get pinged when the time comes. Backed by SQLite (zero setup) or PostgreSQL for clustered deployments.
+- **Fully localised** - All user-facing text is managed through locale files. Drop in a new language and Astrokat speaks it.
+- **Pluggable adapters** - Adding a new chat platform is as simple as implementing a handful of methods.
+- **Docker-first** - One command to start. SQLite for small deployments, PostgreSQL for larger scale clusters.
 
 ## 🐳 Docker Deployment
 
