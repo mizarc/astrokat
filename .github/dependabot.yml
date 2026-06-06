@@ -1,0 +1,40 @@
+# Dependabot config — all updates including major, with grouping to reduce noise.
+# CI must pass before merge. Major bumps flagged for human review.
+# See: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "10:00"
+      timezone: "Australia/Sydney"
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
+    groups:
+      typescript-and-types:
+        patterns:
+          - "typescript"
+          - "@types/*"
+      testing:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+      discord:
+        patterns:
+          - "discord.js"
+          - "@discordjs/*"
+      fluxer:
+        patterns:
+          - "@fluxerjs/*"
+      storage:
+        patterns:
+          - "better-sqlite3"
+          - "pg"
+      media:
+        patterns:
+          - "sharp"
+          - "gif-encoder"
+          - "qrcode"
