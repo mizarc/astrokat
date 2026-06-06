@@ -19,6 +19,19 @@ const commands = [
     option.setName('hex')
       .setDescription('The hex color to display')
       .setRequired(true)
+    ),
+  new SlashCommandBuilder()
+    .setName('remindme')
+    .setDescription('Sets a reminder for a specified time.')
+    .addStringOption(option =>
+      option.setName('time')
+        .setDescription('When to remind you (e.g. "in 5 minutes", "tomorrow at 3pm")')
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option.setName('message')
+        .setDescription('What to remind you about')
+        .setRequired(false)
     )
 ];
 

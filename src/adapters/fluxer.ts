@@ -1,6 +1,7 @@
 import { Client, EmbedBuilder, Events } from '@fluxerjs/core';
 import type { UnifiedMessage, ReplyEmbed } from '../core/types.js';
 import { handleIncomingMessage } from '../core/router.js';
+import { reminderService } from '../core/services/reminders/reminderService.js';
 
 function toFluxerEmbeds(embeds: ReplyEmbed[]): EmbedBuilder[] {
   return embeds.map((e) => {
@@ -95,6 +96,44 @@ export function startFluxerBot() {
 
     // 3. Send to Router
     await handleIncomingMessage(unified, false);
+  });
+
+  // Register reminder listener
+  client.on('ready', () => {
+    reminderService.on('reminderDue', async ({ reminder }) => {
+      if (reminder.platform !== 'fluxer') return;
+      try {
+        const channel = await client.channels.fetch(reminder.channelId);
+        if (!channel || !('send' in channel) || typeof channel.send !== 'function') return;
+
+        type TC = {
+          send: (content: string) => Promise<unknown>;
+          messages?: {
+            fetch: (id: string) => Promise<{ reply: (content: string) => Promise<unknown> }>;
+          };
+        };
+        const textChannel = channel as TC;
+
+        const content = `🔔 **Reminder** — ${reminder.message}`;
+        const contentWithMention = `<@${reminder.userId}> 🔔 **Reminder** — ${reminder.message}`;
+
+        // Try to reply to the original message if we have the ID
+        if (reminder.referenceMessageId && textChannel.messages?.fetch) {
+          try {
+            const originalMsg = await textChannel.messages.fetch(reminder.referenceMessageId);
+            await originalMsg.reply(content);
+            return;
+          } catch {
+            // Original message deleted — fall through to .send() with a ping
+          }
+        }
+
+        await textChannel.send(contentWithMention);
+      } catch (error) {
+        console.error('[REMINDER] Failed to dispatch Fluxer reminder:', error);
+      }
+    });
+    console.log('[REMINDER] Listening for reminders on Fluxer.');
   });
 
   // Gracefully handle connection drops (sleep/wake, network blips)
