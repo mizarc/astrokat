@@ -15,6 +15,9 @@ yarn-debug.log*
 yarn-error.log*
 .eslintcache
 
+# Local runtime data (SQLite databases, cache, etc.)
+data/
+
 # Local Environment Secrets & Configuration
 .env
 .env.local
