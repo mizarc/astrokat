@@ -35,6 +35,12 @@
       "defaultMessage": "Reminder",
       "success": "🔔 Reminder set for <t:{time}:R>."
     },
+    "define": {
+      "noWord": "Please provide a word to look up.",
+      "fetching": "Fetching dictionary for: {word}",
+      "result": "## 📖 {word}\n\n{formatted}",
+      "error": "An error occurred while fetching the word definition."
+    },
     "thesaurus": {
       "noWord": "Please provide a word to look up.",
       "fetching": "Fetching thesaurus for: {word}",
@@ -126,6 +132,8 @@
     }
   },
   "deploy": {
+    "defineDescription": "Fetches definitions and examples for a word.",
+    "defineWordDescription": "The word to look up",
     "pingDescription": "Replies with Pong!",
     "wikiDescription": "Fetches Wikipedia information.",
     "wikiQueryDescription": "The topic to search for",

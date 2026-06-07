@@ -3,6 +3,14 @@ import { t } from '../src/core/i18n.js';
 
 const commands = [
   new SlashCommandBuilder()
+    .setName('define')
+    .setDescription(t('deploy.defineDescription'))
+    .addStringOption(option =>
+      option.setName('word')
+        .setDescription(t('deploy.defineWordDescription'))
+        .setRequired(true)
+    ),
+  new SlashCommandBuilder()
     .setName('ping')
     .setDescription(t('deploy.pingDescription')),
   new SlashCommandBuilder()
