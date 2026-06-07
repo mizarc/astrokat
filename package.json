@@ -26,7 +26,7 @@
     "pg": "^8.21.0",
     "qrcode": "^1.5.4",
     "sharp": "^0.34.5",
-    "tsx": "^4.22.3",
+    "tsx": "^4.22.4",
     "typescript": "^6.0.3"
   },
   "devDependencies": {
