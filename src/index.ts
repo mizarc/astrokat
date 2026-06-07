@@ -2,6 +2,7 @@ import { t } from './core/i18n.js';
 import { startDiscordBot } from './adapters/discord.js';
 import { startFluxerBot } from './adapters/fluxer.js';
 import { reminderService } from './core/services/reminders/reminderService.js';
+import { getCommands } from './core/router.js';
 
 console.log(t('system.starting'));
 
@@ -26,6 +27,9 @@ if (needFluxer && !process.env.FLUXER_TOKEN) {
 
 // Restore persisted reminders before any adapter starts listening
 await reminderService.init();
+
+// Eagerly load commands before any adapter starts listening
+await getCommands();
 
 // Start selected adapters
 if (needDiscord) startDiscordBot();

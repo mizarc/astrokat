@@ -52,7 +52,19 @@ async function loadCommands(): Promise<Map<string, BotCommand>> {
   return commands;
 }
 
-const commands = await loadCommands();
+/** Eagerly load all commands at import time (before bot starts listening). */
+let commandsPromise: Promise<Map<string, BotCommand>> | null = null;
+
+/**
+ * Returns all loaded commands.
+ * Lazily triggers loading on first call.
+ */
+export function getCommands(): Promise<Map<string, BotCommand>> {
+  if (!commandsPromise) {
+    commandsPromise = loadCommands();
+  }
+  return commandsPromise;
+}
 
 /**
  * The Router: Now handles both text-based parsing and pre-parsed slash commands.
@@ -80,7 +92,8 @@ export async function handleIncomingMessage(
   }
 
   if (!commandName) return;
-  const command = commands.get(commandName);
+  const allCommands = await getCommands();
+  const command = allCommands.get(commandName);
 
   if (command) {
     console.log(t('system.executingCommand', { commandName, type: isSlashCommand ? 'Slash' : 'Text' }));

@@ -70,7 +70,10 @@ const commands = [
       option.setName('message')
         .setDescription(t('deploy.remindmeMessageDescription'))
         .setRequired(false)
-    )
+    ),
+  new SlashCommandBuilder()
+    .setName('help')
+    .setDescription(t('deploy.helpDescription')),
 ];
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN!);

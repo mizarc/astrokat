@@ -171,6 +171,11 @@
       "hours": "{hours}h",
       "minutes": "{minutes}m",
       "seconds": "{seconds}s"
+    },
+    "help": {
+      "title": "📋 Help",
+      "listItem": "`!{name}` — {description}",
+      "noCommands": "No commands available."
     }
   },
   "deploy": {
@@ -191,6 +196,7 @@
     "remindmeDescription": "Sets a reminder for a specified time.",
     "remindmeTimeDescription": "When to remind you (e.g. \"in 5 minutes\", \"tomorrow at 3pm\")",
     "remindmeMessageDescription": "What to remind you about",
+    "helpDescription": "Shows all available commands.",
     "starting": "Started refreshing application (/) commands.",
     "success": "Successfully reloaded application (/) commands."
   }
