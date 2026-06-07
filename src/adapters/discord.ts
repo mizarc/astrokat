@@ -1,6 +1,6 @@
 import { t } from '../core/i18n.js';
 import { Client, GatewayIntentBits, type Message, Events } from 'discord.js';
-import type { UnifiedMessage } from '../core/types.js';
+import type { UnifiedMessage, UnifiedAuthor, UnifiedChannel } from '../core/types.js';
 import { handleIncomingMessage } from '../core/router.js';
 import { reminderService } from '../core/services/reminders/reminderService.js';
 
@@ -53,14 +53,69 @@ export function startDiscordBot() {
   client.on(Events.InteractionCreate, async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
 
+    // Build channel abstraction
+    const channel: UnifiedChannel = {
+      id: interaction.channelId,
+      canManageMessages: async () => {
+        let ch: any = interaction.channel ?? null;
+        if (!ch && interaction.guild) {
+          try {
+            ch = await interaction.guild.channels.fetch(interaction.channelId);
+          } catch {
+            return false;
+          }
+        }
+        if (!ch || typeof ch.bulkDelete !== 'function') return false;
+        const me = interaction.guild?.members.me;
+        if (!me) return false;
+        return ch.permissionsFor(me)?.has('ManageMessages') ?? false;
+      },
+      fetchMessages: async (limit: number) => {
+        let ch: any = interaction.channel ?? null;
+        if (!ch && interaction.guild) {
+          try {
+            ch = await interaction.guild.channels.fetch(interaction.channelId);
+          } catch {
+            return [];
+          }
+        }
+        if (!ch || typeof ch.bulkDelete !== 'function') return [];
+        try {
+          const messages = await ch.messages.fetch({ limit });
+          return [...messages.values()].map((m: any) => ({
+            id: m.id,
+            authorId: m.author.id,
+            createdAt: new Date(m.createdTimestamp),
+          }));
+        } catch {
+          return [];
+        }
+      },
+      bulkDelete: async (messageIds: string[]) => {
+        let ch: any = interaction.channel ?? null;
+        if (!ch && interaction.guild) {
+          ch = await interaction.guild.channels.fetch(interaction.channelId);
+        }
+        if (!ch || typeof ch.bulkDelete !== 'function') {
+          throw new Error('Cannot bulk delete in this channel');
+        }
+        await ch.bulkDelete(messageIds, true);
+      },
+    };
+
+    const author: UnifiedAuthor = {
+      id: interaction.user.id,
+      username: interaction.user.username,
+      avatarUrl: interaction.user.displayAvatarURL({ size: 1024 }),
+    };
+
     // Map to UnifiedMessage
     const unified: UnifiedMessage = {
       id: interaction.id,
       content: interaction.commandName,
-      userId: interaction.user.id,
-      username: interaction.user.username,
-      channelId: interaction.channelId,
-      avatarUrl: interaction.user.displayAvatarURL({ size: 1024 }),
+      author,
+      channel,
+      client: client,
       platform: 'discord',
       interaction: interaction,
       fetchUser: async (userId) => {
@@ -101,7 +156,7 @@ export function startDiscordBot() {
       },
       edit: async (text) => {
         return await interaction.editReply(text);
-      }
+      },
     };
 
     // Send to Router

@@ -1,6 +1,6 @@
 import { t } from '../core/i18n.js';
-import { Client, EmbedBuilder, Events } from '@fluxerjs/core';
-import type { UnifiedMessage, ReplyEmbed } from '../core/types.js';
+import { Client, EmbedBuilder, Events, PermissionFlags } from '@fluxerjs/core';
+import type { UnifiedMessage, UnifiedAuthor, UnifiedChannel, ReplyEmbed } from '../core/types.js';
 import { handleIncomingMessage } from '../core/router.js';
 import { reminderService } from '../core/services/reminders/reminderService.js';
 
@@ -37,14 +37,57 @@ export function startFluxerBot() {
 
     const conversationId = `${message.channelId}-${message.author.id}`;
 
+    // Build channel abstraction
+    const channel: UnifiedChannel = {
+      id: message.channelId,
+      canManageMessages: async () => {
+        try {
+          const ch = await client.channels.resolve(message.channelId);
+          if (!ch || !('bulkDeleteMessages' in ch)) return false;
+          const guild = await message.resolveGuild();
+          if (!guild) return false;
+          const botMember = await guild.members.fetchMe();
+          return botMember.permissions.has(PermissionFlags.ManageMessages);
+        } catch {
+          return false;
+        }
+      },
+      fetchMessages: async (limit: number) => {
+        try {
+          const raw: any[] = await client.rest.get(
+            `/channels/${message.channelId}/messages?limit=${limit}`,
+          );
+          return (raw ?? []).map((m: any) => ({
+            id: m.id,
+            authorId: m.author.id,
+            createdAt: new Date(m.timestamp),
+          }));
+        } catch {
+          return [];
+        }
+      },
+      bulkDelete: async (messageIds: string[]) => {
+        if (messageIds.length === 0) return;
+        await client.rest.post(
+          `/channels/${message.channelId}/messages/bulk-delete`,
+          { body: { messages: messageIds } },
+        );
+      },
+    };
+
+    const author: UnifiedAuthor = {
+      id: message.author.id,
+      username: message.author.username,
+      avatarUrl: message.author.displayAvatarURL({ size: 1024 }),
+    };
+
     // 2. Map to UnifiedMessage
     const unified: UnifiedMessage = {
       id: message.id,
       content: message.content,
-      userId: message.author.id,
-      username: message.author.username,
-      channelId: message.channelId,
-      avatarUrl: message.author.displayAvatarURL({ size: 1024 }),
+      author,
+      channel,
+      client: client,
       platform: 'fluxer',
       fetchUser: async (userId) => {
         try {
@@ -79,8 +122,7 @@ export function startFluxerBot() {
         const reply = await message.reply(opts);
         messageCache.set(conversationId, reply);
         return reply;
-      }
-      ,
+      },
       edit: async (text) => {
         const last = messageCache.get(conversationId);
         if (last && typeof last.edit === 'function') {
@@ -92,7 +134,7 @@ export function startFluxerBot() {
           messageCache.set(conversationId, reply);
           return reply;
         }
-      }
+      },
     };
 
     // 3. Send to Router

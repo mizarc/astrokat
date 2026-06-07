@@ -72,6 +72,21 @@ const commands = [
         .setRequired(false)
     ),
   new SlashCommandBuilder()
+    .setName('purge')
+    .setDescription(t('deploy.purgeDescription'))
+    .addIntegerOption(option =>
+      option.setName('amount')
+        .setDescription(t('deploy.purgeAmountDescription'))
+        .setRequired(true)
+        .setMinValue(1)
+        .setMaxValue(100)
+    )
+    .addUserOption(option =>
+      option.setName('user')
+        .setDescription(t('deploy.purgeUserDescription'))
+        .setRequired(false)
+    ),
+  new SlashCommandBuilder()
     .setName('help')
     .setDescription(t('deploy.helpDescription')),
 ];

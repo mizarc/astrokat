@@ -172,6 +172,18 @@
       "minutes": "{minutes}m",
       "seconds": "{seconds}s"
     },
+    "purge": {
+      "discordOnly": "❌ The purge command is only available as a Discord slash command.",
+      "notAvailable": "❌ Cannot purge messages in this channel.",
+      "botMissingPerms": "❌ I need the **Manage Messages** permission to purge.",
+      "invalidAmount": "❌ Please provide a valid number of messages to purge (1-100).",
+      "tooMany": "❌ You can only purge up to **100** messages at a time.",
+      "noMessages": "❌ No messages found to purge.",
+      "success": "✅ Purged **{count}** messages.",
+      "successUser": "✅ Purged **{count}** messages from that user.",
+      "skippedOldUser": "\n⚠️ {count} message(s) skipped (older than 14 days).",
+      "error": "❌ Failed to purge messages: {detail}"
+    },
     "help": {
       "title": "📋 Help",
       "listItem": "`!{name}` — {description}",
@@ -196,6 +208,9 @@
     "remindmeDescription": "Sets a reminder for a specified time.",
     "remindmeTimeDescription": "When to remind you (e.g. \"in 5 minutes\", \"tomorrow at 3pm\")",
     "remindmeMessageDescription": "What to remind you about",
+    "purgeDescription": "Bulk delete messages in the current channel.",
+    "purgeAmountDescription": "Number of messages to delete (1-100)",
+    "purgeUserDescription": "Only delete messages from this user",
     "helpDescription": "Shows all available commands.",
     "starting": "Started refreshing application (/) commands.",
     "success": "Successfully reloaded application (/) commands."

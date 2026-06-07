@@ -5,9 +5,8 @@ import { WikiCommand } from './wiki.js';
 const createMessage = (): UnifiedMessage => ({
   id: '123',
   content: '',
-  userId: 'user-1',
-  username: 'tester',
-  channelId: 'channel-1',
+  author: { id: 'user-1', username: 'tester' },
+  channel: { id: 'channel-1' },
   platform: 'fluxer',
   reply: vi.fn().mockResolvedValue(undefined),
   edit: vi.fn().mockResolvedValue(undefined),

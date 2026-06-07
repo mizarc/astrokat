@@ -17,21 +17,48 @@ export interface ReplyOptions {
   embeds?: ReplyEmbed[];
 }
 
+/** Lightweight message representation returned by fetchMessages. */
+export interface ChannelMessage {
+  id: string;
+  authorId: string;
+  createdAt: Date;
+}
+
+/** Represents a user/author across any platform. */
+export interface UnifiedAuthor {
+  id: string;
+  username: string;
+  avatarUrl?: string;
+}
+
+/**
+ * Represents a channel with platform-specific operations.
+ * Each adapter implements these methods; commands call them without
+ * caring which platform they're on.
+ */
+export interface UnifiedChannel {
+  id: string;
+  fetchMessages?: (limit: number) => Promise<ChannelMessage[]>;
+  bulkDelete?: (messageIds: string[]) => Promise<void>;
+  canManageMessages?: () => Promise<boolean>;
+}
+
 export interface UnifiedMessage {
   id: string;
   content: string;
-  userId: string;
-  username: string;
-  channelId: string;
-  avatarUrl?: string;
+  author: UnifiedAuthor;
+  channel: UnifiedChannel;
+  interaction?: ChatInputCommandInteraction;
+  /** Platform client reference. Discord.js Client on Discord, Fluxer Client on Fluxer. */
+  client?: any;
+  platform: 'discord' | 'fluxer';
+
   /**
    * Fetches a user's username and avatar URL by their ID.
    * Returns null if the user cannot be found.
    */
   fetchUser?: (userId: string) => Promise<{ username: string; avatarUrl: string } | null>;
-  interaction?: ChatInputCommandInteraction;
-  platform: 'discord' | 'fluxer';
-  
+
   /**
    * Universal method to send a reply back to the originating platform.
    * Accepts plain text or an object with content and optional file buffers.
@@ -47,6 +74,6 @@ export interface UnifiedMessage {
 export interface BotCommand {
   name: string;
   description: string;
-  category: 'automation' | 'knowledge' | 'social' | 'utility';
+  category: 'automation' | 'knowledge' | 'social' | 'utility' | 'moderation';
   execute: (message: UnifiedMessage, args: string[]) => Promise<void>;
 }

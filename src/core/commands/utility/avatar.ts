@@ -14,9 +14,9 @@ export const AvatarCommand: BotCommand = {
   description: 'Shows a user\'s profile avatar.',
   category: 'utility',
   async execute(message, args) {
-    let targetUserId = message.userId;
-    let targetUsername = message.username;
-    let avatarUrl = message.avatarUrl;
+    let targetUserId = message.author.id;
+    let targetUsername = message.author.username;
+    let avatarUrl = message.author.avatarUrl;
 
     // Check if a mention was provided
     const mentionArg = args[0];

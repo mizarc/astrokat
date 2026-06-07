@@ -34,8 +34,8 @@ export const SlapCommand: BotCommand = {
         return;
       }
     } else {
-      targetAvatarUrl = message.avatarUrl;
-      targetUsername = message.username;
+      targetAvatarUrl = message.author.avatarUrl;
+      targetUsername = message.author.username;
     }
 
     if (!targetAvatarUrl) {
@@ -52,7 +52,7 @@ export const SlapCommand: BotCommand = {
       const slapBuffer = await generateSlap(avatarBuffer);
 
       await message.reply({
-        content: t('commands.slap.result', { slapper: message.username, target: targetUsername }),
+        content: t('commands.slap.result', { slapper: message.author.username, target: targetUsername }),
         files: [{ name: 'slap.webp', data: slapBuffer }],
       });
     } catch {

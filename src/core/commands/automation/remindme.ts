@@ -55,9 +55,9 @@ export const RemindmeCommand: BotCommand = {
 
     // Create the reminder — the service will emit 'reminderDue' when it's time
     const reminder = await reminderService.createReminder(
-      message.userId,
-      message.channelId,
-      message.channelId,
+      message.author.id,
+      message.channel.id,
+      message.channel.id,
       message.platform,
       reminderMessage,
       targetTimestamp,
