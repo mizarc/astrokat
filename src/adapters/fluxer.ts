@@ -4,6 +4,17 @@ import type { UnifiedMessage, UnifiedAuthor, UnifiedChannel, ReplyEmbed } from '
 import { handleIncomingMessage } from '../core/router.js';
 import { reminderService } from '../core/services/reminders/reminderService.js';
 
+/** Tracks the bot's presence status so setStatus and setPresence compose cleanly. */
+let currentPresenceStatus: 'online' | 'idle' | 'dnd' | 'invisible' = 'online';
+
+/**
+ * Updates the stored presence status (online/idle/dnd/invisible).
+ * Call before sending a presence update so setStatus doesn't override it.
+ */
+export function setPresenceStatus(status: 'online' | 'idle' | 'dnd' | 'invisible'): void {
+  currentPresenceStatus = status;
+}
+
 function toFluxerEmbeds(embeds: ReplyEmbed[]): EmbedBuilder[] {
   return embeds.map((e) => {
     const embed = new EmbedBuilder();
@@ -139,7 +150,7 @@ export function startFluxerBot() {
         client.sendToGateway(0, {
           op: GatewayOpcodes.PresenceUpdate as number,
           d: {
-            status: 'online',
+            status: currentPresenceStatus,
             since: null,
             afk: false,
             custom_status: {
@@ -147,6 +158,17 @@ export function startFluxerBot() {
               emoji_name: null,
               emoji_id: null,
             },
+          },
+        });
+      },
+      setPresence: async (status) => {
+        currentPresenceStatus = status;
+        client.sendToGateway(0, {
+          op: GatewayOpcodes.PresenceUpdate as number,
+          d: {
+            status,
+            since: null,
+            afk: false,
           },
         });
       },

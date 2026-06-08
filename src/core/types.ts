@@ -75,6 +75,12 @@ export interface UnifiedMessage {
    * Only available if the caller is the bot owner (checked by the command).
    */
   setStatus?: (text: string) => Promise<void>;
+
+  /**
+   * Sets the bot's presence (online/idle/dnd/invisible) across the platform.
+   * Only available if the caller is the bot owner (checked by the command).
+   */
+  setPresence?: (status: 'online' | 'idle' | 'dnd' | 'invisible') => Promise<void>;
 }
 
 export interface BotCommand {

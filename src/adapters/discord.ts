@@ -4,6 +4,9 @@ import type { UnifiedMessage, UnifiedAuthor, UnifiedChannel } from '../core/type
 import { handleIncomingMessage } from '../core/router.js';
 import { reminderService } from '../core/services/reminders/reminderService.js';
 
+/** Tracks the bot's presence status so setStatus and setPresence compose cleanly. */
+let currentPresenceStatus: 'online' | 'idle' | 'dnd' | 'invisible' = 'online';
+
 export function startDiscordBot() {
   const client = new Client({
     intents: [
@@ -160,8 +163,12 @@ export function startDiscordBot() {
       setStatus: async (text) => {
         await client.user?.setPresence({
           activities: [{ name: text, type: 4 }],
-          status: 'online',
+          status: currentPresenceStatus,
         });
+      },
+      setPresence: async (status) => {
+        currentPresenceStatus = status;
+        await client.user?.setPresence({ status });
       },
     };
 

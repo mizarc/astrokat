@@ -190,6 +190,13 @@
       "notAvailable": "❌ This platform doesn't support status updates.",
       "success": "✅ Custom status set to: **{text}**"
     },
+    "presence": {
+      "notOwner": "❌ Only the bot owner can change my presence.",
+      "usage": "❌ Usage: `presence <status>`\nStatuses: `online`, `idle`, `dnd`, `invisible`\nExample: `presence dnd`",
+      "invalid": "❌ Invalid status. Use one of: `online`, `idle`, `dnd`, `invisible`",
+      "notAvailable": "❌ This platform doesn't support presence updates.",
+      "success": "✅ Presence set to **{status}**."
+    },
     "help": {
       "title": "📋 Help",
       "listItem": "`!{name}` — {description}",
