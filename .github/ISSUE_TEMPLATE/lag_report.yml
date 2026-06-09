@@ -1,0 +1,101 @@
+name: ⚡ Lag Report
+description: Report performance issues, slowdowns, or high latency.
+labels: ["type: refactor"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: 📝 Lag Description
+      placeholder: Describe exactly what happens. Is it a constant slowdown, or a sudden spike after a specific action?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 🧪 Steps to Reproduce
+      placeholder: |
+        Please provide a numbered list:
+        1. Run command...
+        2. Provide input...
+        3. Observe the delay...
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: 🔍 Contextual Data
+      placeholder: |
+        Please provide any relevant information, use these categories as a guide but feel free to modify:
+        - Average response time:
+        - Number of servers/communities:
+        - Active users during the issue:
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: 📟 System Hardware
+      placeholder: "e.g. Ryzen 9 9950X, 64GB RAM, 2TB NVMe SSD"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: 💻 Operating System
+      placeholder: "e.g. Windows 11, macOS 26, Fedora Linux 44"
+    validations:
+      required: true
+  - type: input
+    id: node_version
+    attributes:
+      label: 🟢 Node.js Version
+      placeholder: "e.g. Node.js 24, Node.js 22"
+    validations:
+      required: true
+  - type: dropdown
+    id: adapter
+    attributes:
+      label: 🤖 Bot Adapter
+      description: Which platform(s) are you running the bot on?
+      multiple: true
+      options:
+        - Discord
+        - Fluxer
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: 🐳 Deployment Method
+      options:
+        - Docker
+        - Local (Node.js)
+    validations:
+      required: true
+  - type: dropdown
+    id: storage
+    attributes:
+      label: 🗄️ Storage Backend
+      options:
+        - SQLite
+        - PostgreSQL
+    validations:
+      required: true
+  - type: input
+    id: bot_version
+    attributes:
+      label: 🏷️ Bot Version
+      placeholder: "e.g. latest from main, v1.0.0, commit abc1234"
+    validations:
+      required: true
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 🏁 Checklist
+      options:
+        - label: I have checked existing issues to ensure this hasn't been reported before.
+          required: true
+        - label: I have isolated this issue by testing in a clean environment.
+          required: true
+        - label: I am running a supported version of the software.
+          required: true
