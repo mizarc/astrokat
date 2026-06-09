@@ -21,8 +21,28 @@ data/
 .DS_Store
 Thumbs.db
 
+# Build output (rebuilt inside the container — stale artifacts add unnecessary context)
+dist/
+
 # Test files (not needed at runtime)
 **/*.test.ts
+
+# Dev tooling config
+vitest.config.ts
+.editorconfig
+.prettierrc
+
+# Scripts (not needed at runtime — deploy is handled internally)
+scripts/
+
+# Docs (useful on GitHub, unnecessary in the image)
+README.md
+CHANGELOG.md
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+SECURITY.md
+SUPPORT.md
+LICENSE
 
 # Docker files (not needed inside the image)
 Dockerfile
