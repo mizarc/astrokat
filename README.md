@@ -161,13 +161,19 @@ Your `.env` file and SQLite data volume are preserved across updates.
 The SQLite database lives in a Docker named volume. To back it up:
 
 ```bash
-docker run --rm -v astrokat-astrokat-data:/data alpine tar czf - -C /data . > astrokat-backup-$(date +%F).tar.gz
+# Find the exact volume name (pattern: <project>_astrokat-data)
+docker volume ls | grep astrokat-data
+
+# Back up to a compressed archive
+docker run --rm -v <project>_astrokat-data:/data alpine tar czf - -C /data . > astrokat-backup-$(date +%F).tar.gz
 ```
+
+> **Note:** Replace `<project>_astrokat-data` with your actual volume name from the first command.
 
 To restore from a backup:
 
 ```bash
-docker run --rm -v astrokat-astrokat-data:/data alpine tar xzf - -C /data < astrokat-backup-2026-06-09.tar.gz
+docker run --rm -v <project>_astrokat-data:/data alpine tar xzf - -C /data < astrokat-backup-2026-06-09.tar.gz
 ```
 
 ## 🚀 Local Development
