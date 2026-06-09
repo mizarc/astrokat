@@ -16,7 +16,7 @@ services:
   astrokat-sqlite:
     build: .
     image: ghcr.io/mizarc/astrokat:latest
-    container_name: astrokat-sqlite
+    container_name: astrokat
     env_file:
       - path: .env
         required: true
@@ -36,7 +36,7 @@ services:
   astrokat-postgres:
     build: .
     image: ghcr.io/mizarc/astrokat:latest
-    container_name: astrokat-postgres
+    container_name: astrokat
     env_file:
       - path: .env
         required: true

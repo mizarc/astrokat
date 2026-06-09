@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "A modular, multi-platform chatbot with useful features to enhance the chat experience.",
   "type": "module",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
   "repository": "github:mizarc/astrokat",
   "bugs": "https://github.com/mizarc/astrokat/issues",
   "homepage": "https://github.com/mizarc/astrokat#readme",
@@ -40,9 +40,7 @@
     "node-emoji": "^2.2.0",
     "pg": "^8.21.0",
     "qrcode": "^1.5.4",
-    "sharp": "^0.34.5",
-    "tsx": "^4.22.4",
-    "typescript": "^6.0.3"
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
@@ -51,6 +49,8 @@
     "@types/pg": "^8.20.0",
     "@types/qrcode": "^1.5.6",
     "@types/sharp": "^0.32.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.7"
   }
 }
