@@ -68,6 +68,15 @@
     "diceroll": {
       "result": "🎲 You rolled a {result}!"
     },
+    "roll": {
+      "defaultResult": "🎲 You rolled **{result}**",
+      "plainResult": "🎲 You rolled **{result}** on a **{sides}**-sided die",
+      "result": "🎲 **{notation}** → {rolls}{modifier} = **{total}**",
+      "modifier": " {sign} {modifier}",
+      "critical": " ⭐ **Critical hit!**",
+      "criticalFail": " 💥 **Critical fail!**",
+      "error": "❌ Invalid dice format. Try e.g. `2d20+6`, `d8`, or just `20`."
+    },
     "8ball": {
       "noQuestion": "🎱 Please ask a yes/no question.\nUsage: `!8ball Will I win the lottery?`",
       "result": "🎱 {response}",
