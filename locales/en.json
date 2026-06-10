@@ -207,6 +207,22 @@
       "notAvailable": "❌ This platform doesn't support presence updates.",
       "success": "✅ Presence set to **{status}**."
     },
+    "rank": {
+      "guildOnly": "❌ This command can only be used in a server.",
+      "title": "📊 {username}",
+      "level": "Level {level}",
+      "xpProgress": "**XP:** {xp} / {nextXp}",
+      "progressBar": "{bar} {percent}%",
+      "rankPosition": "**Rank:** #{rank} / {total}",
+      "noXp": "This user hasn't earned any XP yet."
+    },
+    "leaderboard": {
+      "guildOnly": "❌ This command can only be used in a server.",
+      "noData": "📊 No XP data yet — start chatting to earn XP!",
+      "title": "📊 Server Leaderboard",
+      "entry": "{medal} **{name}** — Level {level} ({xp} XP)",
+      "footer": "Top 10"
+    },
     "xp": {
       "levelUp": "🎉 **Level Up!** You're now **level {level}**! (+{earnedXp} XP)"
     },
