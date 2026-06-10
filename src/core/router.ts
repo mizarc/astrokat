@@ -3,6 +3,7 @@ import type { BotCommand, UnifiedMessage } from './types.js';
 import { readdirSync, statSync } from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { dirname, join, extname } from 'path';
+import { xpService } from './services/xp/xpService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -99,6 +100,17 @@ export async function handleIncomingMessage(
   if (command) {
     console.log(t('system.executingCommand', { commandName, type: isSlashCommand ? 'Slash' : 'Text' }));
     await command.execute(message, args);
+
+    // Award XP for non-trivial command usage (exclude XP commands themselves)
+    if (message.guildId && commandName !== 'rank' && commandName !== 'leaderboard') {
+      const result = await xpService.awardXp(message.guildId, message.author.id, message.platform);
+      if (result.levelUp) {
+        await message.reply(t('commands.xp.levelUp', {
+          level: result.levelUp.newLevel,
+          earnedXp: result.levelUp.earnedXp,
+        }));
+      }
+    }
   } else {
     // Only reply if it was a text command (don't clutter Discord slash UI)
     if (!isSlashCommand) await message.reply(t('system.commandNotFound'));

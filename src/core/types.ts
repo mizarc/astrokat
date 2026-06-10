@@ -50,9 +50,9 @@ export interface UnifiedMessage {
   author: UnifiedAuthor;
   channel: UnifiedChannel;
   interaction?: ChatInputCommandInteraction;
-  /** Platform client reference. Discord.js Client on Discord, Fluxer Client on Fluxer. */
   client?: any;
   platform: 'discord' | 'fluxer';
+  guildId?: string;
 
   /**
    * Fetches a user's username and avatar URL by their ID.

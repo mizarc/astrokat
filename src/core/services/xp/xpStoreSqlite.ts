@@ -1,0 +1,126 @@
+import Database from 'better-sqlite3';
+import { resolve } from 'path';
+import { existsSync, mkdirSync } from 'fs';
+import { dirname } from 'path';
+import type { XPStore, XPEntry } from './xpStore.js';
+
+export interface SqliteXPStoreOptions {
+  /** Path to the SQLite database file. Defaults to `data/astrokat.db`. */
+  dbPath?: string;
+}
+
+/**
+ * SQLite-backed XP store.
+ */
+export class SqliteXPStore implements XPStore {
+  private readonly db: Database.Database;
+
+  constructor(options?: SqliteXPStoreOptions) {
+    const dbPath = options?.dbPath ?? resolve('data', 'astrokat.db');
+
+    const dir = dirname(dbPath);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+
+    this.db = new Database(dbPath);
+
+    // Enable WAL mode for better concurrent read performance
+    this.db.pragma('journal_mode = WAL');
+
+    this.ensureTable();
+  }
+
+  async getEntry(guildId: string, userId: string): Promise<XPEntry | null> {
+    const row = this.db.prepare(
+      'SELECT * FROM xp WHERE guild_id = ? AND user_id = ?',
+    ).get(guildId, userId) as Record<string, unknown> | undefined;
+
+    if (!row) return null;
+
+    return this.rowToEntry(row);
+  }
+
+  async upsertEntry(entry: XPEntry): Promise<void> {
+    this.db.prepare(`
+      INSERT INTO xp (guild_id, user_id, platform, xp, level, last_action_at, updated_at)
+      VALUES (@guildId, @userId, @platform, @xp, @level, @lastActionAt, @updatedAt)
+      ON CONFLICT(guild_id, user_id) DO UPDATE SET
+        xp            = EXCLUDED.xp,
+        level         = EXCLUDED.level,
+        platform      = EXCLUDED.platform,
+        last_action_at = EXCLUDED.last_action_at,
+        updated_at    = EXCLUDED.updated_at
+    `).run({
+      guildId: entry.guildId,
+      userId: entry.userId,
+      platform: entry.platform,
+      xp: entry.xp,
+      level: entry.level,
+      lastActionAt: entry.lastActionAt,
+      updatedAt: entry.updatedAt,
+    });
+  }
+
+  async getLeaderboard(guildId: string, limit: number, offset: number): Promise<XPEntry[]> {
+    const rows = this.db.prepare(
+      'SELECT * FROM xp WHERE guild_id = ? ORDER BY xp DESC LIMIT ? OFFSET ?',
+    ).all(guildId, limit, offset) as Record<string, unknown>[];
+
+    return rows.map((row) => this.rowToEntry(row));
+  }
+
+  async getUserRank(guildId: string, userId: string): Promise<number | null> {
+    const row = this.db.prepare(`
+      SELECT rank FROM (
+        SELECT user_id, RANK() OVER (ORDER BY xp DESC) AS rank
+        FROM xp
+        WHERE guild_id = ?
+      ) ranked
+      WHERE user_id = ?
+    `).get(guildId, userId) as { rank: number } | undefined;
+
+    return row?.rank ?? null;
+  }
+
+  async getMemberCount(guildId: string): Promise<number> {
+    const row = this.db.prepare(
+      'SELECT COUNT(*) AS count FROM xp WHERE guild_id = ?',
+    ).get(guildId) as { count: number };
+
+    return row.count;
+  }
+
+  private rowToEntry(row: Record<string, unknown>): XPEntry {
+    return {
+      guildId: row.guild_id as string,
+      userId: row.user_id as string,
+      platform: row.platform as 'discord' | 'fluxer',
+      xp: row.xp as number,
+      level: row.level as number,
+      lastActionAt: row.last_action_at as number,
+      updatedAt: row.updated_at as number,
+    };
+  }
+
+  private ensureTable(): void {
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS xp (
+        guild_id       TEXT NOT NULL,
+        user_id        TEXT NOT NULL,
+        platform       TEXT NOT NULL DEFAULT 'discord',
+        xp             INTEGER NOT NULL DEFAULT 0,
+        level          INTEGER NOT NULL DEFAULT 0,
+        last_action_at INTEGER NOT NULL DEFAULT 0,
+        updated_at     INTEGER NOT NULL,
+        PRIMARY KEY (guild_id, user_id)
+      )
+    `);
+
+    // Index for leaderboard queries
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_xp_guild_xp
+      ON xp (guild_id, xp DESC)
+    `);
+  }
+}

@@ -111,6 +111,7 @@ export function startFluxerBot() {
       author,
       channel,
       client: client,
+      ...((message as any).guildId ? { guildId: (message as any).guildId } : {}),
       platform: 'fluxer',
       fetchUser: async (userId) => {
         try {

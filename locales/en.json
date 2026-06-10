@@ -207,6 +207,9 @@
       "notAvailable": "❌ This platform doesn't support presence updates.",
       "success": "✅ Presence set to **{status}**."
     },
+    "xp": {
+      "levelUp": "🎉 **Level Up!** You're now **level {level}**! (+{earnedXp} XP)"
+    },
     "help": {
       "title": "📋 Help",
       "listItem": "`!{name}` — {description}",

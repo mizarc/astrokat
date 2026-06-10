@@ -137,6 +137,7 @@ export function startDiscordBot() {
       author,
       channel,
       client: client,
+      ...(interaction.guildId ? { guildId: interaction.guildId } : {}),
       platform: 'discord',
       interaction: interaction,
       fetchUser: async (userId) => {
