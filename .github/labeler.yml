@@ -1,29 +1,29 @@
 # Auto-label PRs based on branch prefix.
 # Labels match the repo's GitHub issue labels.
 
-type: feature:
+"type: feature":
 - head-branch: ['^feature/']
 
-type: fix:
+"type: fix":
 - head-branch: ['^fix/']
 
-type: hotfix:
+"type: hotfix":
 - head-branch: ['^hotfix/']
 
-type: build:
+"type: build":
 - head-branch: ['^build/']
 
-type: locale:
+"type: locale":
 - head-branch: ['^locale/']
 
-type: chore:
+"type: chore":
 - head-branch: ['^chore/']
 
-type: documentation:
+"type: documentation":
 - head-branch: ['^docs/']
 
-type: refactor:
+"type: refactor":
 - head-branch: ['^refactor/']
 
-type: test:
+"type: test":
 - head-branch: ['^test/']
