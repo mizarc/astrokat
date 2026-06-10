@@ -1,0 +1,21 @@
+# Labeler — auto-tags PRs based on changed files.
+
+name: Labeler
+
+permissions:
+  contents: read
+  pull-requests: write
+
+on:
+  pull_request:
+    branches: [main, production]
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Label PR
+        uses: actions/labeler@v5
+        with:
+          configuration-path: .github/labeler.yml
