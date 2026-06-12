@@ -10,7 +10,7 @@ A multi-platform chat bot that brings a shared set of fun and useful commands to
 
 We have an officially hosted public Astrokat instance ready to use! Invite it to your server with no setup required:
 
-[**Invite Astrokat on Fluxer**](https://web.fluxer.app/oauth2/authorize?client_id=1478053375523042194&scope=bot&permissions=387072)
+[**Invite Astrokat on Fluxer**](https://web.fluxer.app/oauth2/authorize?client_id=1513393888411254785&scope=bot&permissions=387072)
 
 [**Invite Astrokat on Discord**](https://discord.com/oauth2/authorize?client_id=503580226035384340&scope=bot%20applications.commands&permissions=2147870720)
 
