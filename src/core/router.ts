@@ -3,6 +3,7 @@ import type { BotCommand, UnifiedMessage } from './types.js';
 import { readdirSync, statSync } from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { dirname, join, extname } from 'path';
+import { xpService } from './services/xp/xpService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -102,5 +103,27 @@ export async function handleIncomingMessage(
   } else {
     // Only reply if it was a text command (don't clutter Discord slash UI)
     if (!isSlashCommand) await message.reply(t('system.commandNotFound'));
+  }
+}
+
+/**
+ * Award XP for sending messages.
+ * Call this from adapters for every incoming message in a guild.
+ * The 60-second cooldown is handled internally by xpService.
+ */
+export async function awardMessageXp(message: UnifiedMessage): Promise<void> {
+  if (!message.guildId) return;
+
+  const result = await xpService.awardXp(
+    message.guildId, message.author.id, message.platform, message.content,
+  );
+
+  if (result.levelUp && result.xpNotifications) {
+    const guildConfig = await xpService.getGuildConfig(message.guildId);
+    if (guildConfig.levelUpMessages) {
+      await message.reply(t('commands.xp.levelUp', {
+        level: result.levelUp.newLevel,
+      }));
+    }
   }
 }

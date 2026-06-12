@@ -1,7 +1,7 @@
 import { t } from '../core/i18n.js';
 import { Client, GatewayIntentBits, type Message, Events } from 'discord.js';
 import type { UnifiedMessage, UnifiedAuthor, UnifiedChannel } from '../core/types.js';
-import { handleIncomingMessage } from '../core/router.js';
+import { handleIncomingMessage, awardMessageXp } from '../core/router.js';
 import { deployCommands } from '../core/deploy.js';
 import { reminderService } from '../core/services/reminders/reminderService.js';
 
@@ -137,6 +137,7 @@ export function startDiscordBot() {
       author,
       channel,
       client: client,
+      ...(interaction.guildId ? { guildId: interaction.guildId } : {}),
       platform: 'discord',
       interaction: interaction,
       fetchUser: async (userId) => {
@@ -195,6 +196,96 @@ export function startDiscordBot() {
 
     // Send to Router
     await handleIncomingMessage(unified, true);
+
+    // Award XP for slash command usage
+    await awardMessageXp(unified);
+  });
+
+  // Handle regular messages for XP
+  client.on(Events.MessageCreate, async (message) => {
+    if (message.author.bot) return;
+    if (!message.guildId) return;
+
+    const channel: UnifiedChannel = {
+      id: message.channelId,
+      canManageMessages: async () => {
+        try {
+          const ch: any = message.channel;
+          if (!ch || typeof ch.bulkDelete !== 'function') return false;
+          const me = message.guild?.members.me;
+          if (!me) return false;
+          return ch.permissionsFor(me)?.has('ManageMessages') ?? false;
+        } catch {
+          return false;
+        }
+      },
+      userCanManageMessages: async () => false,
+      fetchMessages: async (limit: number) => {
+        try {
+          const ch: any = message.channel;
+          const messages = await ch.messages.fetch({ limit });
+          return [...messages.values()].map((m: any) => ({
+            id: m.id,
+            authorId: m.author.id,
+            createdAt: new Date(m.createdTimestamp),
+          }));
+        } catch {
+          return [];
+        }
+      },
+      bulkDelete: async (messageIds: string[]) => {
+        const ch: any = message.channel;
+        await ch.bulkDelete(messageIds, true);
+      },
+    };
+
+    const author: UnifiedAuthor = {
+      id: message.author.id,
+      username: message.author.username,
+      avatarUrl: message.author.displayAvatarURL({ size: 1024 }),
+    };
+
+    const unified: UnifiedMessage = {
+      id: message.id,
+      content: message.content,
+      author,
+      channel,
+      client: client,
+      guildId: message.guildId,
+      platform: 'discord',
+      fetchUser: async (userId) => {
+        try {
+          const user = await client.users.fetch(userId);
+          return {
+            username: user.username,
+            avatarUrl: user.displayAvatarURL({ size: 1024 }),
+          };
+        } catch {
+          return null;
+        }
+      },
+      reply: async (response) => {
+        if (typeof response === 'string') {
+          return await message.reply(response);
+        }
+        const opts: Record<string, unknown> = {};
+        opts.content = response.content;
+        if (response.files?.length) {
+          opts.files = response.files.map((f) => {
+            if ('name' in f) {
+              return { attachment: f.data, name: f.name };
+            }
+            return { attachment: f, name: 'image.png' };
+          });
+        }
+        if (response.embeds?.length) {
+          opts.embeds = response.embeds;
+        }
+        return await message.reply(opts);
+      },
+    } as UnifiedMessage;
+
+    await awardMessageXp(unified);
   });
 
   client.login(process.env.DISCORD_TOKEN);
