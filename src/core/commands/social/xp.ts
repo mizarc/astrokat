@@ -119,12 +119,10 @@ async function handleSet(message: any, args: string[]) {
     message.guildId!, userId, message.platform, amount,
   );
 
-  const levelChanged = result.level !== result.oldLevel;
   await message.reply(t('commands.xp.setResult', {
     userId,
     xp: String(result.xp),
     level: String(result.level),
-    levelNote: levelChanged ? t('commands.xp.levelChanged', { level: String(result.level) }) : '',
   }));
 }
 
@@ -148,13 +146,11 @@ async function handleAdd(message: any, args: string[]) {
     message.guildId!, userId, message.platform, amount,
   );
 
-  const levelChanged = result.level !== result.oldLevel;
   await message.reply(t('commands.xp.addResult', {
     userId,
     amount: String(amount),
     xp: String(result.xp),
     level: String(result.level),
-    levelNote: levelChanged ? t('commands.xp.levelChanged', { level: String(result.level) }) : '',
   }));
 }
 
