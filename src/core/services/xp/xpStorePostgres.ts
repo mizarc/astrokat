@@ -176,7 +176,7 @@ export class PostgresXPStore implements XPStore {
       level: row.level as number,
       lastActionAt: row.last_action_at as number,
       updatedAt: row.updated_at as number,
-      xpNotifications: row.xp_notifications === undefined ? true : Boolean(row.xp_notifications),
+      xpNotifications: row.xp_notifications === undefined ? false : Boolean(row.xp_notifications),
     };
   }
 
@@ -188,9 +188,9 @@ export class PostgresXPStore implements XPStore {
         platform        TEXT NOT NULL DEFAULT 'discord',
         xp              INTEGER NOT NULL DEFAULT 0,
         level           INTEGER NOT NULL DEFAULT 0,
-        last_action_at  INTEGER NOT NULL DEFAULT 0,
-        updated_at      INTEGER NOT NULL,
-        xp_notifications BOOLEAN NOT NULL DEFAULT true,
+        last_action_at  BIGINT NOT NULL DEFAULT 0,
+        updated_at      BIGINT NOT NULL,
+        xp_notifications BOOLEAN NOT NULL DEFAULT false,
         PRIMARY KEY (guild_id, user_id)
       )
     `);
