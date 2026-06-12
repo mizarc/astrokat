@@ -1,4 +1,5 @@
-# Staging — builds and pushes the staging Docker image on every merge to main.
+# Staging — builds and pushes the staging Docker image on every merge to main,
+# then triggers a Rancher redeploy.
 
 name: Staging
 
@@ -16,6 +17,7 @@ env:
 
 jobs:
   staging:
+    environment: staging
     runs-on: ubuntu-latest
 
     steps:
@@ -43,3 +45,19 @@ jobs:
         with:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
+
+      - name: Deploy staging image
+        env:
+          RANCHER_URL: ${{ secrets.RANCHER_URL }}
+          RANCHER_TOKEN: ${{ secrets.RANCHER_TOKEN }}
+          RANCHER_PROJECT_ID: ${{ secrets.RANCHER_PROJECT_ID }}
+          RANCHER_NAMESPACE: ${{ secrets.RANCHER_NAMESPACE }}
+          RANCHER_WORKLOAD: ${{ secrets.RANCHER_WORKLOAD }}
+        run: |
+          if [ -z "$RANCHER_URL" ] || [ -z "$RANCHER_TOKEN" ]; then
+            echo "Rancher secrets not configured — skipping deploy"
+            exit 0
+          fi
+          curl -sS -X POST \
+            -H "Authorization: Bearer $RANCHER_TOKEN" \
+            "$RANCHER_URL/v3/project/$RANCHER_PROJECT_ID/workloads/deployment:$RANCHER_NAMESPACE:$RANCHER_WORKLOAD?action=redeploy"
