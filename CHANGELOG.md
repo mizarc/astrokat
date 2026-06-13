@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### Commands
+- **Social**: `bean` — fake-ban a user with an optional reason.
 - **Social**: `xp` — full XP/leveling system management (set, add, globalnotify, keyword bonuses).
 - **Social**: `rank` — view your level, XP progress bar, and server rank.
 - **Social**: `leaderboard` — top 10 XP leaderboard with medal emojis.
