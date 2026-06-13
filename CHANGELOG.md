@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Social**: `rank` — view your level, XP progress bar, and server rank.
 - **Social**: `leaderboard` — top 10 XP leaderboard with medal emojis.
 - **Social**: `levelnotify` — toggle personal level-up notifications.
+- **Utility**: `neofetch` — system and bot stats with ASCII art.
 
 #### XP System
 - Message-based XP awards (10–19 XP per message, 60s cooldown).
