@@ -144,7 +144,7 @@ export function startDiscordBot() {
         try {
           const user = await interaction.client.users.fetch(userId);
           return {
-            username: user.username,
+            username: user.tag,
             avatarUrl: user.displayAvatarURL({ size: 1024 }),
           };
         } catch {
@@ -257,7 +257,7 @@ export function startDiscordBot() {
         try {
           const user = await client.users.fetch(userId);
           return {
-            username: user.username,
+            username: user.tag,
             avatarUrl: user.displayAvatarURL({ size: 1024 }),
           };
         } catch {
