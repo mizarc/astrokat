@@ -6,7 +6,7 @@ import * as os from 'node:os';
 /** Cat ASCII — raw art without padding (padding added programmatically). */
 const CAT_LINES = [
   `\\;,. _                           _,,-`,
-  `\\\`;, \`-._ _..--'''\`\`\`--.._ __.-',;(`,
+  `\\\`;, \`-._ _..--''''''--.._ __.-',;(`,
   ` \\ \`;,  \`:.  ,   ;.   .   :'  .;\` /`,
   `  ; \`;;,      .:    :.      ,;;\` /`,
   `   \\ ';/    \\:: :  . ::/    \\;\` ;`,
