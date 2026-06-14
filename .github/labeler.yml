@@ -19,6 +19,9 @@
 "type: chore":
 - head-branch: ['^chore/']
 
+"type: release":
+- head-branch: ['^release/']
+
 "type: documentation":
 - head-branch: ['^docs/']
 
