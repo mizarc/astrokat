@@ -61,6 +61,13 @@ export interface UnifiedMessage {
   fetchUser?: (userId: string) => Promise<{ username: string; avatarUrl: string } | null>;
 
   /**
+   * Defers the reply to buy more time before responding.
+   * On Discord this prevents the 3-second interaction timeout.
+   * On other platforms this is typically a no-op.
+   */
+  deferReply?: () => Promise<void>;
+
+  /**
    * Universal method to send a reply back to the originating platform.
    * Accepts plain text or an object with content and optional file buffers.
    */

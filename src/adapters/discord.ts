@@ -140,6 +140,11 @@ export function startDiscordBot() {
       ...(interaction.guildId ? { guildId: interaction.guildId } : {}),
       platform: 'discord',
       interaction: interaction,
+      deferReply: async () => {
+        if (!interaction.deferred && !interaction.replied) {
+          await interaction.deferReply();
+        }
+      },
       fetchUser: async (userId) => {
         try {
           const user = await interaction.client.users.fetch(userId);
