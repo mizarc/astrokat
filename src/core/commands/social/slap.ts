@@ -22,6 +22,9 @@ export const SlapCommand: BotCommand = {
     { name: 'user', description: 'The user to slap', type: 'user', required: false },
   ],
   async execute(message, args) {
+    // Defer the reply to prevent Discord's 3-second interaction timeout
+    await message.deferReply?.();
+
     // Determine target user
     let targetAvatarUrl: string | undefined;
     let targetUsername: string;
