@@ -201,18 +201,29 @@
       "skippedOldUser": "\n⚠️ {count} message(s) skipped (older than 14 days).",
       "error": "❌ Failed to purge messages: {detail}"
     },
-    "status": {
-      "notOwner": "❌ Only the bot owner can change my status.",
-      "usage": "❌ Usage: `status <text>`\nExample: `status 🔧 Maintenance mode`",
-      "notAvailable": "❌ This platform doesn't support status updates.",
-      "success": "✅ Custom status set to: **{text}**"
-    },
-    "presence": {
-      "notOwner": "❌ Only the bot owner can change my presence.",
-      "usage": "❌ Usage: `presence <status>`\nStatuses: `online`, `idle`, `dnd`, `invisible`\nExample: `presence dnd`",
-      "invalid": "❌ Invalid status. Use one of: `online`, `idle`, `dnd`, `invisible`",
-      "notAvailable": "❌ This platform doesn't support presence updates.",
-      "success": "✅ Presence set to **{status}**."
+    "system": {
+      "ratelimit": {
+        "notOwner": "❌ Only bot operators can change platform-wide rate limits.",
+        "notSet": "ℹ️ No platform-wide override is currently set.",
+        "current": "🌐 **Platform-wide overrides:** User: `{userLimit}`, Guild: `{guildLimit}`",
+        "invalidValue": "❌ Please provide a valid positive number.",
+        "updated": "✅ Platform-wide override set — User: `{userLimit}`, Guild: `{guildLimit}`.",
+        "updatedReset": "✅ Platform-wide override cleared. Env defaults will be used.",
+        "unchanged": "unchanged"
+      },
+      "presence": {
+        "notOwner": "❌ Only the bot owner can change my presence.",
+        "usage": "❌ Usage: `system presence <status>`\nStatuses: `online`, `idle`, `dnd`, `invisible`\nExample: `system presence dnd`",
+        "invalid": "❌ Invalid status. Use one of: `online`, `idle`, `dnd`, `invisible`",
+        "notAvailable": "❌ This platform doesn't support presence updates.",
+        "success": "✅ Presence set to **{status}**."
+      },
+      "status": {
+        "notOwner": "❌ Only the bot owner can change my status.",
+        "usage": "❌ Usage: `system status <text>`\nExample: `system status 🔧 Maintenance mode`",
+        "notAvailable": "❌ This platform doesn't support status updates.",
+        "success": "✅ Custom status set to: **{text}**"
+      }
     },
     "rank": {
       "guildOnly": "❌ This command can only be used in a server.",
@@ -290,15 +301,6 @@
       "sourceOverride": "override",
       "sourceEnv": "default",
       "footer": "Use !ratelimit user <n> or !ratelimit guild <n> to change"
-    },
-    "globalratelimit": {
-      "notOwner": "❌ Only bot operators can change platform-wide rate limits.",
-      "notSet": "ℹ️ No platform-wide override is currently set.",
-      "current": "🌐 **Platform-wide overrides:** User: `{userLimit}`, Guild: `{guildLimit}`",
-      "invalidValue": "❌ Please provide a valid positive number.",
-      "updated": "✅ Platform-wide override set — User: `{userLimit}`, Guild: `{guildLimit}`.",
-      "updatedReset": "✅ Platform-wide override cleared. Env defaults will be used.",
-      "unchanged": "unchanged"
     }
   }
 }

@@ -118,13 +118,22 @@ export interface CommandParameter {
   maxValue?: number;
 }
 
+/** Describes a subcommand for a parent command (e.g. !system ratelimit). */
+export interface BotSubcommand {
+  name: string;
+  description: string;
+  parameters?: CommandParameter[];
+}
+
 export interface BotCommand {
   name: string;
   description: string;
-  category: 'automation' | 'knowledge' | 'social' | 'utility' | 'moderation' | 'system';
+  category: 'automation' | 'knowledge' | 'social' | 'utility' | 'moderation' | 'operation';
   execute: (message: UnifiedMessage, args: string[]) => Promise<void>;
   /** Optional parameter definitions for slash command deployment. */
   parameters?: CommandParameter[];
+  /** Subcommand definitions — when set, the command is deployed as a subcommand group. */
+  subcommands?: BotSubcommand[];
   /**
    * Discord permission strings required to use this command.
    * When set, the slash command is hidden from users without the permission
