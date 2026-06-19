@@ -4,6 +4,8 @@ import { readdirSync, statSync } from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { dirname, join, extname } from 'path';
 import { xpService } from './services/xp/xpService.js';
+import { rateLimiter } from './services/ratelimit/rateLimiter.js';
+import { guildConfigService } from './services/guildconfig/guildConfigService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -68,6 +70,16 @@ export function getCommands(): Promise<Map<string, BotCommand>> {
   return commandsPromise;
 }
 
+// Wire up the rate limiter's per-guild override provider.
+// Fetches guild config from the guild config store.
+rateLimiter.setGuildConfigProvider(async (guildId) => {
+  const config = await guildConfigService.get(guildId);
+  return {
+    userMaxCommands: config.rateLimitUserMax ?? null,
+    guildMaxCommands: config.rateLimitGuildMax ?? null,
+  };
+});
+
 /**
  * The Router: Now handles both text-based parsing and pre-parsed slash commands.
  */
@@ -99,6 +111,19 @@ export async function handleIncomingMessage(
 
   if (command) {
     console.log(t('system.executingCommand', { commandName, type: isSlashCommand ? 'Slash' : 'Text' }));
+
+    // Rate limit check (only in guilds)
+    if (message.guildId) {
+      const result = await rateLimiter.check(message.guildId, message.author.id);
+      if (!result.allowed) {
+        const key = result.reason === 'user'
+          ? 'system.rateLimitedUser'
+          : 'system.rateLimitedGuild';
+        await message.reply(t(key, { retryAfter: Math.ceil(result.retryAfter / 1000) }));
+        return;
+      }
+    }
+
     await command.execute(message, args);
   } else {
     // Only reply if it was a text command (don't clutter Discord slash UI)
@@ -119,7 +144,7 @@ export async function awardMessageXp(message: UnifiedMessage): Promise<void> {
   );
 
   if (result.levelUp && result.xpNotifications) {
-    const guildConfig = await xpService.getGuildConfig(message.guildId);
+    const guildConfig = await guildConfigService.get(message.guildId);
     if (guildConfig.levelUpMessages) {
       await message.reply(t('commands.xp.levelUp', {
         level: result.levelUp.newLevel,

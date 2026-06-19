@@ -6,7 +6,9 @@
     "loadedCommand": "Loaded command: {name} ({category})",
     "failedLoadCommand": "Failed to load command from {file}:",
     "executingCommand": "Executing '{commandName}' via {type} command.",
-    "commandNotFound": "Command not found."
+    "commandNotFound": "Command not found.",
+    "rateLimitedUser": "⏳ You're sending commands too fast! Please wait **{retryAfter}s** before using another command.",
+    "rateLimitedGuild": "⏳ This server is sending too many commands! Please wait **{retryAfter}s** before using another command."
   },
   "fluxer": {
     "receivedMessage": "[FLUXER] Received message: {content} from {username}",
@@ -270,6 +272,33 @@
       "title": "📋 Help",
       "listItem": "`!{name}` — {description}",
       "noCommands": "No commands available."
+    },
+    "ratelimit": {
+      "guildOnly": "❌ This command can only be used in a server.",
+      "noPermission": "❌ You need the **Manage Messages** permission to change rate limits.",
+      "unknownAction": "❌ Unknown action `{action}`. Use `!ratelimit` to see current limits, or `!ratelimit user <n>`, `!ratelimit guild <n>`, or `!ratelimit reset`.",
+      "invalidValue": "❌ Please provide a valid positive number.",
+      "updatedUser": "✅ Per-user rate limit set to **{limit}** commands per minute.",
+      "updatedGuild": "✅ Per-guild rate limit set to **{limit}** commands per minute.",
+      "updatedReset": "✅ Rate limits reset to environment defaults.",
+      "embedTitle": "⚡ Server Rate Limits",
+      "fieldUser": "Per User",
+      "fieldGuild": "Per Guild",
+      "fieldWindow": "Time Window",
+      "fieldWindowValue": "60 seconds",
+      "fieldValue": "**{limit}** commands/min ({source})",
+      "sourceOverride": "override",
+      "sourceEnv": "default",
+      "footer": "Use !ratelimit user <n> or !ratelimit guild <n> to change"
+    },
+    "globalratelimit": {
+      "notOwner": "❌ Only bot operators can change platform-wide rate limits.",
+      "notSet": "ℹ️ No platform-wide override is currently set.",
+      "current": "🌐 **Platform-wide overrides:** User: `{userLimit}`, Guild: `{guildLimit}`",
+      "invalidValue": "❌ Please provide a valid positive number.",
+      "updated": "✅ Platform-wide override set — User: `{userLimit}`, Guild: `{guildLimit}`.",
+      "updatedReset": "✅ Platform-wide override cleared. Env defaults will be used.",
+      "unchanged": "unchanged"
     }
   }
 }
