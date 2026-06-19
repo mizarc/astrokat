@@ -5,11 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+#### Commands
+
+- **Administration**: `!ratelimit` — per-guild rate limit management. Server
+  admins can view, set, or reset per-user and per-guild command rate limits.
+  Subcommands: `user <n>`, `guild <n>`, `reset`.
+- **Operation**: `!system ratelimit` — bot operators can set platform-wide
+  rate limit caps that per-guild overrides cannot exceed.
+  Subcommands: `user <n>`, `guild <n>`, `reset`.
+
+#### Rate Limiting
+
+- Guild admins with Manage Guild permission are exempt from the guild-level
+  rate limit and from per-guild user overrides. Their user limit still
+  respects the platform-wide cap.
+- Bot operators (BOT_OPERATOR_IDS in .env) bypass all rate limits entirely.
+
+### Changed
+
+#### Commands
+
+- **Operation**: `!system` — parent command for bot-operator functionality.
+  Standalone commands `presence` and `status` consolidated under `!system`
+  as subcommands.
+- **Administration**: `!xp` — moved from Social to Administration. Both
+  guild-config management commands now in a dedicated category.
+- **Help**: Added `🛠️ Operation` and `🔐 Administration` categories for
+  bot-operator and guild-config commands respectively.
+
 ## [0.2.0] - 2026-06-14
 
 ### Added
 
 #### Commands
+
 - **Social**: `bean` — fake-ban a user with an optional reason.
 - **Social**: `xp` — full XP/leveling system management (set, add, globalnotify, keyword bonuses).
 - **Social**: `rank` — view your level, XP progress bar, and server rank.
@@ -18,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Utility**: `neofetch` — system and bot stats with ASCII art.
 
 #### XP System
+
 - Message-based XP awards (10–19 XP per message, 60s cooldown).
 - Triangular number level progression (`(L-1)×L÷2×100`).
 - Keyword-triggered bonus XP configured by server admins.
@@ -25,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Per guild level-up message toggle.
 
 #### CI/CD
+
 - Deploy to Rancher on merge to `main` (staging) via GitHub Actions.
 - Deploy to Rancher on merge to `production` or version tag (production).
 - Shared `RANCHER_URL` and `RANCHER_TOKEN` at repo level; per-environment namespace and workload.
@@ -32,11 +67,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 #### Commands
+
 - **Social**: `diceroll` renamed to `roll` and enhanced with full D&D notation (e.g. `2d20+6`) and critical hit/fail indicators.
 
 ### Fixed
 
 #### Commands
+
 - **Social**: `slap` — fixed Discord interaction timeout by adding `deferReply` support and calling it before the heavy GIF-fetching logic.
 
 ## [0.1.0] - 2026-06-10
@@ -44,6 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### Commands
+
 - **Automation**: `remindme`.
 - **Knowledge**: `define`, `currency`, `iss`, `thesaurus`, `translate`, `wiki`.
 - **Moderation**: `purge`.
@@ -52,9 +90,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Utility**: `avatar`, `calc`, `color`, `echo`, `help`, `ping`, `qrcode`, `timestamp`, `uptime`.
 
 #### Platforms
+
 - **Discord** adapter via discord.js.
 - **Fluxer** adapter via @fluxerjs/core.
 
 #### Deployment
+
 - Docker multi-stage build (Node.js 24 Alpine).
 - Docker Compose with profiles for SQLite and PostgreSQL backends.
