@@ -18,14 +18,6 @@ export async function handleRatelimit(message: UnifiedMessage, args: string[]) {
 
   const action = args[0]?.toLowerCase();
 
-  // Reset subcommand — Sets the global override back to defaults
-  if (action === 'reset') {
-    rateLimiter.clearGlobalOverride();
-    rateLimiter.reset();
-    await message.reply(t('commands.system.ratelimit.updatedReset'));
-    return;
-  }
-
   // No args — Show current global override settings
   if (!action) {
     const override = rateLimiter.getGlobalOverride();
@@ -45,27 +37,39 @@ export async function handleRatelimit(message: UnifiedMessage, args: string[]) {
     return;
   }
 
-  // Set new global override values
-  const userValue = parseInt(action, 10);
-  const guildValue = args[1] ? parseInt(args[1], 10) : null;
-
-  if (isNaN(userValue) || userValue < 1) {
-    await message.reply(t('commands.system.ratelimit.invalidValue'));
+  // user <n> — Set platform-wide user limit
+  if (action === 'user') {
+    const value = parseInt(args[1] ?? '', 10);
+    if (isNaN(value) || value < 1) {
+      await message.reply(t('commands.system.ratelimit.invalidValue'));
+      return;
+    }
+    rateLimiter.setGlobalOverride(value, rateLimiter.getGlobalOverride().guildMaxCommands);
+    rateLimiter.reset();
+    await message.reply(t('commands.system.ratelimit.updatedUser', { limit: value }));
     return;
   }
 
-  if (guildValue != null && (isNaN(guildValue) || guildValue < 1)) {
-    await message.reply(t('commands.system.ratelimit.invalidValue'));
+  // guild <n> — Set platform-wide guild limit
+  if (action === 'guild') {
+    const value = parseInt(args[1] ?? '', 10);
+    if (isNaN(value) || value < 1) {
+      await message.reply(t('commands.system.ratelimit.invalidValue'));
+      return;
+    }
+    rateLimiter.setGlobalOverride(rateLimiter.getGlobalOverride().userMaxCommands, value);
+    rateLimiter.reset();
+    await message.reply(t('commands.system.ratelimit.updatedGuild', { limit: value }));
     return;
   }
 
-  rateLimiter.setGlobalOverride(userValue, guildValue);
-  rateLimiter.reset();
+  // reset — Clear the global override back to defaults
+  if (action === 'reset') {
+    rateLimiter.clearGlobalOverride();
+    rateLimiter.reset();
+    await message.reply(t('commands.system.ratelimit.updatedReset'));
+    return;
+  }
 
-  await message.reply(
-    t('commands.system.ratelimit.updated', {
-      userLimit: userValue.toString(),
-      guildLimit: guildValue?.toString() ?? t('commands.system.ratelimit.unchanged'),
-    })
-  );
+  await message.reply(t('commands.system.ratelimit.unknownAction', { action }));
 }

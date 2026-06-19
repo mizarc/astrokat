@@ -162,6 +162,20 @@ class RateLimiter {
   }
 
   /**
+   * Return the effective defaults that apply when no per-guild DB
+   * override is set. This is the cap that per-guild overrides
+   * should not exceed.
+   *
+   * Priority: global override (if set) ** env default (fallback).
+   */
+  getEffectiveDefaults(): { userMaxCommands: number; guildMaxCommands: number } {
+    return {
+      userMaxCommands: this.globalOverride.userMaxCommands ?? this.config.userMaxCommands,
+      guildMaxCommands: this.globalOverride.guildMaxCommands ?? this.config.guildMaxCommands,
+    };
+  }
+
+  /**
    * Remove the global override, reverting both user and guild limits
    * to their environment variable defaults (or per-guild DB overrides).
    */

@@ -59,12 +59,11 @@ export const RatelimitCommand: BotCommand = {
 
 async function showCurrentLimits(message: any, guildId: string): Promise<void> {
   const config = await guildConfigService.get(guildId);
+  const defaults = rateLimiter.getEffectiveDefaults();
 
-  // Resolve effective values: guild override ?? env default
-  const envUser = parseInt(process.env.RATE_LIMIT_USER_MAX ?? '10', 10);
-  const envGuild = parseInt(process.env.RATE_LIMIT_GUILD_MAX ?? '100', 10);
-  const effectiveUser = config.rateLimitUserMax ?? envUser;
-  const effectiveGuild = config.rateLimitGuildMax ?? envGuild;
+  // Resolve effective values: guild override ?? platform-wide default
+  const effectiveUser = config.rateLimitUserMax ?? defaults.userMaxCommands;
+  const effectiveGuild = config.rateLimitGuildMax ?? defaults.guildMaxCommands;
 
   const userSource =
     config.rateLimitUserMax != null
@@ -118,6 +117,13 @@ async function setUserLimit(
     return;
   }
 
+  // Cap per-guild overrides at the platform-wide maximum
+  const defaults = rateLimiter.getEffectiveDefaults();
+  if (value > defaults.userMaxCommands) {
+    await message.reply(t('commands.ratelimit.tooHighUser', { limit: defaults.userMaxCommands }));
+    return;
+  }
+
   await guildConfigService.set(guildId, { rateLimitUserMax: value });
   // Reset in-memory buckets so the new limit takes effect immediately
   rateLimiter.reset();
@@ -132,6 +138,13 @@ async function setGuildLimit(
   const value = parseInt(valueStr ?? '', 10);
   if (isNaN(value) || value < 1) {
     await message.reply(t('commands.ratelimit.invalidValue'));
+    return;
+  }
+
+  // Cap per-guild overrides at the platform-wide maximum
+  const defaults = rateLimiter.getEffectiveDefaults();
+  if (value > defaults.guildMaxCommands) {
+    await message.reply(t('commands.ratelimit.tooHighGuild', { limit: defaults.guildMaxCommands }));
     return;
   }
 
