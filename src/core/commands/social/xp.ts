@@ -1,6 +1,7 @@
 import { t } from '../../i18n.js';
 import type { BotCommand } from '../../types.js';
 import { xpService } from '../../services/xp/xpService.js';
+import { guildConfigService } from '../../services/guildconfig/guildConfigService.js';
 
 export const XpCommand: BotCommand = {
   name: 'xp',
@@ -62,7 +63,7 @@ export const XpCommand: BotCommand = {
 
 async function handleGlobalNotify(message: any, args: string[]) {
   const guildId = message.guildId!;
-  const config = await xpService.getGuildConfig(guildId);
+  const config = await guildConfigService.get(guildId);
 
   if (args.length === 0) {
     const status = config.levelUpMessages
@@ -94,7 +95,7 @@ async function handleGlobalNotify(message: any, args: string[]) {
     return;
   }
 
-  await xpService.setGuildConfig(guildId, { levelUpMessages: enabled });
+  await guildConfigService.set(guildId, { levelUpMessages: enabled });
   const status = t(`commands.xp.${enabled ? 'enabled' : 'disabled'}`);
   await message.reply(t('commands.xp.globalnotifyUpdated', { status }));
 }

@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
-import type { XPStore, XPEntry, GuildConfig, KeywordBonus } from './xpStore.js';
+import type { XPStore, XPEntry, KeywordBonus } from './xpStore.js';
+import type { GuildConfigStore } from '../guildconfig/guildConfigStore.js';
 
 /** Cooldown period in milliseconds between XP-granting actions. */
 const XP_COOLDOWN_MS = 60_000;
@@ -14,11 +15,11 @@ const XP_VARIANCE = 10;
  * Total XP required to reach a given level (triangular number formula).
  * Levels are 1-based: level 1 requires 0 XP.
  *
- *   level 1 → 2:   100 XP
- *   level 2 → 3:   200 XP  (cumulative  300)
- *   level 3 → 4:   300 XP  (cumulative  600)
- *   level 4 → 5:   400 XP  (cumulative 1000)
- *   level 5 → 6:   500 XP  (cumulative 1500)
+ *   level 1 -> 2:   100 XP
+ *   level 2 -> 3:   200 XP  (cumulative  300)
+ *   level 3 -> 4:   300 XP  (cumulative  600)
+ *   level 4 -> 5:   400 XP  (cumulative 1000)
+ *   level 5 -> 6:   500 XP  (cumulative 1500)
  */
 export function xpForLevel(level: number): number {
   return (level - 1) * level / 2 * 100;
@@ -48,10 +49,12 @@ declare interface XPServiceEvents {
 
 class XPService extends EventEmitter<XPServiceEvents> {
   private readonly persistence: XPStore;
+  private readonly guildConfigStore: GuildConfigStore;
 
-  constructor(store: XPStore) {
+  constructor(store: XPStore, guildConfigStore: GuildConfigStore) {
     super();
     this.persistence = store;
+    this.guildConfigStore = guildConfigStore;
   }
 
   /**
@@ -163,14 +166,14 @@ class XPService extends EventEmitter<XPServiceEvents> {
     return this.persistence.getMemberCount(guildId);
   }
 
-  /** Get guild-level XP configuration. */
-  async getGuildConfig(guildId: string): Promise<GuildConfig> {
-    return this.persistence.getGuildConfig(guildId);
+  /** Get guild-level configuration. */
+  async getGuildConfig(guildId: string): Promise<import('../guildconfig/guildConfigStore.js').GuildConfig> {
+    return this.guildConfigStore.get(guildId);
   }
 
-  /** Update guild-level XP configuration. */
-  async setGuildConfig(guildId: string, config: Partial<GuildConfig>): Promise<void> {
-    return this.persistence.setGuildConfig(guildId, config);
+  /** Update guild-level configuration. */
+  async setGuildConfig(guildId: string, config: Partial<import('../guildconfig/guildConfigStore.js').GuildConfig>): Promise<void> {
+    return this.guildConfigStore.set(guildId, config);
   }
 
   /** Toggle a user's level-up notification preference. */
@@ -280,6 +283,7 @@ export { XPService };
 
 import { SqliteXPStore } from './xpStoreSqlite.js';
 import { PostgresXPStore } from './xpStorePostgres.js';
+import { guildConfigService } from '../guildconfig/guildConfigService.js';
 
 const store = process.env.DATABASE_URL
   ? new PostgresXPStore()
@@ -287,4 +291,4 @@ const store = process.env.DATABASE_URL
 
 console.log('[XP] Using', process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite', 'backend.');
 
-export const xpService = new XPService(store);
+export const xpService = new XPService(store, guildConfigService);
