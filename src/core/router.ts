@@ -131,9 +131,14 @@ export async function handleIncomingMessage(
     );
 
     // Rate limit check (only in guilds)
-    // Guild admins are exempt from per-guild user overrides but
-    // still subject to the platform-wide cap and guild limit.
-    if (message.guildId) {
+    // Bot operators bypass all rate limits entirely.
+    const isOperator = (process.env.BOT_OPERATOR_IDS ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .includes(message.author.id);
+
+    if (message.guildId && !isOperator) {
       const canManage = (await message.channel.userCanManageGuild?.()) ?? false;
       const result = await rateLimiter.check(message.guildId, message.author.id, canManage);
       if (!result.allowed) {
