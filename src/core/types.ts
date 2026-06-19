@@ -128,7 +128,14 @@ export interface BotSubcommand {
 export interface BotCommand {
   name: string;
   description: string;
-  category: 'automation' | 'knowledge' | 'social' | 'utility' | 'moderation' | 'operation';
+  category:
+    | 'automation'
+    | 'knowledge'
+    | 'social'
+    | 'utility'
+    | 'moderation'
+    | 'operation'
+    | 'administration';
   execute: (message: UnifiedMessage, args: string[]) => Promise<void>;
   /** Optional parameter definitions for slash command deployment. */
   parameters?: CommandParameter[];

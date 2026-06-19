@@ -3,6 +3,7 @@ import type { BotCommand, ReplyEmbed } from '../../types.js';
 import { getCommands } from '../../router.js';
 
 const CATEGORY_ORDER = [
+  'administration',
   'automation',
   'knowledge',
   'moderation',
@@ -12,6 +13,7 @@ const CATEGORY_ORDER = [
 ] as const;
 
 const CATEGORY_LABELS: Record<string, string> = {
+  administration: '🔐 Administration',
   automation: '⚙️ Automation',
   knowledge: '📚 Knowledge',
   moderation: '🛡️ Moderation',

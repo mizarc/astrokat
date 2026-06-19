@@ -6,7 +6,7 @@ import { guildConfigService } from '../../services/guildconfig/guildConfigServic
 export const RatelimitCommand: BotCommand = {
   name: 'ratelimit',
   description: 'View or configure per-guild rate limits.',
-  category: 'utility',
+  category: 'administration',
   parameters: [
     {
       name: 'action',
