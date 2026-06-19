@@ -131,8 +131,11 @@ export async function handleIncomingMessage(
     );
 
     // Rate limit check (only in guilds)
+    // Guild admins are exempt from per-guild user overrides but
+    // still subject to the platform-wide cap and guild limit.
     if (message.guildId) {
-      const result = await rateLimiter.check(message.guildId, message.author.id);
+      const canManage = (await message.channel.userCanManageGuild?.()) ?? false;
+      const result = await rateLimiter.check(message.guildId, message.author.id, canManage);
       if (!result.allowed) {
         const key = result.reason === 'user' ? 'system.rateLimitedUser' : 'system.rateLimitedGuild';
         await message.reply(t(key, { retryAfter: Math.ceil(result.retryAfter / 1000) }));

@@ -224,6 +224,20 @@ class RateLimiter {
   }
 
   /**
+   * Resolve the platform-wide user limit, ignoring any per-guild DB
+   * override (tier 1). Used for privileged users (guild admins) who
+   * should still respect the bot operator's global cap or env default,
+   * but are exempt from a per-guild override set by another admin.
+   *
+   * Resolution order:
+   *   1. Runtime global override (set by bot operator)
+   *   2. Environment variable default (lowest priority)
+   */
+  private resolvePlatformUserLimit(): number {
+    return this.globalOverride.userMaxCommands ?? this.config.userMaxCommands;
+  }
+
+  /**
    * Prune expired timestamps from a bucket, keeping only entries that fall
    * within the current sliding window.
    *
@@ -240,35 +254,60 @@ class RateLimiter {
    *
    * Evaluation order:
    *   1. Resolve effective limits via the three-tier override system.
-   *   2. Check the **guild-level** limit first (harder global cap).
-   *   3. Check the **user-level** limit second.
+   *      For privileged users, the user-level limit uses only
+   *      tiers 2+3 (global override / env default), skipping
+   *      tier 1 (per-guild DB override).
+   *   2. Check the **guild-level** limit first (skipped for
+   *      privileged users).
+   *   3. Check the **user-level** limit second (privileged users
+   *      skip per-guild DB overrides but still respect the
+   *      platform-wide cap).
    *   4. If both pass, record the command timestamps and allow.
    *
    * @param guildId - The guild the command was issued in.
    * @param userId  - The user who issued the command.
+   * @param isPrivileged - When `true`, the guild-level check is
+   *   skipped entirely and the user limit falls back to the
+   *   platform-wide maximum, ignoring any per-guild DB override.
+   *   Use for guild admins who can change rate limits.
    * @returns `{ allowed: true }` if the command passes both limits.
-   *   `{ allowed: false, retryAfter, reason }` with the cooldown duration
-   *   (in ms) and which limit was hit (`'user'` or `'guild'`).
+   *   `{ allowed: false, retryAfter, reason }` with the cooldown
+   *   duration (in ms) and which limit was hit.
    */
   async check(
     guildId: string,
-    userId: string
+    userId: string,
+    isPrivileged = false
   ): Promise<{ allowed: true } | { allowed: false; retryAfter: number; reason: 'user' | 'guild' }> {
     const now = Date.now();
-    const { userMax, guildMax } = await this.resolveGuildLimits(guildId);
 
-    // Guild-level check
-    const guildKey = guildId;
-    let guildBucket = this.guildBuckets.get(guildKey) ?? [];
-    guildBucket = this.prune(guildBucket);
+    // Guild-level check — skipped for privileged users (admins
+    // who can change rate limits shouldn't be locked out).
+    if (!isPrivileged) {
+      const limits = await this.resolveGuildLimits(guildId);
 
-    if (guildBucket.length >= guildMax && guildBucket.length > 0) {
-      const oldest = guildBucket[0]!;
-      const retryAfter = oldest + this.config.windowMs - now;
-      return { allowed: false, retryAfter: Math.ceil(retryAfter), reason: 'guild' };
+      const guildKey = guildId;
+      let guildBucket = this.guildBuckets.get(guildKey) ?? [];
+      guildBucket = this.prune(guildBucket);
+
+      if (guildBucket.length >= limits.guildMax && guildBucket.length > 0) {
+        const oldest = guildBucket[0]!;
+        const retryAfter = oldest + this.config.windowMs - now;
+        return { allowed: false, retryAfter: Math.ceil(retryAfter), reason: 'guild' };
+      }
+
+      // Record the guild command
+      guildBucket.push(now);
+      this.guildBuckets.set(guildKey, guildBucket);
     }
 
     // User-level check
+    // Privileged users skip per-guild DB overrides but still
+    // respect the bot operator's global cap and env default.
+    const userMax = isPrivileged
+      ? this.resolvePlatformUserLimit()
+      : (await this.resolveGuildLimits(guildId)).userMax;
+
     const userKey = `${guildId}:${userId}`;
     let userBucket = this.userBuckets.get(userKey) ?? [];
     userBucket = this.prune(userBucket);
@@ -280,9 +319,6 @@ class RateLimiter {
     }
 
     // Record the command
-    guildBucket.push(now);
-    this.guildBuckets.set(guildKey, guildBucket);
-
     userBucket.push(now);
     this.userBuckets.set(userKey, userBucket);
 
