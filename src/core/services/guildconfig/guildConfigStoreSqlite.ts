@@ -29,9 +29,9 @@ export class SqliteGuildConfigStore implements GuildConfigStore {
   }
 
   async get(guildId: string): Promise<GuildConfig> {
-    const row = this.db
-      .prepare('SELECT * FROM guild_config WHERE guild_id = ?')
-      .get(guildId) as Record<string, unknown> | undefined;
+    const row = this.db.prepare('SELECT * FROM guild_config WHERE guild_id = ?').get(guildId) as
+      | Record<string, unknown>
+      | undefined;
 
     if (!row) {
       return {
@@ -44,14 +44,8 @@ export class SqliteGuildConfigStore implements GuildConfigStore {
 
     return {
       guildId,
-      rateLimitUserMax:
-        row.rate_limit_user_max != null
-          ? Number(row.rate_limit_user_max)
-          : null,
-      rateLimitGuildMax:
-        row.rate_limit_guild_max != null
-          ? Number(row.rate_limit_guild_max)
-          : null,
+      rateLimitUserMax: row.rate_limit_user_max != null ? Number(row.rate_limit_user_max) : null,
+      rateLimitGuildMax: row.rate_limit_guild_max != null ? Number(row.rate_limit_guild_max) : null,
       levelUpMessages: Boolean(row.level_up_messages),
     };
   }
@@ -90,12 +84,12 @@ export class SqliteGuildConfigStore implements GuildConfigStore {
          ON CONFLICT(guild_id) DO UPDATE SET
            rate_limit_user_max = EXCLUDED.rate_limit_user_max,
            rate_limit_guild_max = EXCLUDED.rate_limit_guild_max,
-           level_up_messages = EXCLUDED.level_up_messages`,
+           level_up_messages = EXCLUDED.level_up_messages`
       )
       .run(guildId, rateLimitUserMax, rateLimitGuildMax, levelUpMessages ? 1 : 0);
   }
 
-  /** Ensures the `guild_config` table exists. */
+  /** Ensures the `guild_config` table exists with all columns. */
   private ensureTable(): void {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS guild_config (
@@ -105,5 +99,20 @@ export class SqliteGuildConfigStore implements GuildConfigStore {
         level_up_messages INTEGER NOT NULL DEFAULT 0
       )
     `);
+
+    // Migrate: add columns missing from older schemas.
+    // better-sqlite3's bundled SQLite may not support
+    // ADD COLUMN IF NOT EXISTS, so we try and ignore
+    // the "duplicate column" error.
+    try {
+      this.db.exec('ALTER TABLE guild_config ADD COLUMN rate_limit_user_max INTEGER');
+    } catch {
+      // column already exists
+    }
+    try {
+      this.db.exec('ALTER TABLE guild_config ADD COLUMN rate_limit_guild_max INTEGER');
+    } catch {
+      // column already exists
+    }
   }
 }
