@@ -207,9 +207,10 @@
         "notSet": "ℹ️ No platform-wide override is currently set.",
         "current": "🌐 **Platform-wide overrides:** User: `{userLimit}`, Guild: `{guildLimit}`",
         "invalidValue": "❌ Please provide a valid positive number.",
-        "updated": "✅ Platform-wide override set — User: `{userLimit}`, Guild: `{guildLimit}`.",
-        "updatedReset": "✅ Platform-wide override cleared. Env defaults will be used.",
-        "unchanged": "unchanged"
+        "unknownAction": "❌ Unknown action `{action}`. Use `system ratelimit` to view, or `system ratelimit user <n>`, `system ratelimit guild <n>`, or `system ratelimit reset`.",
+        "updatedUser": "✅ Platform-wide user limit set to **{limit}** commands per minute.",
+        "updatedGuild": "✅ Platform-wide guild limit set to **{limit}** commands per minute.",
+        "updatedReset": "✅ Platform-wide override cleared. Env defaults will be used."
       },
       "presence": {
         "notOwner": "❌ Only the bot owner can change my presence.",
@@ -292,6 +293,8 @@
       "updatedUser": "✅ Per-user rate limit set to **{limit}** commands per minute.",
       "updatedGuild": "✅ Per-guild rate limit set to **{limit}** commands per minute.",
       "updatedReset": "✅ Rate limits reset to environment defaults.",
+      "tooHighUser": "❌ Per-user limit can't exceed **{limit}** (the platform-wide maximum).",
+      "tooHighGuild": "❌ Per-guild limit can't exceed **{limit}** (the platform-wide maximum).",
       "embedTitle": "⚡ Server Rate Limits",
       "fieldUser": "Per User",
       "fieldGuild": "Per Guild",
