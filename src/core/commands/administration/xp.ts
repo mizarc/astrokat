@@ -1,19 +1,32 @@
 import { t } from '../../i18n.js';
 import type { BotCommand } from '../../types.js';
 import { xpService } from '../../services/xp/xpService.js';
+import { guildConfigService } from '../../services/guildconfig/guildConfigService.js';
 
 export const XpCommand: BotCommand = {
   name: 'xp',
   description: 'XP and leveling system management.',
-  category: 'social',
+  category: 'administration',
   parameters: [
-    { name: 'subcommand', description: 'Subcommand: set, add, globalnotify, bonus', type: 'string',
-      required: true },
+    {
+      name: 'subcommand',
+      description: 'Subcommand: set, add, globalnotify, bonus',
+      type: 'string',
+      required: true,
+    },
     { name: 'target', description: 'User mention/ID or on/off', type: 'string', required: false },
-    { name: 'value', description: 'XP amount, keyword, or on/off', type: 'string',
-      required: false },
-    { name: 'keyword_amount', description: 'XP amount for keyword bonus', type: 'integer',
-      required: false },
+    {
+      name: 'value',
+      description: 'XP amount, keyword, or on/off',
+      type: 'string',
+      required: false,
+    },
+    {
+      name: 'keyword_amount',
+      description: 'XP amount for keyword bonus',
+      type: 'integer',
+      required: false,
+    },
   ],
   async execute(message, args) {
     const guildId = message.guildId;
@@ -28,11 +41,13 @@ export const XpCommand: BotCommand = {
     if (!sub) {
       await message.reply({
         content: '',
-        embeds: [{
-          title: t('commands.xp.helpTitle'),
-          description: t('commands.xp.helpDescription'),
-          color: 0x5865f2,
-        }],
+        embeds: [
+          {
+            title: t('commands.xp.helpTitle'),
+            description: t('commands.xp.helpDescription'),
+            color: 0x5865f2,
+          },
+        ],
       });
       return;
     }
@@ -62,12 +77,10 @@ export const XpCommand: BotCommand = {
 
 async function handleGlobalNotify(message: any, args: string[]) {
   const guildId = message.guildId!;
-  const config = await xpService.getGuildConfig(guildId);
+  const config = await guildConfigService.get(guildId);
 
   if (args.length === 0) {
-    const status = config.levelUpMessages
-      ? t('commands.xp.enabled')
-      : t('commands.xp.disabled');
+    const status = config.levelUpMessages ? t('commands.xp.enabled') : t('commands.xp.disabled');
     await message.reply(t('commands.xp.globalnotifyCurrent', { status }));
     return;
   }
@@ -94,14 +107,14 @@ async function handleGlobalNotify(message: any, args: string[]) {
     return;
   }
 
-  await xpService.setGuildConfig(guildId, { levelUpMessages: enabled });
+  await guildConfigService.set(guildId, { levelUpMessages: enabled });
   const status = t(`commands.xp.${enabled ? 'enabled' : 'disabled'}`);
   await message.reply(t('commands.xp.globalnotifyUpdated', { status }));
 }
 
 async function handleSet(message: any, args: string[]) {
   // Permission check
-  if (!await isAdmin(message)) return;
+  if (!(await isAdmin(message))) return;
 
   const userId = extractUserId(message, args[0]);
   if (!userId) {
@@ -115,20 +128,20 @@ async function handleSet(message: any, args: string[]) {
     return;
   }
 
-  const result = await xpService.setXpDirect(
-    message.guildId!, userId, message.platform, amount,
-  );
+  const result = await xpService.setXpDirect(message.guildId!, userId, message.platform, amount);
 
-  await message.reply(t('commands.xp.setResult', {
-    userId,
-    xp: String(result.xp),
-    level: String(result.level),
-  }));
+  await message.reply(
+    t('commands.xp.setResult', {
+      userId,
+      xp: String(result.xp),
+      level: String(result.level),
+    })
+  );
 }
 
 async function handleAdd(message: any, args: string[]) {
   // Permission check
-  if (!await isAdmin(message)) return;
+  if (!(await isAdmin(message))) return;
 
   const userId = extractUserId(message, args[0]);
   if (!userId) {
@@ -142,16 +155,16 @@ async function handleAdd(message: any, args: string[]) {
     return;
   }
 
-  const result = await xpService.addXpDirect(
-    message.guildId!, userId, message.platform, amount,
-  );
+  const result = await xpService.addXpDirect(message.guildId!, userId, message.platform, amount);
 
-  await message.reply(t('commands.xp.addResult', {
-    userId,
-    amount: String(amount),
-    xp: String(result.xp),
-    level: String(result.level),
-  }));
+  await message.reply(
+    t('commands.xp.addResult', {
+      userId,
+      amount: String(amount),
+      xp: String(result.xp),
+      level: String(result.level),
+    })
+  );
 }
 
 async function handleBonus(message: any, args: string[]) {
@@ -167,14 +180,14 @@ async function handleBonus(message: any, args: string[]) {
     }
 
     const lines = bonuses.map((b) =>
-      t('commands.xp.bonusEntry', { keyword: b.keyword, xpAmount: String(b.xpAmount) }),
+      t('commands.xp.bonusEntry', { keyword: b.keyword, xpAmount: String(b.xpAmount) })
     );
     await message.reply(t('commands.xp.bonusList', { list: lines.join('\n') }));
     return;
   }
 
   // Admin-only subcommands
-  if (!await isAdmin(message)) return;
+  if (!(await isAdmin(message))) return;
 
   if (sub === 'add') {
     const keyword = args[1]?.toLowerCase();

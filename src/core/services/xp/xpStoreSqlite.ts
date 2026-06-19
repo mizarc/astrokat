@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import { resolve } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
-import type { XPStore, XPEntry, GuildConfig, KeywordBonus } from './xpStore.js';
+import type { XPStore, XPEntry, KeywordBonus } from './xpStore.js';
 
 export interface SqliteXPStoreOptions {
   /** Path to the SQLite database file. Defaults to `data/astrokat.db`. */
@@ -105,32 +105,6 @@ export class SqliteXPStore implements XPStore {
     };
   }
 
-  async getGuildConfig(guildId: string): Promise<GuildConfig> {
-    const row = this.db.prepare(
-      'SELECT * FROM guild_config WHERE guild_id = ?',
-    ).get(guildId) as Record<string, unknown> | undefined;
-
-    return {
-      guildId,
-      levelUpMessages: row ? Boolean(row.level_up_messages) : true,
-    };
-  }
-
-  async setGuildConfig(guildId: string, config: Partial<GuildConfig>): Promise<void> {
-    const existing = this.db.prepare(
-      'SELECT * FROM guild_config WHERE guild_id = ?',
-    ).get(guildId) as Record<string, unknown> | undefined;
-
-    const levelUpMessages = config.levelUpMessages ?? (existing ? Boolean(existing.level_up_messages) : true);
-
-    this.db.prepare(`
-      INSERT INTO guild_config (guild_id, level_up_messages)
-      VALUES (?, ?)
-      ON CONFLICT(guild_id) DO UPDATE SET
-        level_up_messages = EXCLUDED.level_up_messages
-    `).run(guildId, levelUpMessages ? 1 : 0);
-  }
-
   async setXpNotifications(guildId: string, userId: string, enabled: boolean): Promise<void> {
     this.db.prepare(`
       UPDATE xp SET xp_notifications = ? WHERE guild_id = ? AND user_id = ?
@@ -193,14 +167,6 @@ export class SqliteXPStore implements XPStore {
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_xp_guild_xp
       ON xp (guild_id, xp DESC)
-    `);
-
-    // Guild-level config table
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS guild_config (
-        guild_id          TEXT PRIMARY KEY,
-        level_up_messages INTEGER NOT NULL DEFAULT 1
-      )
     `);
 
     // Keyword bonus table

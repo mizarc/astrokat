@@ -231,6 +231,9 @@ Astrokat is configured through environment variables set in your `.env` file. Be
 | `DISCORD_ID` | Yes, for slash commands | — | Discord application ID (slash commands auto-deploy on startup) |
 | `BOT_OPERATOR_IDS` | No | — | Comma-separated user IDs allowed to run owner commands (!status, !presence) |
 | `DATABASE_URL` | No | — | PostgreSQL connection string (unset → SQLite) |
+| `RATE_LIMIT_USER_MAX` | No | `10` | Max commands per user per guild per time window |
+| `RATE_LIMIT_GUILD_MAX` | No | `100` | Max commands per guild per time window |
+| `RATE_LIMIT_WINDOW_MS` | No | `60000` | Rate limit time window in milliseconds (default: 1 min) |
 
 ## 📦 Storage Backends
 

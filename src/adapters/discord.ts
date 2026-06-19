@@ -36,7 +36,10 @@ export function startDiscordBot() {
         const textChannel = channel as TC;
 
         const content = t('reminder.dueGeneric', { message: reminder.message });
-        const contentWithMention = t('reminder.dueMention', { userId: reminder.userId, message: reminder.message });
+        const contentWithMention = t('reminder.dueMention', {
+          userId: reminder.userId,
+          message: reminder.message,
+        });
 
         // Try to reply to the original message if we have the ID
         if (reminder.referenceMessageId) {
@@ -90,6 +93,20 @@ export function startDiscordBot() {
         const member = (interaction as any).member;
         if (!member) return false;
         return ch.permissionsFor(member)?.has('ManageMessages') ?? false;
+      },
+      userCanManageGuild: async () => {
+        let ch: any = interaction.channel ?? null;
+        if (!ch && interaction.guild) {
+          try {
+            ch = await interaction.guild.channels.fetch(interaction.channelId);
+          } catch {
+            return false;
+          }
+        }
+        if (!ch || typeof ch.bulkDelete !== 'function') return false;
+        const member = (interaction as any).member;
+        if (!member) return false;
+        return ch.permissionsFor(member)?.has('ManageGuild') ?? false;
       },
       fetchMessages: async (limit: number) => {
         let ch: any = interaction.channel ?? null;
@@ -225,6 +242,7 @@ export function startDiscordBot() {
         }
       },
       userCanManageMessages: async () => false,
+      userCanManageGuild: async () => false,
       fetchMessages: async (limit: number) => {
         try {
           const ch: any = message.channel;

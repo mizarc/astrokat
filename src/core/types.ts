@@ -42,6 +42,7 @@ export interface UnifiedChannel {
   bulkDelete?: (messageIds: string[]) => Promise<void>;
   canManageMessages?: () => Promise<boolean>;
   userCanManageMessages?: () => Promise<boolean>;
+  userCanManageGuild?: () => Promise<boolean>;
 }
 
 export interface UnifiedMessage {
@@ -82,7 +83,11 @@ export interface UnifiedMessage {
    * Sets the bot's custom status text across the platform.
    * Only available if the caller is the bot owner (checked by the command).
    */
-  setStatus?: (opts: { text: string; emojiName?: string | null; emojiId?: string | null }) => Promise<void>;
+  setStatus?: (opts: {
+    text: string;
+    emojiName?: string | null;
+    emojiId?: string | null;
+  }) => Promise<void>;
 
   /**
    * Sets the bot's presence (online/idle/dnd/invisible) across the platform.
@@ -92,7 +97,16 @@ export interface UnifiedMessage {
 }
 
 /** Supported command parameter types (maps to Discord API option types). */
-export type CommandParameterType = 'string' | 'integer' | 'number' | 'boolean' | 'user' | 'channel' | 'role' | 'mentionable' | 'attachment';
+export type CommandParameterType =
+  | 'string'
+  | 'integer'
+  | 'number'
+  | 'boolean'
+  | 'user'
+  | 'channel'
+  | 'role'
+  | 'mentionable'
+  | 'attachment';
 
 /** Describes a single command parameter for slash command deployment. */
 export interface CommandParameter {
@@ -104,13 +118,29 @@ export interface CommandParameter {
   maxValue?: number;
 }
 
+/** Describes a subcommand for a parent command (e.g. !system ratelimit). */
+export interface BotSubcommand {
+  name: string;
+  description: string;
+  parameters?: CommandParameter[];
+}
+
 export interface BotCommand {
   name: string;
   description: string;
-  category: 'automation' | 'knowledge' | 'social' | 'utility' | 'moderation' | 'system';
+  category:
+    | 'automation'
+    | 'knowledge'
+    | 'social'
+    | 'utility'
+    | 'moderation'
+    | 'operation'
+    | 'administration';
   execute: (message: UnifiedMessage, args: string[]) => Promise<void>;
   /** Optional parameter definitions for slash command deployment. */
   parameters?: CommandParameter[];
+  /** Subcommand definitions — when set, the command is deployed as a subcommand group. */
+  subcommands?: BotSubcommand[];
   /**
    * Discord permission strings required to use this command.
    * When set, the slash command is hidden from users without the permission

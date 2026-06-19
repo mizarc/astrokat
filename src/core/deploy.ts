@@ -3,7 +3,8 @@ import { readdirSync, statSync, existsSync, readFileSync, writeFileSync } from '
 import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join, resolve, extname } from 'node:path';
-import type { BotCommand, CommandParameter } from './types.js';
+import type { BotCommand, BotSubcommand, CommandParameter } from './types.js';
+import type { SlashCommandSubcommandBuilder } from 'discord.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -36,15 +37,104 @@ function addOption(builder: SlashCommandBuilder, opt: CommandParameter): void {
   };
 
   switch (opt.type) {
-    case 'string':    builder.addStringOption(cb); break;
-    case 'integer':   builder.addIntegerOption(cb); break;
-    case 'number':    builder.addNumberOption(cb); break;
-    case 'boolean':   builder.addBooleanOption(cb); break;
-    case 'user':      builder.addUserOption(cb); break;
-    case 'channel':   builder.addChannelOption(cb); break;
-    case 'role':      builder.addRoleOption(cb); break;
-    case 'mentionable': builder.addMentionableOption(cb); break;
-    case 'attachment': builder.addAttachmentOption(cb); break;
+    case 'string':
+      builder.addStringOption(cb);
+      break;
+    case 'integer':
+      builder.addIntegerOption(cb);
+      break;
+    case 'number':
+      builder.addNumberOption(cb);
+      break;
+    case 'boolean':
+      builder.addBooleanOption(cb);
+      break;
+    case 'user':
+      builder.addUserOption(cb);
+      break;
+    case 'channel':
+      builder.addChannelOption(cb);
+      break;
+    case 'role':
+      builder.addRoleOption(cb);
+      break;
+    case 'mentionable':
+      builder.addMentionableOption(cb);
+      break;
+    case 'attachment':
+      builder.addAttachmentOption(cb);
+      break;
+  }
+}
+
+/**
+ * Map our CommandParameterType to the correct SlashCommandBuilder subcommand method.
+ */
+function addSubcommandOption(sub: SlashCommandSubcommandBuilder, opt: CommandParameter): void {
+  switch (opt.type) {
+    case 'string':
+      sub.addStringOption((o) => {
+        o.setName(opt.name).setDescription(opt.description);
+        if (opt.required !== undefined) o.setRequired(opt.required);
+        return o;
+      });
+      break;
+    case 'integer':
+      sub.addIntegerOption((o) => {
+        o.setName(opt.name).setDescription(opt.description);
+        if (opt.required !== undefined) o.setRequired(opt.required);
+        return o;
+      });
+      break;
+    case 'number':
+      sub.addNumberOption((o) => {
+        o.setName(opt.name).setDescription(opt.description);
+        if (opt.required !== undefined) o.setRequired(opt.required);
+        return o;
+      });
+      break;
+    case 'boolean':
+      sub.addBooleanOption((o) => {
+        o.setName(opt.name).setDescription(opt.description);
+        if (opt.required !== undefined) o.setRequired(opt.required);
+        return o;
+      });
+      break;
+    case 'user':
+      sub.addUserOption((o) => {
+        o.setName(opt.name).setDescription(opt.description);
+        if (opt.required !== undefined) o.setRequired(opt.required);
+        return o;
+      });
+      break;
+    case 'channel':
+      sub.addChannelOption((o) => {
+        o.setName(opt.name).setDescription(opt.description);
+        if (opt.required !== undefined) o.setRequired(opt.required);
+        return o;
+      });
+      break;
+    case 'role':
+      sub.addRoleOption((o) => {
+        o.setName(opt.name).setDescription(opt.description);
+        if (opt.required !== undefined) o.setRequired(opt.required);
+        return o;
+      });
+      break;
+    case 'mentionable':
+      sub.addMentionableOption((o) => {
+        o.setName(opt.name).setDescription(opt.description);
+        if (opt.required !== undefined) o.setRequired(opt.required);
+        return o;
+      });
+      break;
+    case 'attachment':
+      sub.addAttachmentOption((o) => {
+        o.setName(opt.name).setDescription(opt.description);
+        if (opt.required !== undefined) o.setRequired(opt.required);
+        return o;
+      });
+      break;
   }
 }
 
@@ -67,7 +157,11 @@ async function buildSlashCommands(): Promise<SlashCommandBuilder[]> {
       }
 
       const ext = extname(file);
-      if ((ext !== '.ts' && ext !== '.js') || file.endsWith('.test.ts') || file.endsWith('.test.js')) {
+      if (
+        (ext !== '.ts' && ext !== '.js') ||
+        file.endsWith('.test.ts') ||
+        file.endsWith('.test.js')
+      ) {
         continue;
       }
 
@@ -84,7 +178,20 @@ async function buildSlashCommands(): Promise<SlashCommandBuilder[]> {
             .setName(command.name)
             .setDescription(command.description);
 
-          if (command.parameters) {
+          if (command.subcommands && command.subcommands.length > 0) {
+            // Deploy as a subcommand group
+            for (const sub of command.subcommands) {
+              builder.addSubcommand((s) => {
+                s.setName(sub.name).setDescription(sub.description);
+                if (sub.parameters) {
+                  for (const opt of sub.parameters) {
+                    addSubcommandOption(s, opt);
+                  }
+                }
+                return s;
+              });
+            }
+          } else if (command.parameters) {
             for (const opt of command.parameters) {
               addOption(builder, opt);
             }
@@ -121,7 +228,7 @@ async function buildSlashCommands(): Promise<SlashCommandBuilder[]> {
  * Compute a SHA-256 hash of the serialised command definitions.
  */
 function computeHash(builders: SlashCommandBuilder[]): string {
-  const payload = builders.map(b => b.toJSON());
+  const payload = builders.map((b) => b.toJSON());
   return createHash('sha256').update(JSON.stringify(payload)).digest('hex');
 }
 
@@ -145,7 +252,11 @@ function readStoredHash(): string | null {
  */
 function writeStoredHash(hash: string): void {
   try {
-    writeFileSync(HASH_FILE, JSON.stringify({ hash, updatedAt: new Date().toISOString() }, null, 2), 'utf-8');
+    writeFileSync(
+      HASH_FILE,
+      JSON.stringify({ hash, updatedAt: new Date().toISOString() }, null, 2),
+      'utf-8'
+    );
   } catch (error) {
     console.error('[DEPLOY] Failed to write command hash:', error);
   }
@@ -181,7 +292,7 @@ export async function deployCommands(): Promise<void> {
   }
 
   const rest = new REST({ version: '10' }).setToken(token);
-  const payload = builders.map(b => b.toJSON());
+  const payload = builders.map((b) => b.toJSON());
 
   console.log(`[DEPLOY] Registering ${payload.length} slash command(s)...`);
 

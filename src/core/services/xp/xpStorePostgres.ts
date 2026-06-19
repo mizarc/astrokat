@@ -1,5 +1,5 @@
 import pg from 'pg';
-import type { XPStore, XPEntry, GuildConfig, KeywordBonus } from './xpStore.js';
+import type { XPStore, XPEntry, KeywordBonus } from './xpStore.js';
 
 const { Pool } = pg;
 
@@ -90,35 +90,6 @@ export class PostgresXPStore implements XPStore {
     return parseInt(result.rows[0].count, 10);
   }
 
-  async getGuildConfig(guildId: string): Promise<GuildConfig> {
-    const result = await this.pool.query(
-      'SELECT * FROM guild_config WHERE guild_id = $1',
-      [guildId],
-    );
-
-    return {
-      guildId,
-      levelUpMessages: result.rows.length > 0 ? result.rows[0].level_up_messages : true,
-    };
-  }
-
-  async setGuildConfig(guildId: string, config: Partial<GuildConfig>): Promise<void> {
-    const existing = await this.pool.query(
-      'SELECT * FROM guild_config WHERE guild_id = $1',
-      [guildId],
-    );
-
-    const levelUpMessages = config.levelUpMessages ?? (existing.rows.length > 0 ? existing.rows[0].level_up_messages : true);
-
-    await this.pool.query(
-      `INSERT INTO guild_config (guild_id, level_up_messages)
-       VALUES ($1, $2)
-       ON CONFLICT (guild_id) DO UPDATE SET
-         level_up_messages = EXCLUDED.level_up_messages`,
-      [guildId, levelUpMessages],
-    );
-  }
-
   async setXpNotifications(guildId: string, userId: string, enabled: boolean): Promise<void> {
     await this.pool.query(
       'UPDATE xp SET xp_notifications = $1 WHERE guild_id = $2 AND user_id = $3',
@@ -198,13 +169,6 @@ export class PostgresXPStore implements XPStore {
     await this.pool.query(`
       CREATE INDEX IF NOT EXISTS idx_xp_guild_xp
       ON xp (guild_id, xp DESC)
-    `);
-
-    await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS guild_config (
-        guild_id          TEXT PRIMARY KEY,
-        level_up_messages BOOLEAN NOT NULL DEFAULT true
-      )
     `);
 
     await this.pool.query(`

@@ -6,7 +6,9 @@
     "loadedCommand": "Loaded command: {name} ({category})",
     "failedLoadCommand": "Failed to load command from {file}:",
     "executingCommand": "Executing '{commandName}' via {type} command.",
-    "commandNotFound": "Command not found."
+    "commandNotFound": "Command not found.",
+    "rateLimitedUser": "⏳ You're sending commands too fast! Please wait **{retryAfter}s** before using another command.",
+    "rateLimitedGuild": "⏳ This server is sending too many commands! Please wait **{retryAfter}s** before using another command."
   },
   "fluxer": {
     "receivedMessage": "[FLUXER] Received message: {content} from {username}",
@@ -199,18 +201,30 @@
       "skippedOldUser": "\n⚠️ {count} message(s) skipped (older than 14 days).",
       "error": "❌ Failed to purge messages: {detail}"
     },
-    "status": {
-      "notOwner": "❌ Only the bot owner can change my status.",
-      "usage": "❌ Usage: `status <text>`\nExample: `status 🔧 Maintenance mode`",
-      "notAvailable": "❌ This platform doesn't support status updates.",
-      "success": "✅ Custom status set to: **{text}**"
-    },
-    "presence": {
-      "notOwner": "❌ Only the bot owner can change my presence.",
-      "usage": "❌ Usage: `presence <status>`\nStatuses: `online`, `idle`, `dnd`, `invisible`\nExample: `presence dnd`",
-      "invalid": "❌ Invalid status. Use one of: `online`, `idle`, `dnd`, `invisible`",
-      "notAvailable": "❌ This platform doesn't support presence updates.",
-      "success": "✅ Presence set to **{status}**."
+    "system": {
+      "ratelimit": {
+        "notOwner": "❌ Only bot operators can change platform-wide rate limits.",
+        "notSet": "ℹ️ No platform-wide override is currently set.",
+        "current": "🌐 **Platform-wide overrides:** User: `{userLimit}`, Guild: `{guildLimit}`",
+        "invalidValue": "❌ Please provide a valid positive number.",
+        "unknownAction": "❌ Unknown action `{action}`. Use `system ratelimit` to view, or `system ratelimit user <n>`, `system ratelimit guild <n>`, or `system ratelimit reset`.",
+        "updatedUser": "✅ Platform-wide user limit set to **{limit}** commands per minute.",
+        "updatedGuild": "✅ Platform-wide guild limit set to **{limit}** commands per minute.",
+        "updatedReset": "✅ Platform-wide override cleared. Env defaults will be used."
+      },
+      "presence": {
+        "notOwner": "❌ Only the bot owner can change my presence.",
+        "usage": "❌ Usage: `system presence <status>`\nStatuses: `online`, `idle`, `dnd`, `invisible`\nExample: `system presence dnd`",
+        "invalid": "❌ Invalid status. Use one of: `online`, `idle`, `dnd`, `invisible`",
+        "notAvailable": "❌ This platform doesn't support presence updates.",
+        "success": "✅ Presence set to **{status}**."
+      },
+      "status": {
+        "notOwner": "❌ Only the bot owner can change my status.",
+        "usage": "❌ Usage: `system status <text>`\nExample: `system status 🔧 Maintenance mode`",
+        "notAvailable": "❌ This platform doesn't support status updates.",
+        "success": "✅ Custom status set to: **{text}**"
+      }
     },
     "rank": {
       "guildOnly": "❌ This command can only be used in a server.",
@@ -270,6 +284,26 @@
       "title": "📋 Help",
       "listItem": "`!{name}` — {description}",
       "noCommands": "No commands available."
+    },
+    "ratelimit": {
+      "guildOnly": "❌ This command can only be used in a server.",
+      "noPermission": "❌ You need the **Manage Messages** permission to change rate limits.",
+      "unknownAction": "❌ Unknown action `{action}`. Use `!ratelimit` to see current limits, or `!ratelimit user <n>`, `!ratelimit guild <n>`, or `!ratelimit reset`.",
+      "invalidValue": "❌ Please provide a valid positive number.",
+      "updatedUser": "✅ Per-user rate limit set to **{limit}** commands per minute.",
+      "updatedGuild": "✅ Per-guild rate limit set to **{limit}** commands per minute.",
+      "updatedReset": "✅ Rate limits reset to environment defaults.",
+      "tooHighUser": "❌ Per-user limit can't exceed **{limit}** (the platform-wide maximum).",
+      "tooHighGuild": "❌ Per-guild limit can't exceed **{limit}** (the platform-wide maximum).",
+      "embedTitle": "⚡ Guild Rate Limits",
+      "fieldUser": "Per User",
+      "fieldGuild": "Per Guild",
+      "fieldWindow": "Time Window",
+      "fieldWindowValue": "60 seconds",
+      "fieldValue": "**{limit}** commands/min ({source})",
+      "sourceOverride": "override",
+      "sourceEnv": "default",
+      "footer": "Use !ratelimit user <n> or !ratelimit guild <n> to change"
     }
   }
 }

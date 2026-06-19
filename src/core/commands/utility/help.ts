@@ -2,13 +2,23 @@ import { t } from '../../i18n.js';
 import type { BotCommand, ReplyEmbed } from '../../types.js';
 import { getCommands } from '../../router.js';
 
-const CATEGORY_ORDER = ['automation', 'knowledge', 'moderation', 'social', 'utility'] as const;
+const CATEGORY_ORDER = [
+  'administration',
+  'automation',
+  'knowledge',
+  'moderation',
+  'social',
+  'operation',
+  'utility',
+] as const;
 
 const CATEGORY_LABELS: Record<string, string> = {
+  administration: '🔐 Administration',
   automation: '⚙️ Automation',
   knowledge: '📚 Knowledge',
   moderation: '🛡️ Moderation',
   social: '🎮 Social',
+  operation: '🛠️ Operation',
   utility: '🔧 Utility',
 };
 
@@ -41,9 +51,7 @@ export const HelpCommand: BotCommand = {
       const label = CATEGORY_LABELS[category] ?? category;
       lines.push(`**${label}**`);
       for (const cmd of cmds) {
-        lines.push(
-          `　\`!${cmd.name}\` — ${cmd.description}`,
-        );
+        lines.push(`　\`!${cmd.name}\` — ${cmd.description}`);
       }
       lines.push('');
     }
