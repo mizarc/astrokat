@@ -42,6 +42,7 @@ export interface UnifiedChannel {
   bulkDelete?: (messageIds: string[]) => Promise<void>;
   canManageMessages?: () => Promise<boolean>;
   userCanManageMessages?: () => Promise<boolean>;
+  userCanManageGuild?: () => Promise<boolean>;
 }
 
 export interface UnifiedMessage {
@@ -82,7 +83,11 @@ export interface UnifiedMessage {
    * Sets the bot's custom status text across the platform.
    * Only available if the caller is the bot owner (checked by the command).
    */
-  setStatus?: (opts: { text: string; emojiName?: string | null; emojiId?: string | null }) => Promise<void>;
+  setStatus?: (opts: {
+    text: string;
+    emojiName?: string | null;
+    emojiId?: string | null;
+  }) => Promise<void>;
 
   /**
    * Sets the bot's presence (online/idle/dnd/invisible) across the platform.
@@ -92,7 +97,16 @@ export interface UnifiedMessage {
 }
 
 /** Supported command parameter types (maps to Discord API option types). */
-export type CommandParameterType = 'string' | 'integer' | 'number' | 'boolean' | 'user' | 'channel' | 'role' | 'mentionable' | 'attachment';
+export type CommandParameterType =
+  | 'string'
+  | 'integer'
+  | 'number'
+  | 'boolean'
+  | 'user'
+  | 'channel'
+  | 'role'
+  | 'mentionable'
+  | 'attachment';
 
 /** Describes a single command parameter for slash command deployment. */
 export interface CommandParameter {

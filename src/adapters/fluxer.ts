@@ -26,8 +26,8 @@ function toFluxerEmbeds(embeds: ReplyEmbed[]): EmbedBuilder[] {
         ...e.fields.map((f) => ({
           name: f.name,
           value: f.value,
-          inline: f.inline ?? false,  
-        })),
+          inline: f.inline ?? false,
+        }))
       );
     }
     if (e.thumbnail) embed.setThumbnail(e.thumbnail.url);
@@ -44,7 +44,12 @@ export function startFluxerBot() {
   client.on(Events.MessageCreate, async (message) => {
     // 1. Ignore bot messages to prevent infinite loops
     if (message.author?.bot) return;
-    console.log(t('fluxer.receivedMessage', { content: message.content, username: message.author?.username ?? 'unknown' }));
+    console.log(
+      t('fluxer.receivedMessage', {
+        content: message.content,
+        username: message.author?.username ?? 'unknown',
+      })
+    );
 
     const conversationId = `${message.channelId}-${message.author.id}`;
 
@@ -75,10 +80,22 @@ export function startFluxerBot() {
           return false;
         }
       },
+      userCanManageGuild: async () => {
+        try {
+          const ch = await client.channels.resolve(message.channelId);
+          if (!ch || !('bulkDeleteMessages' in ch)) return false;
+          const guild = await message.resolveGuild();
+          if (!guild) return false;
+          const authorMember = await guild.members.resolve(message.author.id);
+          return authorMember.permissions.has(PermissionFlags.ManageGuild);
+        } catch {
+          return false;
+        }
+      },
       fetchMessages: async (limit: number) => {
         try {
           const raw: any[] = await client.rest.get(
-            `/channels/${message.channelId}/messages?limit=${limit}`,
+            `/channels/${message.channelId}/messages?limit=${limit}`
           );
           return (raw ?? []).map((m: any) => ({
             id: m.id,
@@ -91,10 +108,9 @@ export function startFluxerBot() {
       },
       bulkDelete: async (messageIds: string[]) => {
         if (messageIds.length === 0) return;
-        await client.rest.post(
-          `/channels/${message.channelId}/messages/bulk-delete`,
-          { body: { messages: messageIds } },
-        );
+        await client.rest.post(`/channels/${message.channelId}/messages/bulk-delete`, {
+          body: { messages: messageIds },
+        });
       },
     };
 
@@ -217,7 +233,10 @@ export function startFluxerBot() {
         const textChannel = channel as TC;
 
         const content = t('reminder.dueGeneric', { message: reminder.message });
-        const contentWithMention = t('reminder.dueMention', { userId: reminder.userId, message: reminder.message });
+        const contentWithMention = t('reminder.dueMention', {
+          userId: reminder.userId,
+          message: reminder.message,
+        });
 
         // Try to reply to the original message if we have the ID
         if (reminder.referenceMessageId && textChannel.messages?.fetch) {
