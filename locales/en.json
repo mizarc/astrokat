@@ -295,7 +295,7 @@
       "updatedReset": "✅ Rate limits reset to environment defaults.",
       "tooHighUser": "❌ Per-user limit can't exceed **{limit}** (the platform-wide maximum).",
       "tooHighGuild": "❌ Per-guild limit can't exceed **{limit}** (the platform-wide maximum).",
-      "embedTitle": "⚡ Server Rate Limits",
+      "embedTitle": "⚡ Guild Rate Limits",
       "fieldUser": "Per User",
       "fieldGuild": "Per Guild",
       "fieldWindow": "Time Window",
