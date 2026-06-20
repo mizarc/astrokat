@@ -183,7 +183,7 @@ describe('generateSlap', () => {
     // Verify it starts with RIFF WebP header
     const header = result.toString('ascii', 0, 4);
     expect(header).toBe('RIFF');
-  }, 30000);
+  }, 10000);
 
   it('should produce output larger than a minimum threshold', async () => {
     const avatarBuffer = await sharp({
