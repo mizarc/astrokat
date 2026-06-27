@@ -16,6 +16,10 @@ We have an officially hosted public Astrokat instance ready to use! Invite it to
 
 > 💡 **Prefer to self-host?** You can run Astrokat on your own infrastructure using Docker, all it takes is a token and a couple of commands. Head over to [Getting Started](#-getting-started) to set up your own instance.
 
+## 💬 Community
+
+Have open questions, suggestions, or just want to hang out? Join the **[Astrokat Command Center](https://fluxer.gg/NsPBISOa)** over on Fluxer.
+
 ## ✨ Features
 
 - **Multi-platform by design** — Built on a shared command system. Write a command once, it works everywhere. Currently supports Discord and Fluxer.
