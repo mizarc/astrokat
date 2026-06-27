@@ -138,6 +138,7 @@ export function startFluxerBot() {
           return {
             username: user.username,
             avatarUrl: user.displayAvatarURL({ size: 1024 }),
+            bot: user.bot,
           };
         } catch {
           return null;

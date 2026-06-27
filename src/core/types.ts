@@ -59,7 +59,9 @@ export interface UnifiedMessage {
    * Fetches a user's username and avatar URL by their ID.
    * Returns null if the user cannot be found.
    */
-  fetchUser?: (userId: string) => Promise<{ username: string; avatarUrl: string } | null>;
+  fetchUser?: (
+    userId: string
+  ) => Promise<{ username: string; avatarUrl: string; bot?: boolean } | null>;
 
   /**
    * Defers the reply to buy more time before responding.
