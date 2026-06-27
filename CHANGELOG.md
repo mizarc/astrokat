@@ -42,7 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Social**: `!slap` — reworked from pure-JS GIF encoding (LZW, ~7s) to
   manual animated WebP assembly via sharp/libwebp (~300ms). 23× generation
   speedup. Avatar download reduced to only fetch at 128px.
-- **Help**: Added `🛠️ Operation` and `🔐 Administration` categories for
+- **Help**: Added `Operation` and `Administration` categories for
   bot-operator and guild-config commands respectively.
 
 ### Removed
