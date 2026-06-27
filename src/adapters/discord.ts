@@ -168,6 +168,7 @@ export function startDiscordBot() {
           return {
             username: user.tag,
             avatarUrl: user.displayAvatarURL({ size: 1024 }),
+            bot: user.bot,
           };
         } catch {
           return null;
@@ -282,6 +283,7 @@ export function startDiscordBot() {
           return {
             username: user.tag,
             avatarUrl: user.displayAvatarURL({ size: 1024 }),
+            bot: user.bot,
           };
         } catch {
           return null;

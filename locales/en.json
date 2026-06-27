@@ -226,6 +226,22 @@
         "success": "✅ Custom status set to: **{text}**"
       }
     },
+    "rep": {
+      "guildOnly": "❌ This command can only be used in a server.",
+      "title": "⭐ {username}'s Reputation",
+      "score": "**Rep:** {rep}",
+      "rankPosition": "**Rank:** #{rank} / {total}",
+      "noRep": "This user hasn't earned any rep yet.",
+      "givenTitle": "⭐ Rep Given!",
+      "givenDescription": "**{giver}** gave a rep point to **{receiver}**! They now have **{rep} rep**.",
+      "botRep": "🤖 You can't give reputation points to bots.",
+      "dailyAllowanceExhausted": "⏳ You've used all **3** of your daily reputation tokens! Come back in 24 hours.",
+      "targetLockout": "🔒 You've already repped this user recently. You can give them rep again in **{time}**.",
+      "cooldownDays": "{days}d",
+      "cooldownHours": "{hours}h",
+      "cooldownMinutes": "{minutes}m",
+      "cooldownSeconds": "{seconds}s"
+    },
     "rank": {
       "guildOnly": "❌ This command can only be used in a server.",
       "title": "👤 {username}",
@@ -238,8 +254,11 @@
     "leaderboard": {
       "guildOnly": "❌ This command can only be used in a server.",
       "noData": "🏆 No XP data yet — start chatting to earn XP!",
+      "noRepData": "⭐ No rep data yet — use `!rep @user` to give rep!",
       "title": "🏆 Server Leaderboard",
+      "titleRep": "⭐ Reputation Leaderboard",
       "entry": "{medal} **{name}** — Level {level} ({xp} XP)",
+      "entryRep": "{medal} **{name}** — {rep} rep",
       "footer": "Top 10"
     },
     "xp": {
