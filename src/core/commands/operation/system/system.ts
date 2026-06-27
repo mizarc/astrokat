@@ -3,6 +3,7 @@ import type { BotCommand, ReplyEmbed } from '../../../types.js';
 import { handleRatelimit } from './subcommands/ratelimit.js';
 import { handlePresence } from './subcommands/presence.js';
 import { handleStatus } from './subcommands/status.js';
+import { handleStats } from './subcommands/stats.js';
 
 export const SystemCommand: BotCommand = {
   name: 'system',
@@ -41,6 +42,10 @@ export const SystemCommand: BotCommand = {
         },
       ],
     },
+    {
+      name: 'stats',
+      description: 'View guild and member statistics with growth chart (operator only).',
+    },
   ],
   async execute(message, args) {
     const subcommand = args[0]?.toLowerCase();
@@ -53,6 +58,7 @@ export const SystemCommand: BotCommand = {
           '`!system ratelimit` — View or set platform-wide rate limits',
           '`!system presence` — Change bot presence (online/idle/dnd/invisible)',
           '`!system status` — Set custom bot status text',
+          '`!system stats` — View guild & member statistics with growth chart',
         ].join('\n'),
         footer: {
           text: 'Use `!system <subcommand>` to run a command.',
@@ -72,10 +78,13 @@ export const SystemCommand: BotCommand = {
       case 'status':
         await handleStatus(message, args.slice(1));
         break;
+      case 'stats':
+        await handleStats(message, args.slice(1));
+        break;
       default:
         await message.reply(
           `❌ Unknown subcommand \`${subcommand}\`. ` +
-            'Available: `ratelimit`, `presence`, `status`.'
+            'Available: `ratelimit`, `presence`, `status`, `stats`.'
         );
     }
   },

@@ -224,6 +224,11 @@
         "usage": "❌ Usage: `system status <text>`\nExample: `system status 🔧 Maintenance mode`",
         "notAvailable": "❌ This platform doesn't support status updates.",
         "success": "✅ Custom status set to: **{text}**"
+      },
+      "stats": {
+        "notOwner": "❌ Only bot operators can view statistics.",
+        "noData": "📊 No snapshot data recorded yet. Snapshots are taken every hour.",
+        "error": "❌ Failed to retrieve statistics."
       }
     },
     "rep": {

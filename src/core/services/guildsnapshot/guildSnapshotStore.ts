@@ -20,3 +20,28 @@ export interface GuildSnapshotStore {
    */
   getHistory(limit?: number): Promise<GuildSnapshot[]>;
 }
+
+// Lazy singleton — constructed once, reused across commands and services.
+let _store: GuildSnapshotStore | null = null;
+let _storePromise: Promise<GuildSnapshotStore> | null = null;
+
+/**
+ * Returns the shared snapshot store instance.
+ * Automatically selects SQLite or Postgres based on DATABASE_URL.
+ */
+export async function getSnapshotStore(): Promise<GuildSnapshotStore> {
+  if (_store) return _store;
+  if (_storePromise) return _storePromise;
+
+  _storePromise = (async () => {
+    const { SqliteGuildSnapshotStore } = await import('./guildSnapshotStoreSqlite.js');
+    const { PostgresGuildSnapshotStore } = await import('./guildSnapshotStorePostgres.js');
+
+    _store = process.env.DATABASE_URL
+      ? new PostgresGuildSnapshotStore()
+      : new SqliteGuildSnapshotStore();
+    return _store;
+  })();
+
+  return _storePromise;
+}
