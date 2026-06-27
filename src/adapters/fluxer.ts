@@ -277,23 +277,34 @@ export function startFluxerBot() {
 /**
  * Fluxer guild aggregator.
  *
- * Fluxer doesn't support sharding yet, so this reads the local cache
- * directly. When Fluxer adds sharding support, this class can be
- * updated to use the same cross-shard IPC pattern as the Discord
- * aggregator.
+ * Fluxer doesn't support sharding yet, so this reads the local guild
+ * cache. If the cache hasn't been populated by gateway GUILD_CREATE
+ * events yet, it falls back to client.guilds.fetchGuilds() via the
+ * REST API to populate it on demand.
  */
 export class FluxerGuildAggregator implements GuildAggregator {
   constructor(private readonly client: Client) {}
 
   async getStats(): Promise<GuildStats> {
-    // Fluxer may use a different cache structure — cast to access guilds
-    const guilds = (this.client as any).guilds?.cache;
-    if (!guilds) {
-      return { guildCount: 0, memberTotal: 0 };
+    const guildManager = (this.client as any).guilds;
+
+    if (!guildManager) return { guildCount: 0, memberTotal: 0 };
+
+    // If cache is empty, try REST API first (only if client is ready)
+    if (guildManager.size === 0) {
+      if (this.client.isReady()) {
+        try {
+          await guildManager.fetchGuilds();
+        } catch {
+          return { guildCount: 0, memberTotal: 0 };
+        }
+      } else {
+        return { guildCount: 0, memberTotal: 0 };
+      }
     }
 
-    const guildCount = guilds.size;
-    const memberTotal = [...guilds.values()].reduce(
+    const guildCount = guildManager.size;
+    const memberTotal = [...guildManager.values()].reduce(
       (sum: number, guild: any) => sum + (guild.memberCount ?? 0),
       0
     );

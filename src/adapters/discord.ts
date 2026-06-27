@@ -336,6 +336,9 @@ export class DiscordGuildAggregator implements GuildAggregator {
   constructor(private readonly client: Client) {}
 
   async getStats(): Promise<GuildStats> {
+    if (!this.client.isReady()) {
+      return { guildCount: 0, memberTotal: 0 };
+    }
     if (this.client.shard) {
       return this.getShardedStats();
     }

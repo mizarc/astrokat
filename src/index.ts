@@ -43,19 +43,23 @@ console.log(
   t('guildSnapshot.backend', { backend: process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite' })
 );
 
-// Start selected adapters and wire up snapshot services
+// Start selected adapters and wire up snapshot services.
+// Use a delayed first snapshot so gateway GUILD_CREATE events
+// have time to populate the guild cache.
 if (needDiscord) {
   const discordClient = startDiscordBot();
   const aggregator = new DiscordGuildAggregator(discordClient);
   const service = new GuildSnapshotService(snapshotStore, aggregator);
-  service.start();
+  service.start(3_600_000, false);
+  setTimeout(() => service.snapshot(), 20_000);
 }
 
 if (needFluxer) {
   const fluxerClient = startFluxerBot();
   const aggregator = new FluxerGuildAggregator(fluxerClient);
   const service = new GuildSnapshotService(snapshotStore, aggregator);
-  service.start();
+  service.start(3_600_000, false);
+  setTimeout(() => service.snapshot(), 25_000);
 }
 
 console.log(t('system.allAdaptersConnected'));
