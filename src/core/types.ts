@@ -151,3 +151,29 @@ export interface BotCommand {
    */
   requiredPermissions?: string[];
 }
+
+/**
+ * Result of aggregating guild stats from an adapter client.
+ */
+export interface GuildStats {
+  guildCount: number;
+  memberTotal: number;
+}
+
+/**
+ * Platform-agnostic abstraction for counting guilds and members.
+ *
+ * Each adapter (Discord, Fluxer, etc.) provides its own implementation.
+ * This keeps the snapshot service completely decoupled from any specific
+ * platform or sharding strategy.
+ */
+export interface GuildAggregator {
+  /**
+   * Count all guilds the bot is in and sum their member counts.
+   *
+   * For sharded Discord bots, this uses cross-shard IPC internally so
+   * one shard can collect data from all shards. For unsharded setups,
+   * it reads the local cache directly.
+   */
+  getStats(): Promise<GuildStats>;
+}

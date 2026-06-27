@@ -325,5 +325,10 @@
       "sourceEnv": "default",
       "footer": "Use !ratelimit user <n> or !ratelimit guild <n> to change"
     }
+  },
+  "guildSnapshot": {
+    "recorded": "[GUILD_SNAPSHOT] Recorded: {guilds} guilds, {members} members.",
+    "error": "[GUILD_SNAPSHOT] Failed to record snapshot:",
+    "backend": "[GUILD_SNAPSHOT] Using {backend} backend."
   }
 }

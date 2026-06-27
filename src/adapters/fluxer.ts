@@ -3,6 +3,7 @@ import { Client, EmbedBuilder, Events, PermissionFlags, GatewayOpcodes } from '@
 import type { UnifiedMessage, UnifiedAuthor, UnifiedChannel, ReplyEmbed } from '../core/types.js';
 import { handleIncomingMessage, awardMessageXp } from '../core/router.js';
 import { reminderService } from '../core/services/reminders/reminderService.js';
+import type { GuildAggregator, GuildStats } from '../core/types.js';
 
 /** Tracks the bot's presence status so setStatus and setPresence compose cleanly. */
 let currentPresenceStatus: 'online' | 'idle' | 'dnd' | 'invisible' = 'online';
@@ -269,4 +270,34 @@ export function startFluxerBot() {
     process.exit(1); // Stop the bot
   }
   client.login(fluxerToken);
+
+  return client;
+}
+
+/**
+ * Fluxer guild aggregator.
+ *
+ * Fluxer doesn't support sharding yet, so this reads the local cache
+ * directly. When Fluxer adds sharding support, this class can be
+ * updated to use the same cross-shard IPC pattern as the Discord
+ * aggregator.
+ */
+export class FluxerGuildAggregator implements GuildAggregator {
+  constructor(private readonly client: Client) {}
+
+  async getStats(): Promise<GuildStats> {
+    // Fluxer may use a different cache structure — cast to access guilds
+    const guilds = (this.client as any).guilds?.cache;
+    if (!guilds) {
+      return { guildCount: 0, memberTotal: 0 };
+    }
+
+    const guildCount = guilds.size;
+    const memberTotal = [...guilds.values()].reduce(
+      (sum: number, guild: any) => sum + (guild.memberCount ?? 0),
+      0
+    );
+
+    return { guildCount, memberTotal };
+  }
 }
