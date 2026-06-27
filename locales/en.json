@@ -228,10 +228,8 @@
     },
     "rep": {
       "guildOnly": "❌ This command can only be used in a server.",
-      "title": "⭐ {username}'s Reputation",
-      "score": "**Rep:** {rep}",
-      "rankPosition": "**Rank:** #{rank} / {total}",
-      "noRep": "This user hasn't earned any rep yet.",
+      "usage": "❌ Usage: `!rep @user` to give a reputation point.",
+      "selfRep": "❌ You can't give yourself a reputation point.",
       "givenTitle": "⭐ Rep Given!",
       "givenDescription": "**{giver}** gave a rep point to **{receiver}**! They now have **{rep} rep**.",
       "botRep": "🤖 You can't give reputation points to bots.",
@@ -242,14 +240,17 @@
       "cooldownMinutes": "{minutes}m",
       "cooldownSeconds": "{seconds}s"
     },
-    "rank": {
+    "profile": {
       "guildOnly": "❌ This command can only be used in a server.",
       "title": "👤 {username}",
       "level": "Level {level}",
       "xpProgress": "**XP:** {xp} / {nextXp}",
       "progressBar": "{bar} {percent}%",
-      "rankPosition": "**Rank:** #{rank} / {total}",
-      "noXp": "This user hasn't earned any XP yet."
+      "rankPosition": "**XP Rank:** #{rank} / {total}",
+      "noXp": "This user hasn't earned any XP yet.",
+      "repScore": "⭐ **Rep:** {rep}",
+      "repRankPosition": "**Rep Rank:** #{rank} / {total}",
+      "noRep": "This user hasn't earned any rep yet."
     },
     "leaderboard": {
       "guildOnly": "❌ This command can only be used in a server.",
