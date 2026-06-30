@@ -88,12 +88,6 @@ export class PostgresGuildSnapshotStore implements GuildSnapshotStore {
       )
     `);
 
-    // Migration: add platform column to existing databases
-    await this.pool.query(`
-      ALTER TABLE guild_snapshots
-      ADD COLUMN IF NOT EXISTS platform TEXT NOT NULL DEFAULT 'unknown'
-    `);
-
     await this.pool.query(`
       CREATE INDEX IF NOT EXISTS idx_guild_snapshots_recorded_at
       ON guild_snapshots (recorded_at)

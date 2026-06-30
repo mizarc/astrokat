@@ -99,20 +99,5 @@ export class SqliteGuildConfigStore implements GuildConfigStore {
         level_up_messages INTEGER NOT NULL DEFAULT 0
       )
     `);
-
-    // Migrate: add columns missing from older schemas.
-    // better-sqlite3's bundled SQLite may not support
-    // ADD COLUMN IF NOT EXISTS, so we try and ignore
-    // the "duplicate column" error.
-    try {
-      this.db.exec('ALTER TABLE guild_config ADD COLUMN rate_limit_user_max INTEGER');
-    } catch {
-      // column already exists
-    }
-    try {
-      this.db.exec('ALTER TABLE guild_config ADD COLUMN rate_limit_guild_max INTEGER');
-    } catch {
-      // column already exists
-    }
   }
 }

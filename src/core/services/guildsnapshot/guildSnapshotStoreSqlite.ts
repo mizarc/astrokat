@@ -102,16 +102,6 @@ export class SqliteGuildSnapshotStore implements GuildSnapshotStore {
       )
     `);
 
-    // Migration: add platform column to existing databases
-    const columns = this.db.pragma('table_info=guild_snapshots') as Array<{
-      name: string;
-    }>;
-    if (!columns.some((c) => c.name === 'platform')) {
-      this.db.exec(
-        'ALTER TABLE guild_snapshots ADD COLUMN platform TEXT' + " NOT NULL DEFAULT 'unknown'"
-      );
-    }
-
     // Index for ordering by time (most recent first)
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_guild_snapshots_recorded_at
