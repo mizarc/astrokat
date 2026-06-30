@@ -55,33 +55,54 @@ function parseDice(input: string): DiceResult {
     return { total: roll, rolls: [roll], modifier: 0, notation: `1d${sides}`, isPlain: true };
   }
 
-  // Dice notation: [count]d<sides>[+/-modifier]
-  // e.g. 2d20+6, d8, 3d6-1, d%
-  const match = trimmed.match(/^(\d+)?d(\d+|%)([+-]\d+)?$/i);
-  if (!match) {
+  // Strip all whitespace so "2d4 + 3d6 + 7" becomes "2d4+3d6+7"
+  const cleaned = trimmed.replace(/\s+/g, '');
+
+  // Tokenize into dice groups and flat modifiers
+  // Each token is either [sign][count]d<sides> or [sign]<number>
+  const tokens = cleaned.match(/[+-]?(?:\d*[dD](?:\d+|%)|\d+)/g);
+  if (!tokens || tokens.length === 0) {
     throw new Error('Invalid dice format');
   }
 
-  const count = parseInt(match[1] || '1', 10);
-  const sidesRaw = match[2]!.toLowerCase();
-  const sides = sidesRaw === '%' ? 100 : parseInt(sidesRaw, 10);
+  const allRolls: number[] = [];
+  let modifier = 0;
+  const notationParts: string[] = [];
 
-  if (count < 1 || sides < 1) {
-    throw new Error('Invalid dice format');
+  for (const token of tokens) {
+    const diceMatch = token.match(/^([+-])?(\d+)?[dD](\d+|%)$/);
+    if (diceMatch) {
+      const sign = diceMatch[1] === '-' ? -1 : 1;
+      const count = parseInt(diceMatch[2] || '1', 10);
+      const sidesRaw = diceMatch[3]!;
+      const sides = sidesRaw === '%' ? 100 : parseInt(sidesRaw, 10);
+
+      if (count < 1 || sides < 1) throw new Error('Invalid dice format');
+
+      const signStr = sign === -1 ? '-' : notationParts.length > 0 ? '+' : '';
+      notationParts.push(`${signStr}${count}d${sidesRaw}`);
+
+      for (let i = 0; i < count; i++) {
+        allRolls.push(rollDie(sides) * sign);
+      }
+    } else {
+      // Flat modifier
+      const val = parseInt(token, 10);
+      if (isNaN(val)) throw new Error('Invalid dice format');
+      modifier += val;
+      if (notationParts.length > 0) {
+        notationParts.push(val >= 0 ? `+${val}` : `${val}`);
+      } else {
+        notationParts.push(`${val}`);
+      }
+    }
   }
 
-  const modifier = match[3] ? parseInt(match[3], 10) : 0;
-  const notation = `${count}d${sidesRaw}${modifier >= 0 && match[3] ? '+' : ''}${modifier || ''}`;
-
-  const rolls: number[] = [];
-  for (let i = 0; i < count; i++) {
-    rolls.push(rollDie(sides));
-  }
-
-  const rawTotal = rolls.reduce((sum, r) => sum + r, 0);
+  const notation = notationParts.join('');
+  const rawTotal = allRolls.reduce((sum, r) => sum + r, 0);
   const total = rawTotal + modifier;
 
-  return { total, rolls, modifier, notation, isPlain: false };
+  return { total, rolls: allRolls, modifier, notation, isPlain: false };
 }
 
 function formatResult(input: string, result: DiceResult): string {
