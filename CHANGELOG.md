@@ -53,6 +53,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Help**: Added `Operation` and `Administration` categories for
   bot-operator and guild-config commands respectively.
 
+### Fixed
+
+#### Commands
+
+- **Social**: `!roll` — parser now accepts spaces around operators
+  (e.g. `2d4 + 3d6 + 7` works the same as `2d4+3d6+7`).
+
 ### Removed
 
 #### Commands
