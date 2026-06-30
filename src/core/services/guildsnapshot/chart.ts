@@ -21,7 +21,7 @@ interface ChartConfig {
 function generateChart(data: GuildSnapshot[], cfg: ChartConfig, width = 600, height = 220): string {
   if (data.length < 2) return '';
 
-  const pad = { top: 20, right: 20, bottom: 36, left: 64 };
+  const pad = { top: 26, right: 28, bottom: 44, left: 64 };
   const plotW = width - pad.left - pad.right;
   const plotH = height - pad.top - pad.bottom;
 
@@ -80,7 +80,7 @@ function generateChart(data: GuildSnapshot[], cfg: ChartConfig, width = 600, hei
     const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const x = pad.left + (plotW / (data.length - 1)) * idx;
     dateSvg += `
-      <text x="${x}" y="${height - 8}" fill="#888" font-size="10"
+      <text x="${x}" y="${pad.top + plotH + 14}" fill="#888" font-size="10"
             text-anchor="${idx === 0 ? 'start' : idx === data.length - 1 ? 'end' : 'middle'}">
         ${label}
       </text>`;
@@ -94,7 +94,7 @@ function generateChart(data: GuildSnapshot[], cfg: ChartConfig, width = 600, hei
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
     <style>text { font-family: system-ui, -apple-system, sans-serif; }</style>
     <rect width="${width}" height="${height}" fill="#1e1e1e" rx="6"/>
-    <text x="${width / 2}" y="14" fill="#ccc" font-size="12" font-weight="600"
+    <text x="${width / 2}" y="10" fill="#ccc" font-size="12" font-weight="600"
           text-anchor="middle">${cfg.title}</text>
     ${gridSvg}
     <polygon points="${areaPoints.join(' ')}" fill="${cfg.color}26"/>
@@ -122,8 +122,12 @@ function formatNum(n: number): string {
 export function generateCombinedChart(data: GuildSnapshot[]): string {
   const width = 600;
   const chartH = 200;
-  const gap = 8;
-  const totalH = chartH * 2 + gap;
+  const gap = 16;
+  const topPad = 24;
+  const rightPad = 8;
+  const bottomPad = 14;
+  const totalW = width + rightPad;
+  const totalH = chartH * 2 + gap + topPad + bottomPad;
 
   if (data.length < 2) return '';
 
@@ -154,9 +158,9 @@ export function generateCombinedChart(data: GuildSnapshot[]): string {
   const guildBody = guildSvg.replace(/<svg[^>]*>/, '').replace(/<\/svg>/, '');
   const memberBody = memberSvg.replace(/<svg[^>]*>/, '').replace(/<\/svg>/, '');
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${totalH}">
-    <rect width="${width}" height="${totalH}" fill="#1e1e1e" rx="8"/>
-    <g transform="translate(0, 0)">${guildBody}</g>
-    <g transform="translate(0, ${chartH + gap})">${memberBody}</g>
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${totalW}" height="${totalH}">
+    <rect width="${totalW}" height="${totalH}" fill="#1e1e1e" rx="8"/>
+    <g transform="translate(0, ${topPad})">${guildBody}</g>
+    <g transform="translate(0, ${topPad + chartH + gap})">${memberBody}</g>
   </svg>`;
 }

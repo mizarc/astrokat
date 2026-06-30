@@ -101,7 +101,7 @@ export async function handleTrends(message: UnifiedMessage, _args: string[]) {
     // Generate chart image if we have enough data
     if (chronological.length >= 2) {
       const svg = generateCombinedChart(chronological);
-      const pngBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
+      const pngBuffer = await sharp(Buffer.from(svg), { density: 144 }).png().toBuffer();
 
       embed.image = { url: 'attachment://guild-stats.png' };
       await message.reply({
