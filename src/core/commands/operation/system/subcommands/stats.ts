@@ -22,7 +22,8 @@ export async function handleStats(message: UnifiedMessage, _args: string[]) {
 
   try {
     const store = await getSnapshotStore();
-    const history = await store.getHistory(50);
+    const platform = message.platform;
+    const history = await store.getHistory(50, platform);
 
     if (history.length === 0) {
       await message.reply(t('commands.system.stats.noData'));
@@ -51,6 +52,7 @@ export async function handleStats(message: UnifiedMessage, _args: string[]) {
 
     const formatGrowth = (val: number): string => (val >= 0 ? `+${val}` : `${val}`);
 
+    const platformLabel = platform === 'discord' ? 'Discord' : 'Fluxer';
     const firstDate = new Date(oldest.recordedAt * 1000);
     const embed: ReplyEmbed = {
       title: '📊 Guild Statistics',

@@ -9,13 +9,16 @@ import type { GuildAggregator } from '../../types.js';
  * other adapter) and a `GuildSnapshotStore` (SQLite or Postgres). The
  * aggregator handles the complexity of sharding and platform-specific
  * cache structures.
+ *
+ * @param platform Platform label stored with each snapshot (e.g. 'discord').
  */
 class GuildSnapshotService {
   private timer: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private readonly store: GuildSnapshotStore,
-    private readonly aggregator: GuildAggregator
+    private readonly aggregator: GuildAggregator,
+    private readonly platform: string
   ) {}
 
   /**
@@ -57,12 +60,14 @@ class GuildSnapshotService {
         guildCount: stats.guildCount,
         memberTotal: stats.memberTotal,
         recordedAt,
+        platform: this.platform,
       });
 
       console.log(
         t('guildSnapshot.recorded', {
           guilds: String(stats.guildCount),
           members: String(stats.memberTotal),
+          platform: this.platform,
         })
       );
     } catch (error) {

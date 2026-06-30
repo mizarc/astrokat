@@ -49,7 +49,7 @@ console.log(
 if (needDiscord) {
   const discordClient = startDiscordBot();
   const aggregator = new DiscordGuildAggregator(discordClient);
-  const service = new GuildSnapshotService(snapshotStore, aggregator);
+  const service = new GuildSnapshotService(snapshotStore, aggregator, 'discord');
   service.start(3_600_000, false);
   setTimeout(() => service.snapshot(), 20_000);
 }
@@ -57,7 +57,7 @@ if (needDiscord) {
 if (needFluxer) {
   const fluxerClient = startFluxerBot();
   const aggregator = new FluxerGuildAggregator(fluxerClient);
-  const service = new GuildSnapshotService(snapshotStore, aggregator);
+  const service = new GuildSnapshotService(snapshotStore, aggregator, 'fluxer');
   service.start(3_600_000, false);
   setTimeout(() => service.snapshot(), 25_000);
 }

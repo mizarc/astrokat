@@ -5,6 +5,7 @@ export interface GuildSnapshot {
   guildCount: number;
   memberTotal: number;
   recordedAt: number; // Unix timestamp (seconds)
+  platform: string; // e.g. 'discord' | 'fluxer'
 }
 
 /**
@@ -16,9 +17,10 @@ export interface GuildSnapshotStore {
 
   /**
    * Load the most recent snapshots, newest first.
-   * @param limit Max rows to return. Defaults to 100.
+   * @param limit     Max rows to return. Defaults to 100.
+   * @param platform  Optional platform filter (e.g. 'discord', 'fluxer').
    */
-  getHistory(limit?: number): Promise<GuildSnapshot[]>;
+  getHistory(limit?: number, platform?: string): Promise<GuildSnapshot[]>;
 }
 
 // Lazy singleton — constructed once, reused across commands and services.

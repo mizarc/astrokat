@@ -332,7 +332,7 @@
     }
   },
   "guildSnapshot": {
-    "recorded": "[GUILD_SNAPSHOT] Recorded: {guilds} guilds, {members} members.",
+    "recorded": "[GUILD_SNAPSHOT][{platform}] Recorded: {guilds} guilds, {members} members.",
     "error": "[GUILD_SNAPSHOT] Failed to record snapshot:",
     "backend": "[GUILD_SNAPSHOT] Using {backend} backend."
   }

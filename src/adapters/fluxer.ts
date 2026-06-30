@@ -287,27 +287,31 @@ export class FluxerGuildAggregator implements GuildAggregator {
 
   async getStats(): Promise<GuildStats> {
     const guildManager = (this.client as any).guilds;
-
     if (!guildManager) return { guildCount: 0, memberTotal: 0 };
 
-    // If cache is empty, try REST API first (only if client is ready)
-    if (guildManager.size === 0) {
-      if (this.client.isReady()) {
-        try {
-          await guildManager.fetchGuilds();
-        } catch {
-          return { guildCount: 0, memberTotal: 0 };
-        }
-      } else {
+    // Populate guild cache via REST if empty (only if client is ready)
+    const needsFetch = guildManager.size === 0;
+    if (needsFetch) {
+      if (!this.client.isReady()) return { guildCount: 0, memberTotal: 0 };
+      try {
+        await guildManager.fetchGuilds();
+      } catch {
         return { guildCount: 0, memberTotal: 0 };
       }
     }
 
     const guildCount = guildManager.size;
-    const memberTotal = [...guildManager.values()].reduce(
-      (sum: number, guild: any) => sum + (guild.memberCount ?? 0),
-      0
-    );
+    let memberTotal = 0;
+    try {
+      const raw: any = await (this.client as any).rest.get('/users/@me/guilds?with_counts=true');
+      const list: any[] = Array.isArray(raw) ? raw : (raw?.guilds ?? []);
+      for (const g of list) {
+        const c = g.approximate_member_count ?? g.member_count;
+        if (c != null) memberTotal += c;
+      }
+    } catch {
+      return { guildCount: 0, memberTotal: 0 };
+    }
 
     return { guildCount, memberTotal };
   }

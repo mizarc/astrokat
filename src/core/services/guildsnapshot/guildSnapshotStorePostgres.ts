@@ -33,23 +33,32 @@ export class PostgresGuildSnapshotStore implements GuildSnapshotStore {
 
   async record(snapshot: GuildSnapshot): Promise<void> {
     await this.pool.query(
-      `INSERT INTO guild_snapshots (guild_count, member_total, recorded_at)
-       VALUES ($1, $2, $3)`,
-      [snapshot.guildCount, snapshot.memberTotal, snapshot.recordedAt]
+      `INSERT INTO guild_snapshots (guild_count, member_total, recorded_at, platform)
+       VALUES ($1, $2, $3, $4)`,
+      [snapshot.guildCount, snapshot.memberTotal, snapshot.recordedAt, snapshot.platform]
     );
   }
 
-  async getHistory(limit = 100): Promise<GuildSnapshot[]> {
-    const result = await this.pool.query(
-      'SELECT guild_count, member_total, recorded_at' +
-        ' FROM guild_snapshots ORDER BY recorded_at DESC LIMIT $1',
-      [limit]
-    );
+  async getHistory(limit = 100, platform?: string): Promise<GuildSnapshot[]> {
+    let sql = 'SELECT guild_count, member_total, recorded_at, platform' + ' FROM guild_snapshots';
+    const params: unknown[] = [];
+    let paramIdx = 1;
+
+    if (platform) {
+      sql += ` WHERE platform = $${paramIdx++}`;
+      params.push(platform);
+    }
+
+    sql += ` ORDER BY recorded_at DESC LIMIT $${paramIdx}`;
+    params.push(limit);
+
+    const result = await this.pool.query(sql, params);
 
     return result.rows.map((row) => ({
       guildCount: row.guild_count,
       memberTotal: row.member_total,
       recordedAt: row.recorded_at,
+      platform: row.platform,
     }));
   }
 
@@ -64,13 +73,25 @@ export class PostgresGuildSnapshotStore implements GuildSnapshotStore {
         id           SERIAL PRIMARY KEY,
         guild_count  INTEGER NOT NULL,
         member_total INTEGER NOT NULL,
-        recorded_at  BIGINT  NOT NULL
+        recorded_at  BIGINT  NOT NULL,
+        platform     TEXT    NOT NULL DEFAULT 'unknown'
       )
+    `);
+
+    // Migration: add platform column to existing databases
+    await this.pool.query(`
+      ALTER TABLE guild_snapshots
+      ADD COLUMN IF NOT EXISTS platform TEXT NOT NULL DEFAULT 'unknown'
     `);
 
     await this.pool.query(`
       CREATE INDEX IF NOT EXISTS idx_guild_snapshots_recorded_at
       ON guild_snapshots (recorded_at)
+    `);
+
+    await this.pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_guild_snapshots_platform
+      ON guild_snapshots (platform, recorded_at)
     `);
   }
 }

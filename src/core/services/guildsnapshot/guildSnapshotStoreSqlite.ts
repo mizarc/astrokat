@@ -39,35 +39,44 @@ export class SqliteGuildSnapshotStore implements GuildSnapshotStore {
 
   record(snapshot: GuildSnapshot): Promise<void> {
     const stmt = this.db.prepare(`
-      INSERT INTO guild_snapshots (guild_count, member_total, recorded_at)
-      VALUES (@guildCount, @memberTotal, @recordedAt)
+      INSERT INTO guild_snapshots (guild_count, member_total, recorded_at, platform)
+      VALUES (@guildCount, @memberTotal, @recordedAt, @platform)
     `);
 
     stmt.run({
       guildCount: snapshot.guildCount,
       memberTotal: snapshot.memberTotal,
       recordedAt: snapshot.recordedAt,
+      platform: snapshot.platform,
     });
 
     return Promise.resolve();
   }
 
-  getHistory(limit = 100): Promise<GuildSnapshot[]> {
-    const rows = this.db
-      .prepare(
-        'SELECT guild_count, member_total, recorded_at' +
-          ' FROM guild_snapshots ORDER BY recorded_at DESC LIMIT ?'
-      )
-      .all(limit) as Array<{
+  getHistory(limit = 100, platform?: string): Promise<GuildSnapshot[]> {
+    let sql = 'SELECT guild_count, member_total, recorded_at, platform' + ' FROM guild_snapshots';
+    const params: unknown[] = [];
+
+    if (platform) {
+      sql += ' WHERE platform = ?';
+      params.push(platform);
+    }
+
+    sql += ' ORDER BY recorded_at DESC LIMIT ?';
+    params.push(limit);
+
+    const rows = this.db.prepare(sql).all(...params) as Array<{
       guild_count: number;
       member_total: number;
       recorded_at: number;
+      platform: string;
     }>;
 
     const snapshots: GuildSnapshot[] = rows.map((row) => ({
       guildCount: row.guild_count,
       memberTotal: row.member_total,
       recordedAt: row.recorded_at,
+      platform: row.platform,
     }));
 
     return Promise.resolve(snapshots);
@@ -79,14 +88,31 @@ export class SqliteGuildSnapshotStore implements GuildSnapshotStore {
         id           INTEGER PRIMARY KEY AUTOINCREMENT,
         guild_count  INTEGER NOT NULL,
         member_total INTEGER NOT NULL,
-        recorded_at  INTEGER NOT NULL
+        recorded_at  INTEGER NOT NULL,
+        platform     TEXT    NOT NULL DEFAULT 'unknown'
       )
     `);
+
+    // Migration: add platform column to existing databases
+    const columns = this.db.pragma('table_info=guild_snapshots') as Array<{
+      name: string;
+    }>;
+    if (!columns.some((c) => c.name === 'platform')) {
+      this.db.exec(
+        'ALTER TABLE guild_snapshots ADD COLUMN platform TEXT' + " NOT NULL DEFAULT 'unknown'"
+      );
+    }
 
     // Index for ordering by time (most recent first)
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_guild_snapshots_recorded_at
       ON guild_snapshots (recorded_at)
+    `);
+
+    // Index for per-platform queries
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_guild_snapshots_platform
+      ON guild_snapshots (platform, recorded_at)
     `);
   }
 }
