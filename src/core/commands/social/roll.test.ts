@@ -146,4 +146,25 @@ describe('RollCommand', () => {
     expect(reply).toContain('+');
     expect(reply).toContain('2');
   });
+
+  it('should allow spaces around operators', async () => {
+    await RollCommand.execute(mockMessage, ['2d4 + 3d6 + 7']);
+
+    expect(mockMessage.reply).toHaveBeenCalledOnce();
+    const reply = mockMessage.reply.mock.calls[0][0] as string;
+    expect(reply).toContain('🎲');
+    expect(reply).toContain('2d4');
+    expect(reply).toContain('3d6');
+    expect(reply).toContain('+7');
+  });
+
+  it('should allow spaces around negative modifier', async () => {
+    await RollCommand.execute(mockMessage, ['2d8 - 3']);
+
+    expect(mockMessage.reply).toHaveBeenCalledOnce();
+    const reply = mockMessage.reply.mock.calls[0][0] as string;
+    expect(reply).toContain('🎲');
+    expect(reply).toContain('2d8');
+    expect(reply).toContain('-3');
+  });
 });
