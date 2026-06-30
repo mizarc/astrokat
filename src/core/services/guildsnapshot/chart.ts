@@ -92,7 +92,7 @@ function generateChart(data: GuildSnapshot[], cfg: ChartConfig, width = 600, hei
   const lastY = pad.top + plotH - ((lastVal - min) / range) * plotH;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-    <style>text { font-family: system-ui, -apple-system, sans-serif; }</style>
+    <style>text { font-family: 'Noto Sans', 'DejaVu Sans', sans-serif; }</style>
     <rect width="${width}" height="${height}" fill="#1e1e1e" rx="6"/>
     <text x="${width / 2}" y="10" fill="#ccc" font-size="12" font-weight="600"
           text-anchor="middle">${cfg.title}</text>
