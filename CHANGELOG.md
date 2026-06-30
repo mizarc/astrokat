@@ -22,6 +22,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Social**: `!profile` — consolidated rank and reputation viewer. Shows
   level, XP progress bar, XP rank, rep score, and rep rank for any user.
   Includes avatar thumbnail and colour-coded embed. Replaces `!rank`.
+- **Operation**: `!system trends` — per-platform guild and member count
+  trends over the last 30 days with SVG chart and growth stats
+  (7d / 30d) in the embed.
+
+#### Snapshots
+
+- Periodic guild and member count snapshots recorded every 24 hours
+  for each platform (Discord, Fluxer). Powers the trends chart.
 
 #### Rate Limiting
 
