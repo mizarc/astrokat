@@ -53,17 +53,26 @@ export class SqliteGuildSnapshotStore implements GuildSnapshotStore {
     return Promise.resolve();
   }
 
-  getHistory(limit = 100, platform?: string): Promise<GuildSnapshot[]> {
+  getHistory(since?: number, platform?: string): Promise<GuildSnapshot[]> {
     let sql = 'SELECT guild_count, member_total, recorded_at, platform' + ' FROM guild_snapshots';
     const params: unknown[] = [];
+    const conditions: string[] = [];
 
     if (platform) {
-      sql += ' WHERE platform = ?';
+      conditions.push('platform = ?');
       params.push(platform);
     }
 
-    sql += ' ORDER BY recorded_at DESC LIMIT ?';
-    params.push(limit);
+    if (since !== undefined) {
+      conditions.push('recorded_at >= ?');
+      params.push(since);
+    }
+
+    if (conditions.length > 0) {
+      sql += ' WHERE ' + conditions.join(' AND ');
+    }
+
+    sql += ' ORDER BY recorded_at DESC LIMIT 1000';
 
     const rows = this.db.prepare(sql).all(...params) as Array<{
       guild_count: number;

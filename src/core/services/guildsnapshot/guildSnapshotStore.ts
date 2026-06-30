@@ -16,11 +16,11 @@ export interface GuildSnapshotStore {
   record(snapshot: GuildSnapshot): Promise<void>;
 
   /**
-   * Load the most recent snapshots, newest first.
-   * @param limit     Max rows to return. Defaults to 100.
+   * Load snapshots from a point in time until now, newest first.
+   * @param since     Optional Unix timestamp — only rows >= this time.
    * @param platform  Optional platform filter (e.g. 'discord', 'fluxer').
    */
-  getHistory(limit?: number, platform?: string): Promise<GuildSnapshot[]>;
+  getHistory(since?: number, platform?: string): Promise<GuildSnapshot[]>;
 }
 
 // Lazy singleton — constructed once, reused across commands and services.

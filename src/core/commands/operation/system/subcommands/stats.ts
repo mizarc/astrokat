@@ -23,7 +23,10 @@ export async function handleStats(message: UnifiedMessage, _args: string[]) {
   try {
     const store = await getSnapshotStore();
     const platform = message.platform;
-    const history = await store.getHistory(50, platform);
+
+    // Fetch up to 30 days of snapshots
+    const monthAgo = Math.floor(Date.now() / 1000) - 30 * 86400;
+    const history = await store.getHistory(monthAgo, platform);
 
     if (history.length === 0) {
       await message.reply(t('commands.system.stats.noData'));
@@ -35,10 +38,8 @@ export async function handleStats(message: UnifiedMessage, _args: string[]) {
     const latest = history[0]!;
     const oldest = chronological[0]!;
 
-    // Calculate growth
+    // Calculate growth — find closest snapshot to 7d/30d boundaries
     const weekAgo = Math.floor(Date.now() / 1000) - 7 * 86400;
-    const monthAgo = Math.floor(Date.now() / 1000) - 30 * 86400;
-
     const weekAgoSnapshot =
       history.find((s) => s.recordedAt <= weekAgo) ?? history[history.length - 1]!;
 

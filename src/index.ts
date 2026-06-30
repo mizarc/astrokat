@@ -50,7 +50,7 @@ if (needDiscord) {
   const discordClient = startDiscordBot();
   const aggregator = new DiscordGuildAggregator(discordClient);
   const service = new GuildSnapshotService(snapshotStore, aggregator, 'discord');
-  service.start(3_600_000, false);
+  service.start(86_400_000, false);
   setTimeout(() => service.snapshot(), 20_000);
 }
 
@@ -58,7 +58,7 @@ if (needFluxer) {
   const fluxerClient = startFluxerBot();
   const aggregator = new FluxerGuildAggregator(fluxerClient);
   const service = new GuildSnapshotService(snapshotStore, aggregator, 'fluxer');
-  service.start(3_600_000, false);
+  service.start(86_400_000, false);
   setTimeout(() => service.snapshot(), 25_000);
 }
 

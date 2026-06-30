@@ -39,18 +39,28 @@ export class PostgresGuildSnapshotStore implements GuildSnapshotStore {
     );
   }
 
-  async getHistory(limit = 100, platform?: string): Promise<GuildSnapshot[]> {
+  async getHistory(since?: number, platform?: string): Promise<GuildSnapshot[]> {
     let sql = 'SELECT guild_count, member_total, recorded_at, platform' + ' FROM guild_snapshots';
     const params: unknown[] = [];
     let paramIdx = 1;
+    const conditions: string[] = [];
 
     if (platform) {
-      sql += ` WHERE platform = $${paramIdx++}`;
+      conditions.push(`platform = $${paramIdx++}`);
       params.push(platform);
     }
 
+    if (since !== undefined) {
+      conditions.push(`recorded_at >= $${paramIdx++}`);
+      params.push(since);
+    }
+
+    if (conditions.length > 0) {
+      sql += ' WHERE ' + conditions.join(' AND ');
+    }
+
     sql += ` ORDER BY recorded_at DESC LIMIT $${paramIdx}`;
-    params.push(limit);
+    params.push(1000);
 
     const result = await this.pool.query(sql, params);
 
