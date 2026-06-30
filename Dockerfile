@@ -2,7 +2,8 @@ FROM node:24-alpine
 WORKDIR /app
 
 # Install tini for proper signal forwarding (SIGTERM → Node)
-RUN apk add --no-cache tini
+# Install fonts for sharp SVG rendering in chart generation
+RUN apk add --no-cache tini font-noto
 
 # Copy dependency manifests first (layer caching)
 COPY package*.json ./
