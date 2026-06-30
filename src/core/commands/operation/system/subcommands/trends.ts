@@ -1,7 +1,7 @@
 import { t } from '../../../../i18n.js';
 import type { UnifiedMessage, ReplyEmbed } from '../../../../types.js';
 import { getSnapshotStore } from '../../../../services/guildsnapshot/guildSnapshotStore.js';
-import { generateGuildChart } from '../../../../services/guildsnapshot/chart.js';
+import { generateCombinedChart } from '../../../../services/guildsnapshot/chart.js';
 import sharp from 'sharp';
 
 function isOwner(message: { author: { id: string } }): boolean {
@@ -100,9 +100,10 @@ export async function handleTrends(message: UnifiedMessage, _args: string[]) {
 
     // Generate chart image if we have enough data
     if (chronological.length >= 2) {
-      const svg = generateGuildChart(chronological);
+      const svg = generateCombinedChart(chronological);
       const pngBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
 
+      embed.image = { url: 'attachment://guild-stats.png' };
       await message.reply({
         content: '',
         embeds: [embed],

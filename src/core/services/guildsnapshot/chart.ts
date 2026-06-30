@@ -1,26 +1,48 @@
 import type { GuildSnapshot } from './guildSnapshotStore.js';
 
+interface ChartConfig {
+  /** Label shown at the top of the chart. */
+  title: string;
+  /** Extracts the Y value from a snapshot. */
+  value: (d: GuildSnapshot) => number;
+  /** CSS color for the line / area / dot. */
+  color: string;
+}
+
 /**
- * Generates an SVG line chart of guild count over time.
- * Returns the SVG as a string, ready to be rendered via sharp.
+ * Generates an SVG line chart for a single metric.
+ * Returns the SVG as a string.
  *
- * @param data  Snapshots in chronological order (oldest first).
+ * @param data   Snapshots in chronological order (oldest first).
+ * @param cfg    Chart configuration (title, value extractor, color).
  * @param width  Image width in pixels.
  * @param height Image height in pixels.
  */
-export function generateGuildChart(data: GuildSnapshot[], width = 600, height = 300): string {
+function generateChart(data: GuildSnapshot[], cfg: ChartConfig, width = 600, height = 220): string {
   if (data.length < 2) return '';
 
-  const pad = { top: 24, right: 20, bottom: 44, left: 64 };
+  const pad = { top: 20, right: 20, bottom: 36, left: 64 };
   const plotW = width - pad.left - pad.right;
   const plotH = height - pad.top - pad.bottom;
 
-  const values = data.map((d) => d.guildCount);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
+  const values = data.map(cfg.value);
+  let min = Math.min(...values);
+  let max = Math.max(...values);
 
-  // Grid lines (5 evenly spaced horizontal lines)
+  // When all values are identical, pad the Y range so the line
+  // sits centered with sensible grid labels instead of duplicates.
+  if (min === max) {
+    if (min === 0) {
+      max = 4;
+    } else {
+      max = min + 2;
+      min = Math.max(0, min - 2);
+    }
+  }
+
+  const range = max - min;
+
+  // Grid lines
   const gridLines = 5;
   let gridSvg = '';
   for (let i = 0; i < gridLines; i++) {
@@ -36,50 +58,105 @@ export function generateGuildChart(data: GuildSnapshot[], width = 600, height = 
   // Data line
   const points = data.map((d, i) => {
     const x = pad.left + (plotW / (data.length - 1)) * i;
-    const y = pad.top + plotH - ((d.guildCount - min) / range) * plotH;
+    const y = pad.top + plotH - ((cfg.value(d) - min) / range) * plotH;
     return `${x},${y}`;
   });
 
-  // Area fill below the line
+  // Area fill
   const areaPoints = [
     `${pad.left},${pad.top + plotH}`,
     ...points,
     `${pad.left + plotW},${pad.top + plotH}`,
   ];
 
-  // X-axis labels (show first, middle, last)
-  const dateLabels: string[] = [];
+  // X-axis labels
   const labelIndices = [0];
   if (data.length > 2) labelIndices.push(Math.floor(data.length / 2));
   if (data.length > 1) labelIndices.push(data.length - 1);
 
+  let dateSvg = '';
   for (const idx of labelIndices) {
     const d = new Date(data[idx]!.recordedAt * 1000);
     const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const x = pad.left + (plotW / (data.length - 1)) * idx;
-    dateLabels.push(`
+    dateSvg += `
       <text x="${x}" y="${height - 8}" fill="#888" font-size="10"
             text-anchor="${idx === 0 ? 'start' : idx === data.length - 1 ? 'end' : 'middle'}">
         ${label}
-      </text>`);
+      </text>`;
   }
 
-  // Latest value label at the end of the line
+  // End-of-line dot + label
   const lastVal = values[values.length - 1]!;
   const lastX = pad.left + plotW;
   const lastY = pad.top + plotH - ((lastVal - min) / range) * plotH;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-    <rect width="${width}" height="${height}" fill="#1e1e1e" rx="8"/>
-    <text x="${width / 2}" y="16" fill="#ccc" font-size="13" font-weight="600"
-          text-anchor="middle">Guild Count</text>
+    <style>text { font-family: system-ui, -apple-system, sans-serif; }</style>
+    <rect width="${width}" height="${height}" fill="#1e1e1e" rx="6"/>
+    <text x="${width / 2}" y="14" fill="#ccc" font-size="12" font-weight="600"
+          text-anchor="middle">${cfg.title}</text>
     ${gridSvg}
-    <polygon points="${areaPoints.join(' ')}" fill="rgba(88,101,242,0.15)"/>
-    <polyline points="${points.join(' ')}" fill="none" stroke="#5865f2"
+    <polygon points="${areaPoints.join(' ')}" fill="${cfg.color}26"/>
+    <polyline points="${points.join(' ')}" fill="none" stroke="${cfg.color}"
               stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-    <circle cx="${lastX}" cy="${lastY}" r="4" fill="#5865f2"/>
-    <text x="${lastX + 8}" y="${lastY + 4}" fill="#fff" font-size="12"
-          font-weight="600">${lastVal}</text>
-    ${dateLabels.join('')}
+    <circle cx="${lastX}" cy="${lastY}" r="3.5" fill="${cfg.color}"/>
+    <text x="${lastX + 7}" y="${lastY + 4}" fill="#fff" font-size="11"
+          font-weight="600">${formatNum(lastVal)}</text>
+    ${dateSvg}
+  </svg>`;
+}
+
+function formatNum(n: number): string {
+  return n >= 1_000_000
+    ? (n / 1_000_000).toFixed(1) + 'M'
+    : n >= 1_000
+      ? (n / 1_000).toFixed(1) + 'k'
+      : String(n);
+}
+
+/**
+ * Generates a combined SVG with guild count and member count charts
+ * stacked vertically. Returns a single SVG ready for sharp rendering.
+ */
+export function generateCombinedChart(data: GuildSnapshot[]): string {
+  const width = 600;
+  const chartH = 200;
+  const gap = 8;
+  const totalH = chartH * 2 + gap;
+
+  if (data.length < 2) return '';
+
+  const guildSvg = generateChart(
+    data,
+    {
+      title: 'Guild Count',
+      value: (d) => d.guildCount,
+      color: '#5865f2',
+    },
+    width,
+    chartH
+  );
+
+  const memberSvg = generateChart(
+    data,
+    {
+      title: 'Member Count',
+      value: (d) => d.memberTotal,
+      color: '#57f287',
+    },
+    width,
+    chartH
+  );
+
+  // Extract the inner content of each SVG (everything inside <svg>…</svg>)
+  // so we can nest them in a single combined wrapper.
+  const guildBody = guildSvg.replace(/<svg[^>]*>/, '').replace(/<\/svg>/, '');
+  const memberBody = memberSvg.replace(/<svg[^>]*>/, '').replace(/<\/svg>/, '');
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${totalH}">
+    <rect width="${width}" height="${totalH}" fill="#1e1e1e" rx="8"/>
+    <g transform="translate(0, 0)">${guildBody}</g>
+    <g transform="translate(0, ${chartH + gap})">${memberBody}</g>
   </svg>`;
 }
