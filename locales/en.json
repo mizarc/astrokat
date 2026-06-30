@@ -224,6 +224,11 @@
         "usage": "❌ Usage: `system status <text>`\nExample: `system status 🔧 Maintenance mode`",
         "notAvailable": "❌ This platform doesn't support status updates.",
         "success": "✅ Custom status set to: **{text}**"
+      },
+      "trends": {
+        "notOwner": "❌ Only bot operators can view trends.",
+        "noData": "📊 No trend data recorded yet.",
+        "error": "❌ Failed to retrieve trends."
       }
     },
     "rep": {
@@ -325,5 +330,10 @@
       "sourceEnv": "default",
       "footer": "Use !ratelimit user <n> or !ratelimit guild <n> to change"
     }
+  },
+  "guildSnapshot": {
+    "recorded": "[GUILD_SNAPSHOT][{platform}] Recorded: {guilds} guilds, {members} members.",
+    "error": "[GUILD_SNAPSHOT] Failed to record snapshot:",
+    "backend": "[GUILD_SNAPSHOT] Using {backend} backend."
   }
 }

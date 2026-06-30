@@ -1,15 +1,18 @@
 import { t } from './core/i18n.js';
-import { startDiscordBot } from './adapters/discord.js';
-import { startFluxerBot } from './adapters/fluxer.js';
+import { startDiscordBot, DiscordGuildAggregator } from './adapters/discord.js';
+import { startFluxerBot, FluxerGuildAggregator } from './adapters/fluxer.js';
 import { reminderService } from './core/services/reminders/reminderService.js';
 import { getCommands } from './core/router.js';
+import { GuildSnapshotService } from './core/services/guildsnapshot/guildSnapshotService.js';
+import { SqliteGuildSnapshotStore } from './core/services/guildsnapshot/guildSnapshotStoreSqlite.js';
+import { PostgresGuildSnapshotStore } from './core/services/guildsnapshot/guildSnapshotStorePostgres.js';
 
 console.log(t('system.starting'));
 
 // Determine which adapters to start
 const adapters = (process.env.ADAPTERS ?? 'discord,fluxer')
   .split(',')
-  .map(a => a.trim().toLowerCase());
+  .map((a) => a.trim().toLowerCase());
 
 const needDiscord = adapters.includes('discord');
 const needFluxer = adapters.includes('fluxer');
@@ -31,8 +34,32 @@ await reminderService.init();
 // Eagerly load commands before any adapter starts listening
 await getCommands();
 
-// Start selected adapters
-if (needDiscord) startDiscordBot();
-if (needFluxer) startFluxerBot();
+// Create snapshot store (shared across all adapter services)
+const snapshotStore = process.env.DATABASE_URL
+  ? new PostgresGuildSnapshotStore()
+  : new SqliteGuildSnapshotStore();
 
-console.log(t('system.allAdaptersConnected'));  
+console.log(
+  t('guildSnapshot.backend', { backend: process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite' })
+);
+
+// Start selected adapters and wire up snapshot services.
+// Use a delayed first snapshot so gateway GUILD_CREATE events
+// have time to populate the guild cache.
+if (needDiscord) {
+  const discordClient = startDiscordBot();
+  const aggregator = new DiscordGuildAggregator(discordClient);
+  const service = new GuildSnapshotService(snapshotStore, aggregator, 'discord');
+  service.start(86_400_000, false);
+  setTimeout(() => service.snapshot(), 20_000);
+}
+
+if (needFluxer) {
+  const fluxerClient = startFluxerBot();
+  const aggregator = new FluxerGuildAggregator(fluxerClient);
+  const service = new GuildSnapshotService(snapshotStore, aggregator, 'fluxer');
+  service.start(86_400_000, false);
+  setTimeout(() => service.snapshot(), 25_000);
+}
+
+console.log(t('system.allAdaptersConnected'));

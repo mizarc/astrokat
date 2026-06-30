@@ -4,6 +4,7 @@ import type { UnifiedMessage, UnifiedAuthor, UnifiedChannel } from '../core/type
 import { handleIncomingMessage, awardMessageXp } from '../core/router.js';
 import { deployCommands } from '../core/deploy.js';
 import { reminderService } from '../core/services/reminders/reminderService.js';
+import type { GuildAggregator, GuildStats } from '../core/types.js';
 
 /** Tracks the bot's presence status so setStatus and setPresence compose cleanly. */
 let currentPresenceStatus: 'online' | 'idle' | 'dnd' | 'invisible' = 'online';
@@ -314,4 +315,55 @@ export function startDiscordBot() {
   });
 
   client.login(process.env.DISCORD_TOKEN);
+
+  return client;
+}
+
+/**
+ * Discord guild aggregator that handles both sharded and unsharded modes.
+ *
+ * **Unsharded** (current): reads `client.guilds.cache` directly — O(guilds)
+ *   in a single process.
+ *
+ * **Sharded** (future): uses `fetchClientValues` and `broadcastEval` to
+ *   collect guild/member counts from every shard via built-in
+ *   IPC — O(shards) regardless of total guild count.
+ *
+ * Both paths return a single `{ guildCount, memberTotal }` that the
+ * snapshot service writes to the database.
+ */
+export class DiscordGuildAggregator implements GuildAggregator {
+  constructor(private readonly client: Client) {}
+
+  async getStats(): Promise<GuildStats> {
+    if (!this.client.isReady()) {
+      return { guildCount: 0, memberTotal: 0 };
+    }
+    if (this.client.shard) {
+      return this.getShardedStats();
+    }
+    return this.getLocalStats();
+  }
+
+  private getLocalStats(): GuildStats {
+    const guildCount = this.client.guilds.cache.size;
+    const memberTotal = this.client.guilds.cache.reduce((sum, guild) => sum + guild.memberCount, 0);
+    return { guildCount, memberTotal };
+  }
+
+  private async getShardedStats(): Promise<GuildStats> {
+    const shard = this.client.shard!;
+
+    // Ask every shard for its guild count — single IPC call
+    const guildCounts = (await shard.fetchClientValues('guilds.cache.size')) as number[];
+    const guildCount = guildCounts.reduce((sum, count) => sum + count, 0);
+
+    // Ask every shard to sum its own member counts — single IPC call
+    const memberTotals = (await shard.broadcastEval((c) =>
+      (c as Client).guilds.cache.reduce((sum, guild) => sum + guild.memberCount, 0)
+    )) as number[];
+    const memberTotal = memberTotals.reduce((sum, count) => sum + count, 0);
+
+    return { guildCount, memberTotal };
+  }
 }

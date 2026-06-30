@@ -3,6 +3,7 @@ import { Client, EmbedBuilder, Events, PermissionFlags, GatewayOpcodes } from '@
 import type { UnifiedMessage, UnifiedAuthor, UnifiedChannel, ReplyEmbed } from '../core/types.js';
 import { handleIncomingMessage, awardMessageXp } from '../core/router.js';
 import { reminderService } from '../core/services/reminders/reminderService.js';
+import type { GuildAggregator, GuildStats } from '../core/types.js';
 
 /** Tracks the bot's presence status so setStatus and setPresence compose cleanly. */
 let currentPresenceStatus: 'online' | 'idle' | 'dnd' | 'invisible' = 'online';
@@ -269,4 +270,49 @@ export function startFluxerBot() {
     process.exit(1); // Stop the bot
   }
   client.login(fluxerToken);
+
+  return client;
+}
+
+/**
+ * Fluxer guild aggregator.
+ *
+ * Fluxer doesn't support sharding yet, so this reads the local guild
+ * cache. If the cache hasn't been populated by gateway GUILD_CREATE
+ * events yet, it falls back to client.guilds.fetchGuilds() via the
+ * REST API to populate it on demand.
+ */
+export class FluxerGuildAggregator implements GuildAggregator {
+  constructor(private readonly client: Client) {}
+
+  async getStats(): Promise<GuildStats> {
+    const guildManager = (this.client as any).guilds;
+    if (!guildManager) return { guildCount: 0, memberTotal: 0 };
+
+    // Populate guild cache via REST if empty (only if client is ready)
+    const needsFetch = guildManager.size === 0;
+    if (needsFetch) {
+      if (!this.client.isReady()) return { guildCount: 0, memberTotal: 0 };
+      try {
+        await guildManager.fetchGuilds();
+      } catch {
+        return { guildCount: 0, memberTotal: 0 };
+      }
+    }
+
+    const guildCount = guildManager.size;
+    let memberTotal = 0;
+    try {
+      const raw: any = await (this.client as any).rest.get('/users/@me/guilds?with_counts=true');
+      const list: any[] = Array.isArray(raw) ? raw : (raw?.guilds ?? []);
+      for (const g of list) {
+        const c = g.approximate_member_count ?? g.member_count;
+        if (c != null) memberTotal += c;
+      }
+    } catch {
+      return { guildCount: 0, memberTotal: 0 };
+    }
+
+    return { guildCount, memberTotal };
+  }
 }
