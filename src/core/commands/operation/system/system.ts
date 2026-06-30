@@ -3,7 +3,7 @@ import type { BotCommand, ReplyEmbed } from '../../../types.js';
 import { handleRatelimit } from './subcommands/ratelimit.js';
 import { handlePresence } from './subcommands/presence.js';
 import { handleStatus } from './subcommands/status.js';
-import { handleStats } from './subcommands/stats.js';
+import { handleTrends } from './subcommands/trends.js';
 
 export const SystemCommand: BotCommand = {
   name: 'system',
@@ -43,8 +43,8 @@ export const SystemCommand: BotCommand = {
       ],
     },
     {
-      name: 'stats',
-      description: 'View guild and member statistics with growth chart (operator only).',
+      name: 'trends',
+      description: 'View guild and member growth chart with trends (operator only).',
     },
   ],
   async execute(message, args) {
@@ -58,7 +58,7 @@ export const SystemCommand: BotCommand = {
           '`!system ratelimit` — View or set platform-wide rate limits',
           '`!system presence` — Change bot presence (online/idle/dnd/invisible)',
           '`!system status` — Set custom bot status text',
-          '`!system stats` — View guild & member statistics with growth chart',
+          '`!system trends` — View guild & member growth chart with trends',
         ].join('\n'),
         footer: {
           text: 'Use `!system <subcommand>` to run a command.',
@@ -78,8 +78,8 @@ export const SystemCommand: BotCommand = {
       case 'status':
         await handleStatus(message, args.slice(1));
         break;
-      case 'stats':
-        await handleStats(message, args.slice(1));
+      case 'trends':
+        await handleTrends(message, args.slice(1));
         break;
       default:
         await message.reply(

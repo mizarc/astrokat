@@ -12,9 +12,9 @@ function isOwner(message: { author: { id: string } }): boolean {
   return ownerIds.includes(message.author.id);
 }
 
-export async function handleStats(message: UnifiedMessage, _args: string[]) {
+export async function handleTrends(message: UnifiedMessage, _args: string[]) {
   if (!isOwner(message)) {
-    await message.reply(t('commands.system.stats.notOwner'));
+    await message.reply(t('commands.system.trends.notOwner'));
     return;
   }
 
@@ -29,7 +29,7 @@ export async function handleStats(message: UnifiedMessage, _args: string[]) {
     const history = await store.getHistory(monthAgo, platform);
 
     if (history.length === 0) {
-      await message.reply(t('commands.system.stats.noData'));
+      await message.reply(t('commands.system.trends.noData'));
       return;
     }
 
@@ -113,6 +113,6 @@ export async function handleStats(message: UnifiedMessage, _args: string[]) {
     }
   } catch (error) {
     console.error('[STATS] Error:', error);
-    await message.reply(t('commands.system.stats.error'));
+    await message.reply(t('commands.system.trends.error'));
   }
 }
