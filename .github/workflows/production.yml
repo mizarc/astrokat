@@ -9,7 +9,6 @@ permissions:
 on:
   push:
     branches: [production]
-    tags: ['v*']
 
 env:
   REGISTRY: ghcr.io
