@@ -90,7 +90,7 @@ export const NeofetchCommand: BotCommand = {
     } catch { /* shard info unavailable */ }
 
     // Version and platform info
-    const botVersion = '0.2.0-dev';
+    const botVersion = '0.3.0';
     const dbBackend = process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite';
     const header = `${botTag}@astrokat`;
 
