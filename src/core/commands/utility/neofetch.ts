@@ -2,6 +2,7 @@ import { t } from '../../i18n.js';
 import type { BotCommand } from '../../types.js';
 import { getCommands } from '../../router.js';
 import * as os from 'node:os';
+import pkg from '../../../../package.json' with { type: 'json' };
 
 /** Cat ASCII — raw art without padding (padding added programmatically). */
 const CAT_LINES = [
@@ -23,7 +24,7 @@ const CAT_LINES = [
   `         /                \\`,
 ];
 
-const CAT_WIDTH = Math.max(...CAT_LINES.map(l => l.length));
+const CAT_WIDTH = Math.max(...CAT_LINES.map((l) => l.length));
 const GAP = 3;
 
 /** ANSI color codes for Discord ```ansi blocks. */
@@ -71,7 +72,9 @@ export const NeofetchCommand: BotCommand = {
         const discrim = me.discriminator && me.discriminator !== '0' ? `#${me.discriminator}` : '';
         botTag = `${me.username}${discrim}`;
       }
-    } catch { /* user info unavailable */ }
+    } catch {
+      /* user info unavailable */
+    }
 
     try {
       // discord.js: client.guilds.cache — Fluxer: client.guilds (Collection directly)
@@ -83,14 +86,18 @@ export const NeofetchCommand: BotCommand = {
         guildDataAvailable = true;
         guildCount = guilds.size;
       }
-    } catch { /* guild info unavailable on this platform */ }
+    } catch {
+      /* guild info unavailable on this platform */
+    }
 
     try {
       shardId = client?.ws?.shard?.id ?? null;
-    } catch { /* shard info unavailable */ }
+    } catch {
+      /* shard info unavailable */
+    }
 
     // Version and platform info
-    const botVersion = '0.3.0';
+    const botVersion = pkg.version;
     const dbBackend = process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite';
     const header = `${botTag}@astrokat`;
 
@@ -149,28 +156,36 @@ export const NeofetchCommand: BotCommand = {
     // Palette blocks (8 dark + 8 bright)
     const P = (code: string, count = 3) => `${code}${'█'.repeat(count)}${ansi.rst}`;
     const darkPalette = [
-      P('\u001b[30m'), P('\u001b[31m'), P('\u001b[32m'), P('\u001b[33m'),
-      P('\u001b[34m'), P('\u001b[35m'), P('\u001b[36m'), P('\u001b[37m'),
+      P('\u001b[30m'),
+      P('\u001b[31m'),
+      P('\u001b[32m'),
+      P('\u001b[33m'),
+      P('\u001b[34m'),
+      P('\u001b[35m'),
+      P('\u001b[36m'),
+      P('\u001b[37m'),
     ].join('');
     const brightPalette = [
-      P('\u001b[90m'), P('\u001b[91m'), P('\u001b[92m'), P('\u001b[93m'),
-      P('\u001b[94m'), P('\u001b[95m'), P('\u001b[96m'), P('\u001b[97m'),
+      P('\u001b[90m'),
+      P('\u001b[91m'),
+      P('\u001b[92m'),
+      P('\u001b[93m'),
+      P('\u001b[94m'),
+      P('\u001b[95m'),
+      P('\u001b[96m'),
+      P('\u001b[97m'),
     ].join('');
 
     // Side-by-side: full cat on left, data + palette on right
-    const rightSide = [
-      ...coloredInfoLines,
-      '',
-      darkPalette,
-      brightPalette,
-    ];
+    const rightSide = [...coloredInfoLines, '', darkPalette, brightPalette];
     const rowCount = Math.max(CAT_LINES.length, rightSide.length);
 
     // Build each row by taking the cat line and then the right side line
     for (let i = 0; i < rowCount; i++) {
-      const catPart = i < CAT_LINES.length
-        ? ansi.pur + CAT_LINES[i]!.padEnd(CAT_WIDTH) + ansi.rst
-        : ' '.repeat(CAT_WIDTH);
+      const catPart =
+        i < CAT_LINES.length
+          ? ansi.pur + CAT_LINES[i]!.padEnd(CAT_WIDTH) + ansi.rst
+          : ' '.repeat(CAT_WIDTH);
       const rightPart = i < rightSide.length ? rightSide[i] : '';
       rows.push(catPart + ' '.repeat(GAP) + rightPart);
     }

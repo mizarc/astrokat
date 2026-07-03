@@ -33,10 +33,11 @@
     // Recommended Options
     "strict": true,
     "verbatimModuleSyntax": true,
+    "resolveJsonModule": true,
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-    "skipLibCheck": true,
+    "skipLibCheck": true
   },
   "exclude": ["scripts", "node_modules", "dist", "vitest.config.ts", "assets", "data", "locales"]
 }
