@@ -1,6 +1,7 @@
 import { t } from '../../i18n.js';
 import type { BotCommand, ReplyEmbed } from '../../types.js';
 import { taskService } from '../../services/automation/taskService.js';
+import { getActionConfigMeta } from '../../services/automation/actionRegistry.js';
 import { parseCronExpression, cronToHuman } from '../../services/automation/cronParser.js';
 
 export const TasksCommand: BotCommand = {
@@ -175,7 +176,16 @@ export const TasksCommand: BotCommand = {
 
 async function showHelp(message: Parameters<BotCommand['execute']>[0]): Promise<void> {
   const actions = taskService.getAvailableActions();
-  const actionsList = actions.map((a) => `• \`${a.name}\` — ${a.description}`).join('\n');
+  const actionsList = actions
+    .map((a) => {
+      const fields = getActionConfigMeta(a.name);
+      if (!fields || fields.length === 0) {
+        return `• \`${a.name}\` — ${a.description}`;
+      }
+      const keys = fields.map((f) => (f.required ? `\`${f.key}:?\`` : `\`[${f.key}]\``)).join(' ');
+      return `• \`${a.name}\` — ${a.description}\n  ${keys}`;
+    })
+    .join('\n');
 
   const embed: ReplyEmbed = {
     title: '📋 Scheduled Tasks',
@@ -304,6 +314,20 @@ async function handleShow(
 
     if (configLines.length > 0) {
       fields.push({ name: 'CONFIGURATION', value: configLines.join('\n') });
+    }
+
+    // Show which config keys are available for this action
+    const configFields = task.action ? getActionConfigMeta(task.action) : undefined;
+    if (configFields && configFields.length > 0) {
+      const lines: string[] = [];
+      for (const field of configFields) {
+        const badge = field.required ? '🔴 Required' : '🟢 Optional';
+        const defaultHint = field.default ? ` (default: ${field.default})` : '';
+        lines.push(`• \`${field.key}\` — ${badge}\n  ${field.description}${defaultHint}`);
+      }
+      if (lines.length > 0) {
+        fields.push({ name: 'AVAILABLE CONFIG', value: lines.join('\n') });
+      }
     }
 
     const embed: ReplyEmbed = {

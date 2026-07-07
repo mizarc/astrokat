@@ -58,14 +58,15 @@ export class TaskService {
     const missing: string[] = [];
     if (!task.cron) missing.push('schedule');
     if (!task.action) missing.push('action');
-    if (!task.config?.channel) missing.push('channel');
 
-    // Check action-specific required config
+    // Check action-specific required config fields
     if (task.action) {
       const action = getAction(task.action);
-      if (action?.requiredConfig) {
-        for (const key of action.requiredConfig) {
-          if (!task.config?.[key]) missing.push(key);
+      if (action?.configFields) {
+        for (const field of action.configFields) {
+          if (field.required && !task.config?.[field.key]) {
+            missing.push(field.key);
+          }
         }
       }
     }

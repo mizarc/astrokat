@@ -11,7 +11,19 @@ import type { Action, ActionContext, ActionResult } from '../actionTypes.js';
 export const AnnounceAction: Action = {
   name: 'announce',
   description: 'Post a message or embed to a channel.',
-  requiredConfig: ['message'],
+  configFields: [
+    { key: 'channel', description: 'Channel to post the message in', required: true },
+    {
+      key: 'message',
+      description: 'Text content to post (supports {guild}, {user})',
+      required: true,
+    },
+    {
+      key: 'embed',
+      description: 'JSON embed object with title, description, color',
+      required: false,
+    },
+  ],
 
   async execute(context: ActionContext): Promise<ActionResult> {
     const { channelId, config, sendToChannel } = context;

@@ -31,13 +31,21 @@ export interface ActionResult {
   error?: string;
 }
 
+/** Describes a single config field for an action. */
+export interface ActionConfigField {
+  key: string;
+  description: string;
+  required: boolean;
+  default?: string;
+}
+
 export interface Action {
   /** Unique action identifier. */
   name: string;
   /** Human-readable description shown in help text. */
   description: string;
-  /** Config keys required for this action to execute (e.g. ['message'] for announce). */
-  requiredConfig?: string[];
+  /** Config keys for this action, with descriptions and required flags. */
+  configFields?: ActionConfigField[];
   /** Execute the action. */
   execute(context: ActionContext): Promise<ActionResult>;
 }

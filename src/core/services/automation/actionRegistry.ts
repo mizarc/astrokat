@@ -8,7 +8,7 @@ import { PurgeAction } from './actions/purge.js';
  */
 export const actions: Map<string, Action> = new Map([
   [AnnounceAction.name, AnnounceAction],
-  [PurgeAction.name, PurgeAction]
+  [PurgeAction.name, PurgeAction],
 ]);
 
 /** Get an action by name. Returns undefined if not found. */
@@ -24,4 +24,16 @@ export function listActions(): { name: string; description: string }[] {
     name: a.name,
     description: a.description,
   }));
+}
+
+/**
+ * Get full config metadata for an action.
+ * Returns all config fields with descriptions and required flags.
+ */
+export function getActionConfigMeta(
+  name: string
+): { key: string; description: string; required: boolean; default?: string }[] | undefined {
+  const action = actions.get(name);
+  if (!action) return undefined;
+  return action.configFields;
 }

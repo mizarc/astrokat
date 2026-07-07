@@ -10,6 +10,14 @@ import type { Action, ActionContext, ActionResult } from '../actionTypes.js';
 export const PurgeAction: Action = {
   name: 'purge',
   description: 'Bulk-delete recent messages in a channel.',
+  configFields: [
+    { key: 'channel', description: 'Target channel to purge messages from', required: true },
+    {
+      key: 'count',
+      description: 'Number of messages to delete (default 50, max 100)',
+      required: false,
+    },
+  ],
 
   async execute(context: ActionContext): Promise<ActionResult> {
     const { channelId, config, channel } = context;
