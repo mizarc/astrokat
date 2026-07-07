@@ -330,7 +330,28 @@ export function createFluxerActionDispatcher(client: Client): ActionDispatcher {
 
     async resolveChannel(_guildId: string, channelId: string): Promise<any | null> {
       try {
-        return await client.channels.resolve(channelId);
+        const nativeChannel = await client.channels.resolve(channelId);
+        if (!nativeChannel) return null;
+
+        return {
+          id: channelId,
+          messages: {
+            fetch: async (opts?: { limit?: number } | number): Promise<Map<string, any>> => {
+              const limit = typeof opts === 'number' ? opts : (opts?.limit ?? 50);
+              const raw: any[] = await client.rest.get(
+                `/channels/${channelId}/messages?limit=${limit}`
+              );
+              return new Map((raw ?? []).map((m: any) => [m.id, m]));
+            },
+          },
+          bulkDelete: async (messageIds: string[]): Promise<void> => {
+            if (messageIds.length === 0) return;
+            // Fluxer bulk-delete endpoint expects an array under "messages"
+            await client.rest.post(`/channels/${channelId}/messages/bulk-delete`, {
+              body: { messages: messageIds },
+            });
+          },
+        };
       } catch {
         return null;
       }
