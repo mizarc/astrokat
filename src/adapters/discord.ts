@@ -4,7 +4,7 @@ import type { UnifiedMessage, UnifiedAuthor, UnifiedChannel } from '../core/type
 import { handleIncomingMessage, awardMessageXp } from '../core/router.js';
 import { deployCommands } from '../core/deploy.js';
 import { reminderService } from '../core/services/reminders/reminderService.js';
-import type { GuildAggregator, GuildStats } from '../core/types.js';
+import type { GuildAggregator, GuildStats, ActionDispatcher } from '../core/types.js';
 
 /** Tracks the bot's presence status so setStatus and setPresence compose cleanly. */
 let currentPresenceStatus: 'online' | 'idle' | 'dnd' | 'invisible' = 'online';
@@ -203,6 +203,12 @@ export function startDiscordBot() {
       edit: async (text) => {
         return await interaction.editReply(text);
       },
+      followUp: async (text) => {
+        if (interaction.deferred || interaction.replied) {
+          return await interaction.followUp({ content: text, ephemeral: true });
+        }
+        return await interaction.reply(text);
+      },
       setStatus: async ({ text, emojiName, emojiId }) => {
         // For custom emojis, reconstruct the full syntax so Discord renders the image
         const displayEmoji = emojiId && emojiName ? `<:${emojiName}:${emojiId}>` : emojiName;
@@ -366,4 +372,44 @@ export class DiscordGuildAggregator implements GuildAggregator {
 
     return { guildCount, memberTotal };
   }
+}
+
+/**
+ * Create an ActionDispatcher for the Discord platform.
+ */
+export function createDiscordActionDispatcher(client: Client): ActionDispatcher {
+  return {
+    platform: 'discord',
+
+    async resolveChannel(guildId: string, channelId: string): Promise<any | null> {
+      try {
+        const guild = await client.guilds.fetch(guildId);
+        return await guild.channels.fetch(channelId);
+      } catch {
+        try {
+          return await client.channels.fetch(channelId);
+        } catch {
+          return null;
+        }
+      }
+    },
+
+    async sendToChannel(
+      guildId: string,
+      channelId: string,
+      payload: string | { content?: string; embeds?: any[] }
+    ): Promise<any> {
+      let ch: any;
+      try {
+        const guild = await client.guilds.fetch(guildId);
+        ch = await guild.channels.fetch(channelId);
+      } catch {
+        ch = await client.channels.fetch(channelId);
+      }
+      if (!ch || typeof ch.send !== 'function') {
+        throw new Error('Channel not found or bot cannot send messages there.');
+      }
+      return ch.send(payload);
+    },
+  };
 }

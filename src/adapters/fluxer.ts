@@ -3,7 +3,7 @@ import { Client, EmbedBuilder, Events, PermissionFlags, GatewayOpcodes } from '@
 import type { UnifiedMessage, UnifiedAuthor, UnifiedChannel, ReplyEmbed } from '../core/types.js';
 import { handleIncomingMessage, awardMessageXp } from '../core/router.js';
 import { reminderService } from '../core/services/reminders/reminderService.js';
-import type { GuildAggregator, GuildStats } from '../core/types.js';
+import type { GuildAggregator, GuildStats, ActionDispatcher } from '../core/types.js';
 
 /** Tracks the bot's presence status so setStatus and setPresence compose cleanly. */
 let currentPresenceStatus: 'online' | 'idle' | 'dnd' | 'invisible' = 'online';
@@ -180,6 +180,10 @@ export function startFluxerBot() {
           return reply;
         }
       },
+      followUp: async (text) => {
+        const reply = await message.reply(text);
+        return reply;
+      },
       setStatus: async ({ text, emojiName, emojiId }) => {
         const customStatus: Record<string, string | null> = {
           text,
@@ -315,4 +319,29 @@ export class FluxerGuildAggregator implements GuildAggregator {
 
     return { guildCount, memberTotal };
   }
+}
+
+/**
+ * Create an ActionDispatcher for the Fluxer platform.
+ */
+export function createFluxerActionDispatcher(client: Client): ActionDispatcher {
+  return {
+    platform: 'fluxer',
+
+    async resolveChannel(_guildId: string, channelId: string): Promise<any | null> {
+      try {
+        return await client.channels.resolve(channelId);
+      } catch {
+        return null;
+      }
+    },
+
+    async sendToChannel(
+      _guildId: string,
+      channelId: string,
+      payload: string | { content?: string; embeds?: any[] }
+    ): Promise<any> {
+      return client.channels.send(channelId, payload);
+    },
+  };
 }

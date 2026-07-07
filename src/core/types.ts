@@ -82,6 +82,13 @@ export interface UnifiedMessage {
   edit: (content: string) => Promise<any>;
 
   /**
+   * Sends a follow-up message after the initial reply has been sent or deferred.
+   * On Discord this uses interaction.followUp to create a new message instead of
+   * editing the deferred response. Falls back to reply() if not available.
+   */
+  followUp?: (content: string) => Promise<any>;
+
+  /**
    * Sets the bot's custom status text across the platform.
    * Only available if the caller is the bot owner (checked by the command).
    */
@@ -176,4 +183,33 @@ export interface GuildAggregator {
    * it reads the local cache directly.
    */
   getStats(): Promise<GuildStats>;
+}
+
+/**
+ * Platform-agnostic action dispatch interface for automated actions.
+ *
+ * Each adapter exports a factory that creates an ActionDispatcher wrapping
+ * its platform-specific client. This keeps the cron engine entirely
+ * decoupled from platform internals.
+ */
+export interface ActionDispatcher {
+  /** Human-readable platform identifier. */
+  readonly platform: 'discord' | 'fluxer';
+
+  /**
+   * Resolve a channel by ID within a guild.
+   * Returns the channel object if found, or null if the channel
+   * doesn't exist or the bot can't access it.
+   */
+  resolveChannel(guildId: string, channelId: string): Promise<any | null>;
+
+  /**
+   * Send a message or embed to a channel.
+   * Payload can be a plain string or an object with content/embeds.
+   */
+  sendToChannel(
+    guildId: string,
+    channelId: string,
+    payload: string | { content?: string; embeds?: any[] }
+  ): Promise<any>;
 }
