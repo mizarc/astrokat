@@ -196,7 +196,7 @@ async function showHelp(message: Parameters<BotCommand['execute']>[0]): Promise<
       '**Subcommands:**',
       '`!task list` — Show all tasks',
       '`!task show <name>` — Show full task details',
-      '`!task create <name> [action] [when]` — Create a task or draft',
+      '`!task create <name> [action] [when]` — Create a task or manual trigger',
       '`!task rename <old> <new>` — Rename a task',
       '`!task reschedule <name> <when>` — Change the schedule',
       '`!task retool <name> <action>` — Swap the action type',
@@ -216,9 +216,10 @@ async function showHelp(message: Parameters<BotCommand['execute']>[0]): Promise<
       actionsList,
       '',
       '**Tips:**',
-      '• `!task create greeting announce daily` creates an active task at once.',
-      '• `!task create greeting` makes a draft — fill it with `edit`, then `resume`.',
-      '• `!task edit greeting set message:Hello everyone` configures the action.',
+      '• `!task create greeting announce daily` creates an active scheduled task.',
+      '• `!task create greeting announce` creates a manual-only trigger (no schedule).',
+      '• `!task create greeting` makes a draft — fill it, then run manually or add a schedule.',
+      '• `!task edit greeting message:Hello everyone` configures the action.',
     ].join('\n'),
   };
 
@@ -237,24 +238,26 @@ async function handleList(message: Parameters<BotCommand['execute']>[0]): Promis
 
   const lines = tasks.map((task, i) => {
     const missing = taskService.getMissingFields(task);
+    const isManual = taskService.isManual(task);
     const isDraft = missing.length > 0;
-    const status = isDraft ? '📝' : task.enabled ? '▶️' : '⏸️';
+    const status = isDraft ? '📝' : isManual ? '🖐️' : task.enabled ? '▶️' : '⏸️';
     const result =
       task.lastRunResult === 'success' ? '✅' : task.lastRunResult === 'failure' ? '❌' : '';
     const icons = result ? `${status} ${result}` : status;
     const lastRun = task.lastRunAt
       ? `Last: <t:${Math.floor(new Date(task.lastRunAt).getTime() / 1000)}:R>`
       : 'Never run';
-    const schedule = task.cron ? cronToHuman(task.cron) : '(draft)';
+    const schedule = task.cron ? cronToHuman(task.cron) : isDraft ? '' : 'Manual';
+    const schedulePrefix = schedule ? ` — ${schedule}` : '';
     const actionLabel = isDraft ? `Need: ${missing.join(', ')}` : `\`${task.action}\``;
-    return `**${i + 1}.** **${task.name}** — ${schedule} → ${actionLabel} ${lastRun} ${icons}`;
+    return `**${i + 1}.** **${task.name}**${schedulePrefix} → ${actionLabel} ${lastRun} ${icons}`;
   });
 
   const embed: ReplyEmbed = {
-    title: '📋 Scheduled Tasks',
+    title: '📋 Tasks',
     color: 0x5865f2,
     description: lines.join('\n'),
-    footer: { text: `Total: ${tasks.length} task(s) · 📝 draft · ▶️ active · ⏸️ paused` },
+    footer: { text: `Total: ${tasks.length} · 📝 draft · 🖐️ manual · ▶️ active · ⏸️ paused` },
   };
 
   await message.reply({ content: '', embeds: [embed] });
@@ -279,10 +282,17 @@ async function handleShow(
     }
 
     const missing = taskService.getMissingFields(task);
+    const isManual = taskService.isManual(task);
     const isDraft = missing.length > 0;
-    const statusIcon = isDraft ? '📝' : task.enabled ? '▶️' : '⏸️';
-    const statusLabel = isDraft ? 'Draft' : task.enabled ? 'Active' : 'Paused';
-    const schedule = task.cron ? `${cronToHuman(task.cron)} · \`${task.cron}\`` : '(not set)';
+    const statusIcon = isDraft ? '📝' : isManual ? '🖐️' : task.enabled ? '▶️' : '⏸️';
+    const statusLabel = isDraft
+      ? 'Draft'
+      : isManual
+        ? 'Manual Trigger'
+        : task.enabled
+          ? 'Active'
+          : 'Paused';
+    const schedule = task.cron ? `${cronToHuman(task.cron)} · \`${task.cron}\`` : null;
     const channelId = task.config?.channel as string | undefined;
 
     const infoLines: string[] = [`**Status:** ${statusIcon} ${statusLabel}`];
@@ -294,7 +304,10 @@ async function handleShow(
       infoLines.push(`**Last Run:** ${icon} <t:${ts}:R>`);
     }
 
-    infoLines.push(`**Action:** \`${task.action}\``, `**Schedule:** ${schedule}`);
+    infoLines.push(`**Action:** \`${task.action}\``);
+    if (schedule) {
+      infoLines.push(`**Schedule:** ${schedule}`);
+    }
 
     const configLines: string[] = [];
 
@@ -359,7 +372,6 @@ async function handleCreate(
     try {
       const task = await taskService.create(message.guildId, {
         name,
-        cronExpression: '0 0 * * *', // placeholder, won't run since enabled=false
         action: '',
         channelId: '',
       });
@@ -372,14 +384,14 @@ async function handleCreate(
           'Fill them in:\n' +
           '`!task reschedule ' +
           name +
-          ' <when>` — Set the schedule\n' +
+          ' <when>` — Set a schedule (or skip for manual trigger)\n' +
           '`!task retool ' +
           name +
           ' <action>` — Choose what to do\n' +
           '`!task edit ' +
           name +
           ' set channel:#channel` — Set the target channel\n\n' +
-          'When ready: `!task resume ' +
+          'Then: `!task run ' +
           name +
           '`',
       };
@@ -393,14 +405,16 @@ async function handleCreate(
     return;
   }
 
-  // ── One-shot mode: name + action + when + optional config ─────────────
-  if (args.length < 3) {
+  // ── One-shot mode: name + action + optional when + optional config ───
+  if (args.length < 2) {
     await message.reply(
       '❌ Too few arguments.\n' +
-        '• One-shot: `!task create <name> <action> <when>`\n' +
+        '• Scheduled: `!task create <name> <action> <when> [key:value...]`\n' +
+        '• Manual: `!task create <name> <action> [key:value...]`\n' +
         '• Draft: `!task create <name>` and fill the rest with `edit`.\n' +
         'Examples:\n' +
         '`!task create greeting announce daily channel:#general message:Hello!`\n' +
+        '`!task create greeting announce channel:#general message:Hello!`\n' +
         '`!task create greeting`'
     );
     return;
@@ -418,7 +432,7 @@ async function handleCreate(
         action +
         '". Available: ' +
         [...actionNames].join(', ') +
-        '\nUsage: `!task create <name> <action> <when>`'
+        '\nUsage: `!task create <name> <action> [when]`'
     );
     return;
   }
@@ -429,12 +443,13 @@ async function handleCreate(
   const kvStart = restArgs.findIndex((a) => a.includes(':'));
   const whenWords = kvStart === -1 ? restArgs : restArgs.slice(0, kvStart);
 
-  if (whenWords.length === 0) {
-    await message.reply('❌ Missing schedule. Usage: `!task create <name> <action> <when>`');
-    return;
+  // If there's a when expression, try to parse it as cron
+  let cronExpression: string | undefined;
+  let rawWhen: string | undefined;
+  if (whenWords.length > 0) {
+    rawWhen = whenWords.join(' ');
+    cronExpression = parseCronExpression(rawWhen);
   }
-  const rawWhen = whenWords.join(' ');
-  const cronExpression = parseCronExpression(rawWhen);
 
   // Parse key:value pairs from remaining args
   const kvPairs = kvStart === -1 ? [] : restArgs.slice(kvStart);
@@ -490,19 +505,27 @@ async function handleCreate(
     const missing = taskService.getMissingFields(task);
 
     if (missing.length > 0) {
+      const suffix = cronExpression
+        ? `then \`!task resume ${name}\``
+        : `then \`!task run ${name}\``;
       await message.reply(
         `📝 Created **${name}** as a draft — still missing: ${missing.join(', ')}.\n` +
-          `Use \`!task edit ${name} set key:value\` to fill them in, then \`!task resume ${name}\` to activate.`
+          `Use \`!task edit ${name} key:value\` to fill them in, ${suffix} to activate.`
       );
       return;
     }
 
-    // All fields present — enable the task
-    await taskService.resume(message.guildId, name);
+    // All fields present — enable the task (different path for manual vs scheduled)
+    if (cronExpression) {
+      await taskService.resume(message.guildId, name);
+    } else {
+      await taskService.enableManual(message.guildId, name);
+    }
 
-    const humanSchedule = cronToHuman(cronExpression);
-    const scheduleDisplay =
-      humanSchedule !== cronExpression ? `${humanSchedule}\n\`${task.cron}\`` : `\`${task.cron}\``;
+    const isManual = taskService.isManual(task);
+    const scheduleField = isManual
+      ? { name: 'Type', value: '🖐️ Manual Trigger', inline: true }
+      : { name: 'Schedule', value: cronExpression ?? '(none)', inline: true };
 
     const embed: ReplyEmbed = {
       title: '✅ Task Created',
@@ -510,7 +533,7 @@ async function handleCreate(
       fields: [
         { name: 'Name', value: task.name ?? '(unnamed)', inline: true },
         { name: 'Action', value: `\`${task.action}\``, inline: true },
-        { name: 'Schedule', value: scheduleDisplay, inline: true },
+        scheduleField,
       ],
     };
 
@@ -555,6 +578,21 @@ async function handleReschedule(
   const name = args[0]!;
   const rawWhen = args.slice(1).join(' ');
 
+  // Check for "none" or "manual" to clear the schedule
+  if (rawWhen.toLowerCase() === 'none' || rawWhen.toLowerCase() === 'manual') {
+    try {
+      const task = await taskService.edit(message.guildId, name, {
+        cronExpression: null,
+      });
+      await message.reply(`🖐️ **${task.name}** is now a manual trigger — no schedule.`);
+    } catch (error) {
+      await message.reply(
+        `❌ ${error instanceof Error ? error.message : 'Failed to clear schedule.'}`
+      );
+    }
+    return;
+  }
+
   try {
     const cronExpression = parseCronExpression(rawWhen);
     const task = await taskService.edit(message.guildId, name, {
@@ -587,7 +625,7 @@ async function handleRetool(
   try {
     const task = await taskService.retool(message.guildId, args[0]!, args[1]!.toLowerCase());
     await message.reply(
-      `✅ **${task.name}** retooled to \`${task.action}\`. Old action config has been cleared — use \`!task edit ${task.name} set <key>:<value>\` to configure the new action.`
+      `✅ **${task.name}** retooled to \`${task.action}\`. Old action config has been cleared — use \`!task edit ${task.name} <key>:<value>\` to configure the new action.`
     );
   } catch (error) {
     await message.reply(`❌ ${error instanceof Error ? error.message : 'Failed to retool task.'}`);
@@ -615,7 +653,7 @@ async function handleEdit(
 
   if (colonIndex === -1) {
     await message.reply(
-      '❌ Use `key:value` format — e.g. `!task edit greeting set message:Hello everyone`'
+      '❌ Use `key:value` format — e.g. `!task edit greeting message:Hello everyone`'
     );
     return;
   }
@@ -653,8 +691,12 @@ async function handleEdit(
     let response = `✅ **${name}** updated: \`${key}\` ${action}.`;
     if (task) {
       const missing = taskService.getMissingFields(task);
-      if (missing.length === 0 && !task.enabled && task.cron && task.action) {
-        response += ` All fields set! Use \`!task resume ${name}\` to activate.`;
+      if (missing.length === 0 && !task.enabled) {
+        if (taskService.isManual(task)) {
+          response += ` All fields set! Use \`!task run ${name}\` to trigger it.`;
+        } else if (task.action) {
+          response += ` All fields set! Use \`!task resume ${name}\` to activate.`;
+        }
       } else if (missing.length > 0) {
         response += ` Still missing: ${missing.join(', ')}.`;
       }

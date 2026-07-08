@@ -1,12 +1,5 @@
 import pg from 'pg';
-import type {
-  TriggerStore,
-  Trigger,
-  TriggerEvent,
-  TriggerUpdate,
-  TaskRun,
-  ManagedBy,
-} from './triggerStore.js';
+import type { TriggerStore, Trigger, TriggerUpdate, TaskRun } from './triggerStore.js';
 
 const { Pool } = pg;
 
@@ -33,20 +26,17 @@ export class PostgresTriggerStore implements TriggerStore {
   async create(trigger: Omit<Trigger, 'id' | 'createdAt' | 'updatedAt'>): Promise<number> {
     const result = await this.pool.query(
       `INSERT INTO guild_triggers
-        (guild_id, event, cron, action, config, conditions, name, enabled, managed_by, group_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        (guild_id, cron, action, config, conditions, name, enabled)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING id`,
       [
         trigger.guildId,
-        trigger.event,
         trigger.cron ?? null,
         trigger.action,
         JSON.stringify(trigger.config),
         JSON.stringify(trigger.conditions),
         trigger.name ?? null,
         trigger.enabled,
-        trigger.managedBy ?? null,
-        trigger.groupId ?? null,
       ]
     );
 
@@ -70,31 +60,11 @@ export class PostgresTriggerStore implements TriggerStore {
     return this.rowToTrigger(result.rows[0]);
   }
 
-  async getByGuild(
-    guildId: string,
-    filter?: { managedBy?: ManagedBy | null; event?: TriggerEvent }
-  ): Promise<Trigger[]> {
-    let sql = 'SELECT * FROM guild_triggers WHERE guild_id = $1';
-    const params: unknown[] = [guildId];
-    let paramIndex = 2;
-
-    if (filter?.managedBy !== undefined) {
-      if (filter.managedBy === null) {
-        sql += ` AND managed_by IS NULL`;
-      } else {
-        sql += ` AND managed_by = $${paramIndex++}`;
-        params.push(filter.managedBy);
-      }
-    }
-
-    if (filter?.event) {
-      sql += ` AND event = $${paramIndex++}`;
-      params.push(filter.event);
-    }
-
-    sql += ' ORDER BY created_at ASC';
-
-    const result = await this.pool.query(sql, params);
+  async getByGuild(guildId: string): Promise<Trigger[]> {
+    const result = await this.pool.query(
+      'SELECT * FROM guild_triggers WHERE guild_id = $1 ORDER BY created_at ASC',
+      [guildId]
+    );
     return result.rows.map((row) => this.rowToTrigger(row));
   }
 
@@ -126,10 +96,6 @@ export class PostgresTriggerStore implements TriggerStore {
     if (updates.enabled !== undefined) {
       sets.push(`enabled = $${paramIndex++}`);
       params.push(updates.enabled);
-    }
-    if (updates.event !== undefined) {
-      sets.push(`event = $${paramIndex++}`);
-      params.push(updates.event);
     }
 
     if (sets.length === 0) return;
@@ -190,9 +156,7 @@ export class PostgresTriggerStore implements TriggerStore {
   }
 
   async getEnabledCronTriggers(): Promise<Trigger[]> {
-    const result = await this.pool.query(
-      `SELECT * FROM guild_triggers WHERE event = 'cron' AND enabled = true`
-    );
+    const result = await this.pool.query('SELECT * FROM guild_triggers WHERE enabled = true');
 
     return result.rows.map((row) => this.rowToTrigger(row));
   }
@@ -214,7 +178,6 @@ export class PostgresTriggerStore implements TriggerStore {
     return {
       id: row.id as number,
       guildId: row.guild_id as string,
-      event: row.event as TriggerEvent,
       cron: (row.cron as string) ?? null,
       action: row.action as string,
       config:
@@ -229,8 +192,6 @@ export class PostgresTriggerStore implements TriggerStore {
       enabled: Boolean(row.enabled),
       lastRunAt: (row.last_run_at as string) ?? null,
       lastRunResult: (row.last_run_result as string) ?? null,
-      managedBy: (row.managed_by as ManagedBy | undefined) ?? null,
-      groupId: (row.group_id as string) ?? null,
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
     };
@@ -254,7 +215,6 @@ export class PostgresTriggerStore implements TriggerStore {
       CREATE TABLE IF NOT EXISTS guild_triggers (
         id              SERIAL PRIMARY KEY,
         guild_id        TEXT NOT NULL,
-        event           TEXT NOT NULL,
         cron            TEXT,
         action          TEXT NOT NULL,
         config          JSONB NOT NULL DEFAULT '{}',
@@ -263,8 +223,6 @@ export class PostgresTriggerStore implements TriggerStore {
         enabled         BOOLEAN NOT NULL DEFAULT true,
         last_run_at     TIMESTAMPTZ,
         last_run_result TEXT,
-        managed_by      TEXT,
-        group_id        TEXT,
         created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         UNIQUE(guild_id, name)
@@ -286,9 +244,7 @@ export class PostgresTriggerStore implements TriggerStore {
 
     const indexes = [
       'CREATE INDEX IF NOT EXISTS idx_triggers_guild ON guild_triggers(guild_id)',
-      'CREATE INDEX IF NOT EXISTS idx_triggers_event ON guild_triggers(event)',
-      'CREATE INDEX IF NOT EXISTS idx_triggers_managed ON guild_triggers(managed_by)',
-      'CREATE INDEX IF NOT EXISTS idx_triggers_group ON guild_triggers(group_id)',
+
       'CREATE INDEX IF NOT EXISTS idx_task_runs_trigger ON guild_task_runs(trigger_id)',
       'CREATE INDEX IF NOT EXISTS idx_task_runs_guild ON guild_task_runs(guild_id)',
     ];

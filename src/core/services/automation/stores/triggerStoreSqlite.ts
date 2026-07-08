@@ -2,14 +2,7 @@ import Database from 'better-sqlite3';
 import { resolve } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
-import type {
-  TriggerStore,
-  Trigger,
-  TriggerEvent,
-  TriggerUpdate,
-  TaskRun,
-  ManagedBy,
-} from './triggerStore.js';
+import type { TriggerStore, Trigger, TriggerUpdate, TaskRun } from './triggerStore.js';
 
 export interface SqliteTriggerStoreOptions {
   dbPath?: string;
@@ -37,22 +30,19 @@ export class SqliteTriggerStore implements TriggerStore {
   async create(trigger: Omit<Trigger, 'id' | 'createdAt' | 'updatedAt'>): Promise<number> {
     const stmt = this.db.prepare(`
       INSERT INTO guild_triggers
-        (guild_id, event, cron, action, config, conditions, name, enabled, managed_by, group_id)
+        (guild_id, cron, action, config, conditions, name, enabled)
       VALUES
-        (@guildId, @event, @cron, @action, @config, @conditions, @name, @enabled, @managedBy, @groupId)
+        (@guildId, @cron, @action, @config, @conditions, @name, @enabled)
     `);
 
     const result = stmt.run({
       guildId: trigger.guildId,
-      event: trigger.event,
       cron: trigger.cron ?? null,
       action: trigger.action,
       config: JSON.stringify(trigger.config),
       conditions: JSON.stringify(trigger.conditions),
       name: trigger.name ?? null,
       enabled: trigger.enabled ? 1 : 0,
-      managedBy: trigger.managedBy ?? null,
-      groupId: trigger.groupId ?? null,
     });
 
     return Number(result.lastInsertRowid);
@@ -76,30 +66,10 @@ export class SqliteTriggerStore implements TriggerStore {
     return this.rowToTrigger(row);
   }
 
-  async getByGuild(
-    guildId: string,
-    filter?: { managedBy?: ManagedBy | null; event?: TriggerEvent }
-  ): Promise<Trigger[]> {
-    let sql = 'SELECT * FROM guild_triggers WHERE guild_id = ?';
-    const params: unknown[] = [guildId];
-
-    if (filter?.managedBy !== undefined) {
-      if (filter.managedBy === null) {
-        sql += ' AND managed_by IS NULL';
-      } else {
-        sql += ' AND managed_by = ?';
-        params.push(filter.managedBy);
-      }
-    }
-
-    if (filter?.event) {
-      sql += ' AND event = ?';
-      params.push(filter.event);
-    }
-
-    sql += ' ORDER BY created_at ASC';
-
-    const rows = this.db.prepare(sql).all(...params) as Record<string, unknown>[];
+  async getByGuild(guildId: string): Promise<Trigger[]> {
+    const rows = this.db
+      .prepare('SELECT * FROM guild_triggers WHERE guild_id = ? ORDER BY created_at ASC')
+      .all(guildId) as Record<string, unknown>[];
     return rows.map((row) => this.rowToTrigger(row));
   }
 
@@ -130,10 +100,6 @@ export class SqliteTriggerStore implements TriggerStore {
     if (updates.enabled !== undefined) {
       sets.push('enabled = ?');
       params.push(updates.enabled ? 1 : 0);
-    }
-    if (updates.event !== undefined) {
-      sets.push('event = ?');
-      params.push(updates.event);
     }
 
     if (sets.length === 0) return;
@@ -196,9 +162,10 @@ export class SqliteTriggerStore implements TriggerStore {
   }
 
   async getEnabledCronTriggers(): Promise<Trigger[]> {
-    const rows = this.db
-      .prepare("SELECT * FROM guild_triggers WHERE event = 'cron' AND enabled = 1")
-      .all() as Record<string, unknown>[];
+    const rows = this.db.prepare('SELECT * FROM guild_triggers WHERE enabled = 1').all() as Record<
+      string,
+      unknown
+    >[];
 
     return rows.map((row) => this.rowToTrigger(row));
   }
@@ -219,7 +186,6 @@ export class SqliteTriggerStore implements TriggerStore {
     return {
       id: row.id as number,
       guildId: row.guild_id as string,
-      event: row.event as TriggerEvent,
       cron: (row.cron as string) ?? null,
       action: row.action as string,
       config: JSON.parse(row.config as string) as Record<string, unknown>,
@@ -228,8 +194,6 @@ export class SqliteTriggerStore implements TriggerStore {
       enabled: Boolean(row.enabled),
       lastRunAt: (row.last_run_at as string) ?? null,
       lastRunResult: (row.last_run_result as string) ?? null,
-      managedBy: (row.managed_by as ManagedBy | undefined) ?? null,
-      groupId: (row.group_id as string) ?? null,
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
     };
@@ -253,7 +217,6 @@ export class SqliteTriggerStore implements TriggerStore {
       CREATE TABLE IF NOT EXISTS guild_triggers (
         id               INTEGER PRIMARY KEY AUTOINCREMENT,
         guild_id         TEXT NOT NULL,
-        event            TEXT NOT NULL,
         cron             TEXT,
         action           TEXT NOT NULL,
         config           TEXT NOT NULL DEFAULT '{}',
@@ -262,8 +225,6 @@ export class SqliteTriggerStore implements TriggerStore {
         enabled          INTEGER NOT NULL DEFAULT 1,
         last_run_at      TEXT,
         last_run_result  TEXT,
-        managed_by       TEXT,
-        group_id         TEXT,
         created_at       TEXT NOT NULL DEFAULT (datetime('now')),
         updated_at       TEXT NOT NULL DEFAULT (datetime('now')),
         UNIQUE(guild_id, name)
@@ -286,15 +247,7 @@ export class SqliteTriggerStore implements TriggerStore {
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_triggers_guild ON guild_triggers(guild_id)
     `);
-    this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_triggers_event ON guild_triggers(event)
-    `);
-    this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_triggers_managed ON guild_triggers(managed_by)
-    `);
-    this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_triggers_group ON guild_triggers(group_id)
-    `);
+
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_task_runs_trigger ON guild_task_runs(trigger_id)
     `);

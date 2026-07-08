@@ -1,18 +1,6 @@
-export type TriggerEvent =
-  | 'cron'
-  | 'memberJoin'
-  | 'memberLeave'
-  | 'message'
-  | 'reactionAdd'
-  | 'reactionRemove'
-  | 'levelUp';
-
-export type ManagedBy = 'task' | 'level_role' | 'reaction_role';
-
 export interface Trigger {
   id: number;
   guildId: string;
-  event: TriggerEvent;
   cron: string | null;
   action: string;
   config: Record<string, unknown>;
@@ -21,8 +9,6 @@ export interface Trigger {
   enabled: boolean;
   lastRunAt: string | null;
   lastRunResult: string | null;
-  managedBy: ManagedBy | null;
-  groupId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -40,7 +26,7 @@ export interface TaskRun {
 }
 
 export type TriggerUpdate = Partial<
-  Pick<Trigger, 'cron' | 'action' | 'config' | 'conditions' | 'name' | 'enabled' | 'event'>
+  Pick<Trigger, 'cron' | 'action' | 'config' | 'conditions' | 'name' | 'enabled'>
 >;
 
 /**
@@ -56,11 +42,8 @@ export interface TriggerStore {
   /** Get a named trigger within a guild. Names are unique per guild when not null. */
   getByName(guildId: string, name: string): Promise<Trigger | null>;
 
-  /** Get all triggers for a guild, optionally filtered by managed_by and/or event. */
-  getByGuild(
-    guildId: string,
-    filter?: { managedBy?: ManagedBy | null; event?: TriggerEvent }
-  ): Promise<Trigger[]>;
+  /** Get all triggers for a guild. */
+  getByGuild(guildId: string): Promise<Trigger[]>;
 
   /** Partial update of a trigger. */
   update(id: number, updates: TriggerUpdate): Promise<void>;

@@ -8,7 +8,8 @@ import { CronEngine } from './triggerEngineCron.js';
  */
 export interface TaskCreatePayload {
   name: string;
-  cronExpression: string;
+  /** Cron expression. Empty or omitted for manual-only triggers. */
+  cronExpression?: string;
   action: string;
   channelId: string;
   /** Original human-readable "when" expression (e.g. "daily at 2pm"). */
@@ -37,7 +38,7 @@ export class TaskService {
 
   /** List all tasks (cron triggers) for a guild. */
   async list(guildId: string): Promise<Trigger[]> {
-    return this.store.getByGuild(guildId, { managedBy: 'task' });
+    return this.store.getByGuild(guildId);
   }
 
   /** Get a single named task. */
@@ -50,13 +51,17 @@ export class TaskService {
     return listActions();
   }
 
+  /** Returns true if this is a manual-only trigger (no schedule). */
+  isManual(task: Trigger): boolean {
+    return !task.cron;
+  }
+
   /**
    * Check which required fields are missing for a task to be schedulable.
-   * Returns an array of field names like ['when', 'action', 'channel'].
+   * Does not consider schedule as required. A task without cron is a manual trigger.
    */
   getMissingFields(task: Trigger): string[] {
     const missing: string[] = [];
-    if (!task.cron) missing.push('schedule');
     if (!task.action) missing.push('action');
 
     // Check action-specific required config fields
@@ -91,10 +96,14 @@ export class TaskService {
     return updated;
   }
 
-  /** Pause a task. */
+  /** Pause a scheduled task. Rejects manual-only triggers. */
   async pause(guildId: string, name: string): Promise<boolean> {
     const trigger = await this.store.getByName(guildId, name);
     if (!trigger) throw new Error(`Task "${name}" not found.`);
+
+    if (this.isManual(trigger)) {
+      throw new Error(`"${name}" is a manual trigger — it has no schedule to pause.`);
+    }
 
     if (!trigger.enabled) return false; // already paused
 
@@ -103,10 +112,14 @@ export class TaskService {
     return true;
   }
 
-  /** Resume a task. */
+  /** Resume a scheduled task. Rejects manual-only triggers. */
   async resume(guildId: string, name: string): Promise<boolean> {
     const trigger = await this.store.getByName(guildId, name);
     if (!trigger) throw new Error(`Task "${name}" not found.`);
+
+    if (this.isManual(trigger)) {
+      throw new Error(`"${name}" is a manual trigger — it has no schedule to resume.`);
+    }
 
     // Check task is complete before resuming
     const missing = this.getMissingFields(trigger);
@@ -122,6 +135,22 @@ export class TaskService {
     await this.store.update(trigger.id, { enabled: true } as any);
     await this.cronEngine.refresh();
     return true;
+  }
+
+  /** Enable a manual trigger (no schedule). Simply marks it ready to run. */
+  async enableManual(guildId: string, name: string): Promise<void> {
+    const trigger = await this.store.getByName(guildId, name);
+    if (!trigger) throw new Error(`Task "${name}" not found.`);
+
+    const missing = this.getMissingFields(trigger);
+    if (missing.length > 0) {
+      throw new Error(
+        `Task "${name}" is incomplete. Still missing: ${missing.join(', ')}.\n` +
+          `Fill them with \`!task edit ${name} set <key>:<value>\` then try again.`
+      );
+    }
+
+    await this.store.update(trigger.id, { enabled: true } as any);
   }
 
   /** Retool a task. */
@@ -150,11 +179,11 @@ export class TaskService {
     return updated;
   }
 
-  /** Create a new scheduled task. */
+  /** Create a new task. Omit cronExpression for a manual-only trigger. */
   async create(guildId: string, payload: TaskCreatePayload): Promise<Trigger> {
     const now = new Date().toISOString();
-    // Validate cron expression
-    if (!cron.validate(payload.cronExpression)) {
+    const hasCron = !!payload.cronExpression;
+    if (hasCron && !cron.validate(payload.cronExpression!)) {
       throw new Error(`Invalid cron expression: "${payload.cronExpression}".`);
     }
 
@@ -180,15 +209,12 @@ export class TaskService {
 
     const id = await this.store.create({
       guildId,
-      event: 'cron',
-      cron: payload.cronExpression,
+      cron: payload.cronExpression ?? null,
       action: payload.action,
       config,
       conditions: {},
       name: payload.name,
       enabled: payload.enabled ?? true,
-      managedBy: 'task',
-      groupId: null,
       lastRunAt: null,
       lastRunResult: null,
     });
@@ -205,7 +231,8 @@ export class TaskService {
     guildId: string,
     name: string,
     updates: {
-      cronExpression?: string;
+      /** New cron expression, or null to clear (convert to manual trigger). */
+      cronExpression?: string | null;
       rawWhen?: string;
       action?: string;
       channelId?: string;
@@ -219,16 +246,25 @@ export class TaskService {
     const storeUpdates: Record<string, unknown> = {};
 
     if (updates.cronExpression !== undefined) {
-      if (!cron.validate(updates.cronExpression)) {
-        throw new Error(`Invalid cron expression: "${updates.cronExpression}".`);
-      }
-      storeUpdates.cron = updates.cronExpression;
-      // Also update the human-readable "when" in config
-      if (updates.rawWhen) {
-        storeUpdates.config = {
-          ...trigger.config,
-          when: updates.rawWhen,
-        };
+      if (updates.cronExpression === null) {
+        // Clear the schedule which converts to manual trigger
+        storeUpdates.cron = null;
+        // Also remove "when" from config
+        const config = { ...trigger.config };
+        delete config.when;
+        storeUpdates.config = config;
+      } else {
+        if (!cron.validate(updates.cronExpression)) {
+          throw new Error(`Invalid cron expression: "${updates.cronExpression}".`);
+        }
+        storeUpdates.cron = updates.cronExpression;
+        // Also update the human-readable "when" in config
+        if (updates.rawWhen) {
+          storeUpdates.config = {
+            ...trigger.config,
+            when: updates.rawWhen,
+          };
+        }
       }
     }
 
