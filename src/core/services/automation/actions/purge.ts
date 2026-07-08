@@ -22,7 +22,17 @@ export const PurgeAction: Action = {
   async execute(context: ActionContext): Promise<ActionResult> {
     const { channelId, config, channel } = context;
 
-    const count = Math.min(Math.max(typeof config.count === 'number' ? config.count : 50, 1), 100);
+    const count = Math.min(
+      Math.max(
+        typeof config.count === 'number'
+          ? config.count
+          : typeof config.count === 'string'
+            ? parseInt(config.count, 10) || 50
+            : 50,
+        1
+      ),
+      100
+    );
 
     if (!channel) {
       return {
