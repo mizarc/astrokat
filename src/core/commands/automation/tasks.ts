@@ -118,7 +118,7 @@ export const TasksCommand: BotCommand = {
   async execute(message, args) {
     // Guild-only check
     if (!message.guildId) {
-      await message.reply('❌ This command can only be used in a server.');
+      await message.reply(t('tasks.guildOnly'));
       return;
     }
 
@@ -167,9 +167,7 @@ export const TasksCommand: BotCommand = {
         await handleHistory(message, args.slice(1));
         break;
       default:
-        await message.reply(
-          `❌ Unknown subcommand \`${subcommand}\`. Available: list, show, create, rename, reschedule, retool, edit, pause, resume, delete, run, history.`
-        );
+        await message.reply(t('tasks.unknownSubcommand', { sub: subcommand }));
     }
   },
 };
@@ -188,38 +186,38 @@ async function showHelp(message: Parameters<BotCommand['execute']>[0]): Promise<
     .join('\n');
 
   const embed: ReplyEmbed = {
-    title: '📋 Scheduled Tasks',
+    title: t('tasks.help.title'),
     color: 0x5865f2,
     description: [
-      'Schedule automated actions for this server.',
+      t('tasks.help.descSchedule'),
       '',
-      '**Subcommands:**',
-      '`!task list` — Show all tasks',
-      '`!task show <name>` — Show full task details',
-      '`!task create <name> [action] [when]` — Create a task or manual trigger',
-      '`!task rename <old> <new>` — Rename a task',
-      '`!task reschedule <name> <when>` — Change the schedule',
-      '`!task retool <name> <action>` — Swap the action type',
-      '`!task edit <name> <key>:<value>` — Change a config value',
-      '`!task pause <name>` — Disable a task',
-      '`!task resume <name>` — Enable a task',
-      '`!task delete <name>` — Delete a task',
-      '`!task run <name>` — Trigger a task now',
-      '`!task history <name>` — Show recent runs',
+      t('tasks.help.subcommands'),
+      t('tasks.help.list'),
+      t('tasks.help.show'),
+      t('tasks.help.create'),
+      t('tasks.help.rename'),
+      t('tasks.help.reschedule'),
+      t('tasks.help.retool'),
+      t('tasks.help.edit'),
+      t('tasks.help.pause'),
+      t('tasks.help.resume'),
+      t('tasks.help.delete'),
+      t('tasks.help.run'),
+      t('tasks.help.history'),
       '',
-      '**When — plain English or cron:**',
-      '`daily` · `hourly` · `weekly` · `weekdays` · `every 30m`',
-      '`every day at 9am` · `monday at 10am` · `midnight`',
-      'Or raw cron like `0 9 * * 1` for power users.',
+      t('tasks.help.whenTitle'),
+      t('tasks.help.whenExamples'),
+      t('tasks.help.whenAt'),
+      t('tasks.help.whenCron'),
       '',
-      '**Available actions:**',
+      t('tasks.help.availableActions'),
       actionsList,
       '',
-      '**Tips:**',
-      '• `!task create greeting announce daily` creates an active scheduled task.',
-      '• `!task create greeting announce` creates a manual-only trigger (no schedule).',
-      '• `!task create greeting` makes a draft — fill it, then run manually or add a schedule.',
-      '• `!task edit greeting message:Hello everyone` configures the action.',
+      t('tasks.help.tipsTitle'),
+      t('tasks.help.tipScheduled'),
+      t('tasks.help.tipManual'),
+      t('tasks.help.tipDraft'),
+      t('tasks.help.tipEdit'),
     ].join('\n'),
   };
 
@@ -232,7 +230,7 @@ async function handleList(message: Parameters<BotCommand['execute']>[0]): Promis
   const tasks = await taskService.list(message.guildId);
 
   if (tasks.length === 0) {
-    await message.reply('📋 No tasks configured. Use `!task create` to add one.');
+    await message.reply(t('tasks.list.empty'));
     return;
   }
 
@@ -245,19 +243,21 @@ async function handleList(message: Parameters<BotCommand['execute']>[0]): Promis
       task.lastRunResult === 'success' ? '✅' : task.lastRunResult === 'failure' ? '❌' : '';
     const icons = result ? `${status} ${result}` : status;
     const lastRun = task.lastRunAt
-      ? `Last: <t:${Math.floor(new Date(task.lastRunAt).getTime() / 1000)}:R>`
-      : 'Never run';
-    const schedule = task.cron ? cronToHuman(task.cron) : isDraft ? '' : 'Manual';
+      ? `${t('tasks.list.lastRun')} <t:${Math.floor(new Date(task.lastRunAt).getTime() / 1000)}:R>`
+      : t('tasks.list.neverRun');
+    const schedule = task.cron ? cronToHuman(task.cron) : isDraft ? '' : t('tasks.list.manual');
     const schedulePrefix = schedule ? ` — ${schedule}` : '';
-    const actionLabel = isDraft ? `Need: ${missing.join(', ')}` : `\`${task.action}\``;
+    const actionLabel = isDraft
+      ? `${t('tasks.list.need')} ${missing.join(', ')}`
+      : `\`${task.action}\``;
     return `**${i + 1}.** **${task.name}**${schedulePrefix} → ${actionLabel} ${lastRun} ${icons}`;
   });
 
   const embed: ReplyEmbed = {
-    title: '📋 Tasks',
+    title: t('tasks.list.title'),
     color: 0x5865f2,
     description: lines.join('\n'),
-    footer: { text: `Total: ${tasks.length} · 📝 draft · 🖐️ manual · ▶️ active · ⏸️ paused` },
+    footer: { text: t('tasks.list.footer', { count: tasks.length }) },
   };
 
   await message.reply({ content: '', embeds: [embed] });
@@ -270,14 +270,14 @@ async function handleShow(
   if (!message.guildId) return;
 
   if (args.length < 1) {
-    await message.reply('❌ Usage: `!task show <name>`');
+    await message.reply(t('tasks.show.usage'));
     return;
   }
 
   try {
     const task = await taskService.get(message.guildId, args[0]!);
     if (!task) {
-      await message.reply(`❌ Task "${args[0]}" not found.`);
+      await message.reply(t('tasks.show.notFound', { name: args[0]! }));
       return;
     }
 
@@ -286,33 +286,35 @@ async function handleShow(
     const isDraft = missing.length > 0;
     const statusIcon = isDraft ? '📝' : isManual ? '🖐️' : task.enabled ? '▶️' : '⏸️';
     const statusLabel = isDraft
-      ? 'Draft'
+      ? t('tasks.show.statusDraft')
       : isManual
-        ? 'Manual Trigger'
+        ? t('tasks.show.statusManual')
         : task.enabled
-          ? 'Active'
-          : 'Paused';
+          ? t('tasks.show.statusActive')
+          : t('tasks.show.statusPaused');
     const schedule = task.cron ? `${cronToHuman(task.cron)} · \`${task.cron}\`` : null;
     const channelId = task.config?.channel as string | undefined;
 
-    const infoLines: string[] = [`**Status:** ${statusIcon} ${statusLabel}`];
+    const infoLines: string[] = [
+      `**${t('tasks.show.labelStatus')}:** ${statusIcon} ${statusLabel}`,
+    ];
 
     if (task.lastRunAt) {
       const ts = Math.floor(new Date(task.lastRunAt).getTime() / 1000);
       const icon =
         task.lastRunResult === 'success' ? '✅' : task.lastRunResult === 'failure' ? '❌' : '⏳';
-      infoLines.push(`**Last Run:** ${icon} <t:${ts}:R>`);
+      infoLines.push(`**${t('tasks.show.labelLastRun')}:** ${icon} <t:${ts}:R>`);
     }
 
-    infoLines.push(`**Action:** \`${task.action}\``);
+    infoLines.push(`**${t('tasks.show.labelAction')}:** \`${task.action}\``);
     if (schedule) {
-      infoLines.push(`**Schedule:** ${schedule}`);
+      infoLines.push(`**${t('tasks.show.labelSchedule')}:** ${schedule}`);
     }
 
     const configLines: string[] = [];
 
     if (channelId) {
-      configLines.push(`**Channel:** <#${channelId}>`);
+      configLines.push(`**${t('tasks.show.labelChannel')}:** <#${channelId}>`);
     }
 
     for (const [key, value] of Object.entries(task.config ?? {})) {
@@ -322,11 +324,11 @@ async function handleShow(
     }
 
     const fields: { name: string; value: string; inline?: boolean }[] = [
-      { name: 'DETAILS', value: infoLines.join('\n') },
+      { name: t('tasks.show.fieldDetails'), value: infoLines.join('\n') },
     ];
 
     if (configLines.length > 0) {
-      fields.push({ name: 'CONFIGURATION', value: configLines.join('\n') });
+      fields.push({ name: t('tasks.show.fieldConfig'), value: configLines.join('\n') });
     }
 
     // Show which config keys are available for this action
@@ -334,29 +336,41 @@ async function handleShow(
     if (configFields && configFields.length > 0) {
       const lines: string[] = [];
       for (const field of configFields) {
-        const badge = field.required ? '🔴 Required' : '🟢 Optional';
-        const defaultHint = field.default ? ` (default: ${field.default})` : '';
+        const badge = field.required
+          ? t('tasks.show.configRequired')
+          : t('tasks.show.configOptional');
+        const defaultHint = field.default
+          ? ` ${t('tasks.show.configDefault', { default: field.default })}`
+          : '';
         lines.push(`• \`${field.key}\` — ${badge}\n  ${field.description}${defaultHint}`);
       }
       if (lines.length > 0) {
-        fields.push({ name: 'AVAILABLE CONFIG', value: lines.join('\n') });
+        fields.push({ name: t('tasks.show.fieldAvailableConfig'), value: lines.join('\n') });
       }
     }
 
     const embed: ReplyEmbed = {
-      title: `📋 Task — ${task.name}`,
+      title: t('tasks.show.title', { name: task.name ?? '' }),
       color: 0x5865f2,
       fields,
-      footer: { text: `Created <t:${Math.floor(new Date(task.createdAt).getTime() / 1000)}:R>` },
+      footer: {
+        text: t('tasks.show.footer', {
+          timestamp: Math.floor(new Date(task.createdAt).getTime() / 1000),
+        }),
+      },
     };
 
     if (isDraft) {
-      embed.description = `⚠️ Still missing: ${missing.join(', ')}`;
+      embed.description = t('tasks.show.missingDesc', { fields: missing.join(', ') });
     }
 
     await message.reply({ content: '', embeds: [embed] });
   } catch (error) {
-    await message.reply(`❌ ${error instanceof Error ? error.message : 'Failed to get task.'}`);
+    await message.reply(
+      error instanceof Error
+        ? t('tasks.show.error', { message: error.message })
+        : t('tasks.show.errorGeneric')
+    );
   }
 }
 
@@ -377,29 +391,17 @@ async function handleCreate(
       });
 
       const embed: ReplyEmbed = {
-        title: '📝 Draft Created',
+        title: t('tasks.create.draftTitle'),
         color: 0x5865f2,
-        description:
-          `Draft **${task.name}** saved. It needs a few things before it can run.\n\n` +
-          'Fill them in:\n' +
-          '`!task reschedule ' +
-          name +
-          ' <when>` — Set a schedule (or skip for manual trigger)\n' +
-          '`!task retool ' +
-          name +
-          ' <action>` — Choose what to do\n' +
-          '`!task edit ' +
-          name +
-          ' set channel:#channel` — Set the target channel\n\n' +
-          'Then: `!task run ' +
-          name +
-          '`',
+        description: t('tasks.create.draftDesc', { name: task.name ?? '' }),
       };
 
       await message.reply({ content: '', embeds: [embed] });
     } catch (error) {
       await message.reply(
-        `❌ ${error instanceof Error ? error.message : 'Failed to create task.'}`
+        error instanceof Error
+          ? t('tasks.create.errorGeneric', { message: error.message })
+          : t('tasks.create.errorGeneric')
       );
     }
     return;
@@ -407,16 +409,7 @@ async function handleCreate(
 
   // ── One-shot mode: name + action + optional when + optional config ───
   if (args.length < 2) {
-    await message.reply(
-      '❌ Too few arguments.\n' +
-        '• Scheduled: `!task create <name> <action> <when> [key:value...]`\n' +
-        '• Manual: `!task create <name> <action> [key:value...]`\n' +
-        '• Draft: `!task create <name>` and fill the rest with `edit`.\n' +
-        'Examples:\n' +
-        '`!task create greeting announce daily channel:#general message:Hello!`\n' +
-        '`!task create greeting announce channel:#general message:Hello!`\n' +
-        '`!task create greeting`'
-    );
+    await message.reply(t('tasks.create.tooFewArgs'));
     return;
   }
 
@@ -428,11 +421,7 @@ async function handleCreate(
   const actionNames = new Set(available.map((a) => a.name));
   if (!actionNames.has(action)) {
     await message.reply(
-      '❌ Unknown action "' +
-        action +
-        '". Available: ' +
-        [...actionNames].join(', ') +
-        '\nUsage: `!task create <name> <action> [when]`'
+      t('tasks.create.unknownAction', { action, available: [...actionNames].join(', ') })
     );
     return;
   }
@@ -506,11 +495,10 @@ async function handleCreate(
 
     if (missing.length > 0) {
       const suffix = cronExpression
-        ? `then \`!task resume ${name}\``
-        : `then \`!task run ${name}\``;
+        ? t('tasks.create.suffixResume', { name })
+        : t('tasks.create.suffixRun', { name });
       await message.reply(
-        `📝 Created **${name}** as a draft — still missing: ${missing.join(', ')}.\n` +
-          `Use \`!task edit ${name} key:value\` to fill them in, ${suffix} to activate.`
+        t('tasks.create.draftResult', { name, fields: missing.join(', '), suffix })
       );
       return;
     }
@@ -524,22 +512,30 @@ async function handleCreate(
 
     const isManual = taskService.isManual(task);
     const scheduleField = isManual
-      ? { name: 'Type', value: '🖐️ Manual Trigger', inline: true }
-      : { name: 'Schedule', value: cronExpression ?? '(none)', inline: true };
+      ? { name: t('tasks.create.fieldType'), value: t('tasks.create.typeManual'), inline: true }
+      : { name: t('tasks.create.fieldSchedule'), value: cronExpression ?? '(none)', inline: true };
 
     const embed: ReplyEmbed = {
-      title: '✅ Task Created',
+      title: t('tasks.create.title'),
       color: 0x57f287,
       fields: [
-        { name: 'Name', value: task.name ?? '(unnamed)', inline: true },
-        { name: 'Action', value: `\`${task.action}\``, inline: true },
+        {
+          name: t('tasks.create.fieldName'),
+          value: task.name ?? t('tasks.create.unnamed'),
+          inline: true,
+        },
+        { name: t('tasks.create.fieldAction'), value: `\`${task.action}\``, inline: true },
         scheduleField,
       ],
     };
 
     await message.reply({ content: '', embeds: [embed] });
   } catch (error) {
-    await message.reply(`❌ ${error instanceof Error ? error.message : 'Failed to create task.'}`);
+    await message.reply(
+      error instanceof Error
+        ? t('tasks.create.errorGeneric', { message: error.message })
+        : t('tasks.create.errorGeneric')
+    );
   }
 }
 
@@ -550,15 +546,19 @@ async function handleRename(
   if (!message.guildId) return;
 
   if (args.length < 2) {
-    await message.reply('❌ Usage: `!task rename <old-name> <new-name>`');
+    await message.reply(t('tasks.rename.usage'));
     return;
   }
 
   try {
     const task = await taskService.rename(message.guildId, args[0]!, args[1]!);
-    await message.reply(`✅ Task renamed: **${args[0]}** → **${task.name}**`);
+    await message.reply(t('tasks.rename.success', { oldName: args[0]!, newName: task.name ?? '' }));
   } catch (error) {
-    await message.reply(`❌ ${error instanceof Error ? error.message : 'Failed to rename task.'}`);
+    await message.reply(
+      error instanceof Error
+        ? t('tasks.rename.errorGeneric', { message: error.message })
+        : t('tasks.rename.errorGeneric')
+    );
   }
 }
 
@@ -569,9 +569,7 @@ async function handleReschedule(
   if (!message.guildId) return;
 
   if (args.length < 2) {
-    await message.reply(
-      '❌ Usage: `!task reschedule <name> <when>` — e.g. `!task reschedule greeting daily at 2pm`'
-    );
+    await message.reply(t('tasks.reschedule.usage'));
     return;
   }
 
@@ -584,10 +582,12 @@ async function handleReschedule(
       const task = await taskService.edit(message.guildId, name, {
         cronExpression: null,
       });
-      await message.reply(`🖐️ **${task.name}** is now a manual trigger — no schedule.`);
+      await message.reply(t('tasks.reschedule.cleared', { name: task.name ?? '' }));
     } catch (error) {
       await message.reply(
-        `❌ ${error instanceof Error ? error.message : 'Failed to clear schedule.'}`
+        error instanceof Error
+          ? t('tasks.reschedule.errorClear', { message: error.message })
+          : t('tasks.reschedule.errorClear')
       );
     }
     return;
@@ -601,10 +601,14 @@ async function handleReschedule(
     });
 
     const humanSchedule = cronToHuman(cronExpression);
-    await message.reply(`✅ **${task.name}** rescheduled to **${humanSchedule}**.`);
+    await message.reply(
+      t('tasks.reschedule.success', { name: task.name ?? '', schedule: humanSchedule })
+    );
   } catch (error) {
     await message.reply(
-      `❌ ${error instanceof Error ? error.message : 'Failed to reschedule task.'}`
+      error instanceof Error
+        ? t('tasks.reschedule.errorGeneric', { message: error.message })
+        : t('tasks.reschedule.errorGeneric')
     );
   }
 }
@@ -616,19 +620,19 @@ async function handleRetool(
   if (!message.guildId) return;
 
   if (args.length < 2) {
-    await message.reply(
-      '❌ Usage: `!task retool <name> <action>` — e.g. `!task retool greeting cleanup`'
-    );
+    await message.reply(t('tasks.retool.usage'));
     return;
   }
 
   try {
     const task = await taskService.retool(message.guildId, args[0]!, args[1]!.toLowerCase());
-    await message.reply(
-      `✅ **${task.name}** retooled to \`${task.action}\`. Old action config has been cleared — use \`!task edit ${task.name} <key>:<value>\` to configure the new action.`
-    );
+    await message.reply(t('tasks.retool.success', { name: task.name ?? '', action: task.action }));
   } catch (error) {
-    await message.reply(`❌ ${error instanceof Error ? error.message : 'Failed to retool task.'}`);
+    await message.reply(
+      error instanceof Error
+        ? t('tasks.retool.errorGeneric', { message: error.message })
+        : t('tasks.retool.errorGeneric')
+    );
   }
 }
 
@@ -639,11 +643,7 @@ async function handleEdit(
   if (!message.guildId) return;
 
   if (args.length < 2) {
-    await message.reply(
-      '❌ Usage: `!task edit <name> <key>:<value>` — e.g. `!task edit greeting message:Hello everyone`\n' +
-        'Common keys: `channel`, `message`, `count`, `role`, `inactive_days`\n' +
-        'To clear a value: `!task edit <name> <key>:` with nothing after the colon.'
-    );
+    await message.reply(t('tasks.edit.usage'));
     return;
   }
 
@@ -652,9 +652,7 @@ async function handleEdit(
   const colonIndex = rest.indexOf(':');
 
   if (colonIndex === -1) {
-    await message.reply(
-      '❌ Use `key:value` format — e.g. `!task edit greeting message:Hello everyone`'
-    );
+    await message.reply(t('tasks.edit.formatError'));
     return;
   }
 
@@ -687,24 +685,30 @@ async function handleEdit(
 
     // Check if task is now complete
     const task = await taskService.get(message.guildId, name);
-    const action = updates.clearKeys ? 'cleared' : 'changed';
-    let response = `✅ **${name}** updated: \`${key}\` ${action}.`;
+    const action = updates.clearKeys
+      ? t('tasks.edit.actionCleared')
+      : t('tasks.edit.actionChanged');
+    let response = t('tasks.edit.success', { name, key, action });
     if (task) {
       const missing = taskService.getMissingFields(task);
       if (missing.length === 0 && !task.enabled) {
         if (taskService.isManual(task)) {
-          response += ` All fields set! Use \`!task run ${name}\` to trigger it.`;
+          response += t('tasks.edit.allFieldsManual', { name });
         } else if (task.action) {
-          response += ` All fields set! Use \`!task resume ${name}\` to activate.`;
+          response += t('tasks.edit.allFieldsScheduled', { name });
         }
       } else if (missing.length > 0) {
-        response += ` Still missing: ${missing.join(', ')}.`;
+        response += t('tasks.edit.stillMissing', { fields: missing.join(', ') });
       }
     }
 
     await message.reply(response);
   } catch (error) {
-    await message.reply(`❌ ${error instanceof Error ? error.message : 'Failed to edit task.'}`);
+    await message.reply(
+      error instanceof Error
+        ? t('tasks.edit.errorGeneric', { message: error.message })
+        : t('tasks.edit.errorGeneric')
+    );
   }
 }
 
@@ -715,19 +719,24 @@ async function handlePause(
   if (!message.guildId) return;
 
   if (args.length < 1) {
-    await message.reply('❌ Usage: `!task pause <name>`');
+    await message.reply(t('tasks.pause.usage'));
     return;
   }
 
   try {
     const wasRunning = await taskService.pause(message.guildId, args[0]!);
+    const name = args[0]!;
     if (wasRunning) {
-      await message.reply(`⏸️ **${args[0]}** paused.`);
+      await message.reply(t('tasks.pause.success', { name }));
     } else {
-      await message.reply(`⏸️ **${args[0]}** was already paused — no change.`);
+      await message.reply(t('tasks.pause.already', { name }));
     }
   } catch (error) {
-    await message.reply(`❌ ${error instanceof Error ? error.message : 'Failed to pause task.'}`);
+    await message.reply(
+      error instanceof Error
+        ? t('tasks.pause.errorGeneric', { message: error.message })
+        : t('tasks.pause.errorGeneric')
+    );
   }
 }
 
@@ -738,19 +747,24 @@ async function handleResume(
   if (!message.guildId) return;
 
   if (args.length < 1) {
-    await message.reply('❌ Usage: `!task resume <name>`');
+    await message.reply(t('tasks.resume.usage'));
     return;
   }
 
   try {
     const wasPaused = await taskService.resume(message.guildId, args[0]!);
+    const name = args[0]!;
     if (wasPaused) {
-      await message.reply(`▶️ **${args[0]}** resumed.`);
+      await message.reply(t('tasks.resume.success', { name }));
     } else {
-      await message.reply(`▶️ **${args[0]}** was already running — no change.`);
+      await message.reply(t('tasks.resume.already', { name }));
     }
   } catch (error) {
-    await message.reply(`❌ ${error instanceof Error ? error.message : 'Failed to resume task.'}`);
+    await message.reply(
+      error instanceof Error
+        ? t('tasks.resume.errorGeneric', { message: error.message })
+        : t('tasks.resume.errorGeneric')
+    );
   }
 }
 
@@ -761,15 +775,19 @@ async function handleDelete(
   if (!message.guildId) return;
 
   if (args.length < 1) {
-    await message.reply('❌ Usage: `!task delete <name>`');
+    await message.reply(t('tasks.delete.usage'));
     return;
   }
 
   try {
     await taskService.remove(message.guildId, args[0]!);
-    await message.reply(`✅ Task **${args[0]}** deleted.`);
+    await message.reply(t('tasks.delete.success', { name: args[0]! }));
   } catch (error) {
-    await message.reply(`❌ ${error instanceof Error ? error.message : 'Failed to delete task.'}`);
+    await message.reply(
+      error instanceof Error
+        ? t('tasks.delete.errorGeneric', { message: error.message })
+        : t('tasks.delete.errorGeneric')
+    );
   }
 }
 
@@ -780,7 +798,7 @@ async function handleRun(
   if (!message.guildId) return;
 
   if (args.length < 1) {
-    await message.reply('❌ Usage: `!task run <name>`');
+    await message.reply(t('tasks.run.usage'));
     return;
   }
 
@@ -793,7 +811,10 @@ async function handleRun(
     const result = await taskService.run(message.guildId, name);
     await (message.followUp ? message.followUp(result) : message.reply(result));
   } catch (error) {
-    const msg = `❌ ${error instanceof Error ? error.message : 'Failed to run task.'}`;
+    const msg =
+      error instanceof Error
+        ? t('tasks.run.errorGeneric', { message: error.message })
+        : t('tasks.run.errorGeneric');
     await (message.followUp ? message.followUp(msg) : message.reply(msg));
   }
 }
@@ -805,7 +826,7 @@ async function handleHistory(
   if (!message.guildId) return;
 
   if (args.length < 1) {
-    await message.reply('❌ Usage: `!task history <name>`');
+    await message.reply(t('tasks.history.usage'));
     return;
   }
 
@@ -814,7 +835,7 @@ async function handleHistory(
     const runs = await taskService.history(message.guildId, n);
 
     if (runs.length === 0) {
-      await message.reply(`📋 No execution history for **${n}**.`);
+      await message.reply(t('tasks.history.empty', { name: n }));
       return;
     }
 
@@ -824,19 +845,23 @@ async function handleHistory(
       const error = run.errorMessage ? ` — ${run.errorMessage}` : '';
       const timestamp = run.startedAt
         ? `<t:${Math.floor(new Date(run.startedAt).getTime() / 1000)}:R>`
-        : 'Unknown';
+        : t('tasks.history.unknown');
       return `${icon} ${timestamp}${duration}${error}`;
     });
 
     const embed: ReplyEmbed = {
-      title: `📋 Execution History — ${n}`,
+      title: t('tasks.history.title', { name: n }),
       color: 0x5865f2,
       description: lines.join('\n'),
-      footer: { text: `Showing last ${runs.length} run(s)` },
+      footer: { text: t('tasks.history.footer', { count: runs.length }) },
     };
 
     await message.reply({ content: '', embeds: [embed] });
   } catch (error) {
-    await message.reply(`❌ ${error instanceof Error ? error.message : 'Failed to get history.'}`);
+    await message.reply(
+      error instanceof Error
+        ? t('tasks.history.errorGeneric', { message: error.message })
+        : t('tasks.history.errorGeneric')
+    );
   }
 }
