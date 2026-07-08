@@ -603,7 +603,8 @@ async function handleEdit(
   if (args.length < 2) {
     await message.reply(
       '❌ Usage: `!task edit <name> <key>:<value>` — e.g. `!task edit greeting message:Hello everyone`\n' +
-        'Common keys: `channel`, `message`, `count`, `role`, `inactive_days`'
+        'Common keys: `channel`, `message`, `count`, `role`, `inactive_days`\n' +
+        'To clear a value: `!task edit <name> <key>:` with nothing after the colon.'
     );
     return;
   }
@@ -625,13 +626,22 @@ async function handleEdit(
   const updates: {
     channelId?: string;
     actionConfig?: Record<string, unknown>;
+    clearKeys?: string[];
   } = {};
 
   if (key === 'channel') {
-    const match = value.match(/^<#(\d+)>$/);
-    updates.channelId = match ? match[1]! : value;
+    if (!value) {
+      updates.clearKeys = ['channel'];
+    } else {
+      const match = value.match(/^<#(\d+)>$/);
+      updates.channelId = match ? match[1]! : value;
+    }
   } else {
-    updates.actionConfig = { [key]: value };
+    if (!value) {
+      updates.clearKeys = [key];
+    } else {
+      updates.actionConfig = { [key]: value };
+    }
   }
 
   try {
@@ -639,7 +649,8 @@ async function handleEdit(
 
     // Check if task is now complete
     const task = await taskService.get(message.guildId, name);
-    let response = `✅ **${name}** updated: \`${key}\` changed.`;
+    const action = updates.clearKeys ? 'cleared' : 'changed';
+    let response = `✅ **${name}** updated: \`${key}\` ${action}.`;
     if (task) {
       const missing = taskService.getMissingFields(task);
       if (missing.length === 0 && !task.enabled && task.cron && task.action) {

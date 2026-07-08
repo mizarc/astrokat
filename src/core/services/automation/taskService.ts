@@ -210,6 +210,7 @@ export class TaskService {
       action?: string;
       channelId?: string;
       actionConfig?: Record<string, unknown>;
+      clearKeys?: string[];
     }
   ): Promise<Trigger> {
     const trigger = await this.store.getByName(guildId, name);
@@ -252,6 +253,15 @@ export class TaskService {
         ...trigger.config,
         ...updates.actionConfig,
       };
+    }
+
+    // Handle clearing config keys
+    if (updates.clearKeys !== undefined && updates.clearKeys.length > 0) {
+      const current = trigger.config as Record<string, unknown>;
+      for (const key of updates.clearKeys) {
+        delete current[key];
+      }
+      storeUpdates.config = current;
     }
 
     await this.store.update(trigger.id, storeUpdates as any);
