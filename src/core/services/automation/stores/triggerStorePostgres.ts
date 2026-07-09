@@ -25,7 +25,7 @@ export class PostgresTriggerStore implements TriggerStore {
 
   async create(trigger: Omit<Trigger, 'id' | 'createdAt' | 'updatedAt'>): Promise<number> {
     const result = await this.pool.query(
-      `INSERT INTO guild_triggers
+      `INSERT INTO guild_tasks
         (guild_id, cron, action, config, conditions, name, enabled)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING id`,
@@ -44,7 +44,7 @@ export class PostgresTriggerStore implements TriggerStore {
   }
 
   async get(id: number): Promise<Trigger | null> {
-    const result = await this.pool.query('SELECT * FROM guild_triggers WHERE id = $1', [id]);
+    const result = await this.pool.query('SELECT * FROM guild_tasks WHERE id = $1', [id]);
 
     if (result.rows.length === 0) return null;
     return this.rowToTrigger(result.rows[0]);
@@ -52,7 +52,7 @@ export class PostgresTriggerStore implements TriggerStore {
 
   async getByName(guildId: string, name: string): Promise<Trigger | null> {
     const result = await this.pool.query(
-      'SELECT * FROM guild_triggers WHERE guild_id = $1 AND name = $2',
+      'SELECT * FROM guild_tasks WHERE guild_id = $1 AND name = $2',
       [guildId, name]
     );
 
@@ -62,7 +62,7 @@ export class PostgresTriggerStore implements TriggerStore {
 
   async getByGuild(guildId: string): Promise<Trigger[]> {
     const result = await this.pool.query(
-      'SELECT * FROM guild_triggers WHERE guild_id = $1 ORDER BY created_at ASC',
+      'SELECT * FROM guild_tasks WHERE guild_id = $1 ORDER BY created_at ASC',
       [guildId]
     );
     return result.rows.map((row) => this.rowToTrigger(row));
@@ -104,13 +104,13 @@ export class PostgresTriggerStore implements TriggerStore {
     params.push(id);
 
     await this.pool.query(
-      `UPDATE guild_triggers SET ${sets.join(', ')} WHERE id = $${paramIndex}`,
+      `UPDATE guild_tasks SET ${sets.join(', ')} WHERE id = $${paramIndex}`,
       params
     );
   }
 
   async delete(id: number): Promise<void> {
-    await this.pool.query('DELETE FROM guild_triggers WHERE id = $1', [id]);
+    await this.pool.query('DELETE FROM guild_tasks WHERE id = $1', [id]);
   }
 
   async logRun(run: Omit<TaskRun, 'id'>): Promise<number> {
@@ -156,14 +156,14 @@ export class PostgresTriggerStore implements TriggerStore {
   }
 
   async getEnabledCronTriggers(): Promise<Trigger[]> {
-    const result = await this.pool.query('SELECT * FROM guild_triggers WHERE enabled = true');
+    const result = await this.pool.query('SELECT * FROM guild_tasks WHERE enabled = true');
 
     return result.rows.map((row) => this.rowToTrigger(row));
   }
 
   async updateRunResult(id: number, lastRunAt: string, lastRunResult: string): Promise<void> {
     await this.pool.query(
-      `UPDATE guild_triggers
+      `UPDATE guild_tasks
        SET last_run_at = $1, last_run_result = $2, updated_at = NOW()
        WHERE id = $3`,
       [lastRunAt, lastRunResult, id]
@@ -212,7 +212,7 @@ export class PostgresTriggerStore implements TriggerStore {
 
   private async ensureTables(): Promise<void> {
     await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS guild_triggers (
+      CREATE TABLE IF NOT EXISTS guild_tasks (
         id              SERIAL PRIMARY KEY,
         guild_id        TEXT NOT NULL,
         cron            TEXT,
@@ -232,7 +232,7 @@ export class PostgresTriggerStore implements TriggerStore {
     await this.pool.query(`
       CREATE TABLE IF NOT EXISTS guild_task_runs (
         id             SERIAL PRIMARY KEY,
-        trigger_id     INTEGER NOT NULL REFERENCES guild_triggers(id) ON DELETE CASCADE,
+        trigger_id     INTEGER NOT NULL REFERENCES guild_tasks(id) ON DELETE CASCADE,
         guild_id       TEXT NOT NULL,
         started_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         finished_at    TIMESTAMPTZ,
@@ -243,7 +243,7 @@ export class PostgresTriggerStore implements TriggerStore {
     `);
 
     const indexes = [
-      'CREATE INDEX IF NOT EXISTS idx_triggers_guild ON guild_triggers(guild_id)',
+      'CREATE INDEX IF NOT EXISTS idx_tasks_guild ON guild_tasks(guild_id)',
 
       'CREATE INDEX IF NOT EXISTS idx_task_runs_trigger ON guild_task_runs(trigger_id)',
       'CREATE INDEX IF NOT EXISTS idx_task_runs_guild ON guild_task_runs(guild_id)',

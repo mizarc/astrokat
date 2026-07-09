@@ -29,7 +29,7 @@ export class SqliteTriggerStore implements TriggerStore {
 
   async create(trigger: Omit<Trigger, 'id' | 'createdAt' | 'updatedAt'>): Promise<number> {
     const stmt = this.db.prepare(`
-      INSERT INTO guild_triggers
+      INSERT INTO guild_tasks
         (guild_id, cron, action, config, conditions, name, enabled)
       VALUES
         (@guildId, @cron, @action, @config, @conditions, @name, @enabled)
@@ -49,7 +49,7 @@ export class SqliteTriggerStore implements TriggerStore {
   }
 
   async get(id: number): Promise<Trigger | null> {
-    const row = this.db.prepare('SELECT * FROM guild_triggers WHERE id = ?').get(id) as
+    const row = this.db.prepare('SELECT * FROM guild_tasks WHERE id = ?').get(id) as
       | Record<string, unknown>
       | undefined;
 
@@ -59,7 +59,7 @@ export class SqliteTriggerStore implements TriggerStore {
 
   async getByName(guildId: string, name: string): Promise<Trigger | null> {
     const row = this.db
-      .prepare('SELECT * FROM guild_triggers WHERE guild_id = ? AND name = ?')
+      .prepare('SELECT * FROM guild_tasks WHERE guild_id = ? AND name = ?')
       .get(guildId, name) as Record<string, unknown> | undefined;
 
     if (!row) return null;
@@ -68,7 +68,7 @@ export class SqliteTriggerStore implements TriggerStore {
 
   async getByGuild(guildId: string): Promise<Trigger[]> {
     const rows = this.db
-      .prepare('SELECT * FROM guild_triggers WHERE guild_id = ? ORDER BY created_at ASC')
+      .prepare('SELECT * FROM guild_tasks WHERE guild_id = ? ORDER BY created_at ASC')
       .all(guildId) as Record<string, unknown>[];
     return rows.map((row) => this.rowToTrigger(row));
   }
@@ -107,11 +107,11 @@ export class SqliteTriggerStore implements TriggerStore {
     sets.push("updated_at = datetime('now')");
     params.push(id);
 
-    this.db.prepare(`UPDATE guild_triggers SET ${sets.join(', ')} WHERE id = ?`).run(...params);
+    this.db.prepare(`UPDATE guild_tasks SET ${sets.join(', ')} WHERE id = ?`).run(...params);
   }
 
   async delete(id: number): Promise<void> {
-    this.db.prepare('DELETE FROM guild_triggers WHERE id = ?').run(id);
+    this.db.prepare('DELETE FROM guild_tasks WHERE id = ?').run(id);
   }
 
   async logRun(run: Omit<TaskRun, 'id'>): Promise<number> {
@@ -162,7 +162,7 @@ export class SqliteTriggerStore implements TriggerStore {
   }
 
   async getEnabledCronTriggers(): Promise<Trigger[]> {
-    const rows = this.db.prepare('SELECT * FROM guild_triggers WHERE enabled = 1').all() as Record<
+    const rows = this.db.prepare('SELECT * FROM guild_tasks WHERE enabled = 1').all() as Record<
       string,
       unknown
     >[];
@@ -174,7 +174,7 @@ export class SqliteTriggerStore implements TriggerStore {
     this.db
       .prepare(
         `
-      UPDATE guild_triggers
+      UPDATE guild_tasks
       SET last_run_at = ?, last_run_result = ?, updated_at = datetime('now')
       WHERE id = ?
     `
@@ -214,7 +214,7 @@ export class SqliteTriggerStore implements TriggerStore {
 
   private ensureTables(): void {
     this.db.exec(`
-      CREATE TABLE IF NOT EXISTS guild_triggers (
+      CREATE TABLE IF NOT EXISTS guild_tasks (
         id               INTEGER PRIMARY KEY AUTOINCREMENT,
         guild_id         TEXT NOT NULL,
         cron             TEXT,
@@ -234,7 +234,7 @@ export class SqliteTriggerStore implements TriggerStore {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS guild_task_runs (
         id             INTEGER PRIMARY KEY AUTOINCREMENT,
-        trigger_id     INTEGER NOT NULL REFERENCES guild_triggers(id) ON DELETE CASCADE,
+        trigger_id     INTEGER NOT NULL REFERENCES guild_tasks(id) ON DELETE CASCADE,
         guild_id       TEXT NOT NULL,
         started_at     TEXT NOT NULL DEFAULT (datetime('now')),
         finished_at    TEXT,
@@ -245,7 +245,7 @@ export class SqliteTriggerStore implements TriggerStore {
     `);
 
     this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_triggers_guild ON guild_triggers(guild_id)
+      CREATE INDEX IF NOT EXISTS idx_tasks_guild ON guild_tasks(guild_id)
     `);
 
     this.db.exec(`
