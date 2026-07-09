@@ -1,11 +1,20 @@
 import { t } from './core/i18n.js';
-import { startDiscordBot, DiscordGuildAggregator } from './adapters/discord.js';
-import { startFluxerBot, FluxerGuildAggregator } from './adapters/fluxer.js';
+import {
+  startDiscordBot,
+  DiscordGuildAggregator,
+  createDiscordActionDispatcher,
+} from './adapters/discord.js';
+import {
+  startFluxerBot,
+  FluxerGuildAggregator,
+  createFluxerActionDispatcher,
+} from './adapters/fluxer.js';
 import { reminderService } from './core/services/reminders/reminderService.js';
 import { getCommands } from './core/router.js';
 import { GuildSnapshotService } from './core/services/guildsnapshot/guildSnapshotService.js';
 import { SqliteGuildSnapshotStore } from './core/services/guildsnapshot/guildSnapshotStoreSqlite.js';
 import { PostgresGuildSnapshotStore } from './core/services/guildsnapshot/guildSnapshotStorePostgres.js';
+import { cronEngine } from './core/services/automation/taskService.js';
 
 console.log(t('system.starting'));
 
@@ -52,6 +61,9 @@ if (needDiscord) {
   const service = new GuildSnapshotService(snapshotStore, aggregator, 'discord');
   service.start(86_400_000, false);
   setTimeout(() => service.snapshot(), 20_000);
+
+  cronEngine.setDiscordClient(discordClient as any);
+  cronEngine.setDiscordDispatcher(createDiscordActionDispatcher(discordClient));
 }
 
 if (needFluxer) {
@@ -60,6 +72,12 @@ if (needFluxer) {
   const service = new GuildSnapshotService(snapshotStore, aggregator, 'fluxer');
   service.start(86_400_000, false);
   setTimeout(() => service.snapshot(), 25_000);
+
+  cronEngine.setFluxerClient(fluxerClient as any);
+  cronEngine.setFluxerDispatcher(createFluxerActionDispatcher(fluxerClient));
 }
+
+// Start the cron engine after both clients are registered
+cronEngine.start();
 
 console.log(t('system.allAdaptersConnected'));

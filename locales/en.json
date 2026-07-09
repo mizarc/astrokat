@@ -335,5 +335,143 @@
     "recorded": "[GUILD_SNAPSHOT][{platform}] Recorded: {guilds} guilds, {members} members.",
     "error": "[GUILD_SNAPSHOT] Failed to record snapshot:",
     "backend": "[GUILD_SNAPSHOT] Using {backend} backend."
+  },
+  "tasks": {
+    "guildOnly": "❌ This command can only be used in a server.",
+    "unknownSubcommand": "❌ Unknown subcommand `{sub}`. Available: list, show, create, rename, reschedule, retool, edit, pause, resume, delete, run, history.",
+    "help": {
+      "title": "📋 Scheduled Tasks",
+      "descSchedule": "Schedule automated actions for this server.",
+      "subcommands": "**Subcommands:**",
+      "list": "`!task list` — Show all tasks",
+      "show": "`!task show <name>` — Show full task details",
+      "create": "`!task create <name> [action] [when]` — Create a task or manual trigger",
+      "rename": "`!task rename <old> <new>` — Rename a task",
+      "reschedule": "`!task reschedule <name> <when>` — Change the schedule",
+      "retool": "`!task retool <name> <action>` — Swap the action type",
+      "edit": "`!task edit <name> <key>:<value>` — Change a config value",
+      "pause": "`!task pause <name>` — Disable a task",
+      "resume": "`!task resume <name>` — Enable a task",
+      "delete": "`!task delete <name>` — Delete a task",
+      "run": "`!task run <name>` — Trigger a task now",
+      "history": "`!task history <name>` — Show recent runs",
+      "whenTitle": "**When — plain English or cron:**",
+      "whenExamples": "`daily` · `hourly` · `weekly` · `weekdays` · `every 30m`",
+      "whenAt": "`every day at 9am` · `monday at 10am` · `midnight`",
+      "whenCron": "Or raw cron like `0 9 * * 1` for power users.",
+      "availableActions": "**Available actions:**",
+      "tipsTitle": "**Tips:**",
+      "tipScheduled": "• `!task create greeting announce daily` creates an active scheduled task.",
+      "tipManual": "• `!task create greeting announce` creates a manual-only trigger (no schedule).",
+      "tipDraft": "• `!task create greeting` makes a draft — fill it, then run manually or add a schedule.",
+      "tipEdit": "• `!task edit greeting message:Hello everyone` configures the action."
+    },
+    "list": {
+      "empty": "📋 No tasks configured. Use `!task create` to add one.",
+      "title": "📋 Tasks",
+      "footer": "Total: {count} · 📝 draft · 🖐️ manual · ▶️ active · ⏸️ paused",
+      "lastRun": "Last:",
+      "neverRun": "Never run",
+      "manual": "Manual",
+      "need": "Need:"
+    },
+    "show": {
+      "usage": "❌ Usage: `!task show <name>`",
+      "notFound": "❌ Task \"{name}\" not found.",
+      "statusDraft": "Draft",
+      "statusManual": "Manual Trigger",
+      "statusActive": "Active",
+      "statusPaused": "Paused",
+      "labelStatus": "Status",
+      "labelLastRun": "Last Run",
+      "labelAction": "Action",
+      "labelSchedule": "Schedule",
+      "labelChannel": "Channel",
+      "fieldDetails": "DETAILS",
+      "fieldConfig": "CONFIGURATION",
+      "fieldAvailableConfig": "AVAILABLE CONFIG",
+      "configRequired": "🔴 Required",
+      "configOptional": "🟢 Optional",
+      "configDefault": "(default: {default})",
+      "title": "📋 Task — {name}",
+      "footer": "Created <t:{timestamp}:R>",
+      "missingDesc": "⚠️ Still missing: {fields}",
+      "error": "❌ {message}",
+      "errorGeneric": "❌ {message}"
+    },
+    "create": {
+      "draftTitle": "📝 Draft Created",
+      "draftDesc": "Draft **{name}** saved. It needs a few things before it can run.\n\nFill them in:\n`!task reschedule {name} <when>` — Set a schedule (or skip for manual trigger)\n`!task retool {name} <action>` — Choose what to do\n`!task edit {name} set channel:#channel` — Set the target channel\n\nThen: `!task run {name}`",
+      "tooFewArgs": "❌ Too few arguments.\n• Scheduled: `!task create <name> <action> <when> [key:value...]`\n• Manual: `!task create <name> <action> [key:value...]`\n• Draft: `!task create <name>` and fill the rest with `edit`.\nExamples:\n`!task create greeting announce daily channel:#general message:Hello!`\n`!task create greeting announce channel:#general message:Hello!`\n`!task create greeting`",
+      "unknownAction": "❌ Unknown action \"{action}\". Available: {available}\nUsage: `!task create <name> <action> [when]`",
+      "draftResult": "📝 Created **{name}** as a draft — still missing: {fields}.\nUse `!task edit {name} key:value` to fill them in, {suffix} to activate.",
+      "suffixResume": "then `!task resume {name}`",
+      "suffixRun": "then `!task run {name}`",
+      "title": "✅ Task Created",
+      "fieldName": "Name",
+      "fieldAction": "Action",
+      "fieldType": "Type",
+      "fieldSchedule": "Schedule",
+      "typeManual": "🖐️ Manual Trigger",
+      "unnamed": "(unnamed)",
+      "errorGeneric": "❌ {message}"
+    },
+    "rename": {
+      "usage": "❌ Usage: `!task rename <old-name> <new-name>`",
+      "success": "✅ Task renamed: **{oldName}** → **{newName}**",
+      "errorGeneric": "❌ {message}"
+    },
+    "reschedule": {
+      "usage": "❌ Usage: `!task reschedule <name> <when>` (e.g. `!task reschedule greeting daily at 2pm`)",
+      "cleared": "🖐️ **{name}** is now a manual trigger — no schedule.",
+      "success": "✅ **{name}** rescheduled to **{schedule}**.",
+      "errorGeneric": "❌ {message}",
+      "errorClear": "❌ {message}"
+    },
+    "retool": {
+      "usage": "❌ Usage: `!task retool <name> <action>` (e.g. `!task retool greeting cleanup`)",
+      "success": "✅ **{name}** retooled to `{action}`. Old action config has been cleared — use `!task edit {name} <key>:<value>` to configure the new action.",
+      "errorGeneric": "❌ {message}"
+    },
+    "edit": {
+      "usage": "❌ Usage: `!task edit <name> <key>:<value>` (e.g. `!task edit greeting message:Hello everyone`)\nCommon keys: `channel`, `message`, `count`, `role`, `inactive_days`\nTo clear a value: `!task edit <name> <key>:` with nothing after the colon.",
+      "formatError": "❌ Use `key:value` format (e.g. `!task edit greeting message:Hello everyone`)",
+      "success": "✅ **{name}** updated: `{key}` {action}.",
+      "allFieldsManual": " All fields set! Use `!task run {name}` to trigger it.",
+      "allFieldsScheduled": " All fields set! Use `!task resume {name}` to activate.",
+      "stillMissing": " Still missing: {fields}.",
+      "actionCleared": "cleared",
+      "actionChanged": "changed",
+      "errorGeneric": "❌ {message}"
+    },
+    "pause": {
+      "usage": "❌ Usage: `!task pause <name>`",
+      "success": "⏸️ **{name}** paused.",
+      "already": "⏸️ **{name}** was already paused. No change.",
+      "errorGeneric": "❌ {message}"
+    },
+    "resume": {
+      "usage": "❌ Usage: `!task resume <name>`",
+      "success": "▶️ **{name}** resumed.",
+      "already": "▶️ **{name}** was already running. No change.",
+      "errorGeneric": "❌ {message}"
+    },
+    "delete": {
+      "usage": "❌ Usage: `!task delete <name>`",
+      "success": "✅ Task **{name}** deleted.",
+      "errorGeneric": "❌ {message}"
+    },
+    "run": {
+      "usage": "❌ Usage: `!task run <name>`",
+      "errorGeneric": "❌ {message}"
+    },
+    "history": {
+      "usage": "❌ Usage: `!task history <name>`",
+      "empty": "📋 No execution history for **{name}**.",
+      "title": "📋 Execution History — {name}",
+      "footer": "Showing last {count} run(s)",
+      "errorGeneric": "❌ {message}",
+      "unknown": "Unknown"
+    }
   }
 }

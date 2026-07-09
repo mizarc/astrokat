@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### Commands
+
+- **Automation:** `!task` — Task automation system for creating and managing scheduled or manual triggers. Subcommands:
+  - `create <name> [action] [when]` — Create a task with plain English schedules (`daily`, `hourly`, `daily at 9am`) or raw cron. Inline config supported (`channel:#general message:Hello!`), or use draft mode.
+  - `list` — View all tasks with status and last run time.
+  - `show <name>` — View full task details, config, and available fields.
+  - `rename <old> <new>` — Rename a task.
+  - `reschedule <name> <when>` — Change the schedule. Pass `none` to convert to manual trigger.
+  - `retool <name> <action>` — Swap the action type (e.g. `announce` -> `purge`).
+  - `edit <name> <key>:<value>` — Set or clear config values.
+  - `pause <name>` Pause a scheduled task.
+  - `resume <name>` — Resume scheduled tasks.
+  - `delete <name>` — Delete a task.
+  - `run <name>` — Manually trigger any task immediately.
+  - `history <name>` — View recent execution history.
+
+#### Actions
+
+- **`announce`** — Post a message or embed to a channel. Configurable message text.
+- **`purge`** — Bulk-delete recent messages in a channel. Configurable count (default 50, max 100).
+
 ### Fixed
 
 - **Utility**: Neofetch bot version now reads from `package.json` instead of

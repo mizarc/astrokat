@@ -1,0 +1,363 @@
+import cron from 'node-cron';
+import type { Trigger, TriggerStore, TaskRun } from './stores/triggerStore.js';
+import { listActions, getAction } from './actionRegistry.js';
+import { CronEngine } from './triggerEngineCron.js';
+
+/**
+ * Shape of the data needed to create a task.
+ */
+export interface TaskCreatePayload {
+  name: string;
+  /** Cron expression. Empty or omitted for manual-only triggers. */
+  cronExpression?: string;
+  action: string;
+  channelId: string;
+  /** Original human-readable "when" expression (e.g. "daily at 2pm"). */
+  rawWhen?: string;
+  /** Action-specific config (e.g. message text for announce). */
+  actionConfig?: Record<string, unknown>;
+  /** Whether the task should be active on creation (default true). */
+  enabled?: boolean;
+}
+
+/**
+ * TaskService: guild-scoped scheduled task management.
+ *
+ * This is the business logic layer that the !tasks command calls.
+ * It validates inputs, delegates persistence to the TriggerStore,
+ * and coordinates with the CronEngine for scheduling.
+ */
+export class TaskService {
+  private readonly store: TriggerStore;
+  private readonly cronEngine: CronEngine;
+
+  constructor(store: TriggerStore, cronEngine: CronEngine) {
+    this.store = store;
+    this.cronEngine = cronEngine;
+  }
+
+  /** List all tasks (cron triggers) for a guild. */
+  async list(guildId: string): Promise<Trigger[]> {
+    return this.store.getByGuild(guildId);
+  }
+
+  /** Get a single named task. */
+  async get(guildId: string, name: string): Promise<Trigger | null> {
+    return this.store.getByName(guildId, name);
+  }
+
+  /** List available actions (for help text / validation). */
+  getAvailableActions(): { name: string; description: string }[] {
+    return listActions();
+  }
+
+  /** Returns true if this is a manual-only trigger (no schedule). */
+  isManual(task: Trigger): boolean {
+    return !task.cron;
+  }
+
+  /**
+   * Check which required fields are missing for a task to be schedulable.
+   * Does not consider schedule as required. A task without cron is a manual trigger.
+   */
+  getMissingFields(task: Trigger): string[] {
+    const missing: string[] = [];
+    if (!task.action) missing.push('action');
+
+    // Check action-specific required config fields
+    if (task.action) {
+      const action = getAction(task.action);
+      if (action?.configFields) {
+        for (const field of action.configFields) {
+          if (field.required && !task.config?.[field.key]) {
+            missing.push(field.key);
+          }
+        }
+      }
+    }
+
+    return missing;
+  }
+
+  /** Rename a task. */
+  async rename(guildId: string, oldName: string, newName: string): Promise<Trigger> {
+    const trigger = await this.store.getByName(guildId, oldName);
+    if (!trigger) throw new Error(`Task "${oldName}" not found.`);
+
+    // Check new name isn't taken
+    const existing = await this.store.getByName(guildId, newName);
+    if (existing) throw new Error(`A task named "${newName}" already exists.`);
+
+    await this.store.update(trigger.id, { name: newName } as any);
+    const updated = await this.store.get(trigger.id);
+    if (!updated) throw new Error('Failed to rename task.');
+
+    await this.cronEngine.refresh();
+    return updated;
+  }
+
+  /** Pause a scheduled task. Rejects manual-only triggers. */
+  async pause(guildId: string, name: string): Promise<boolean> {
+    const trigger = await this.store.getByName(guildId, name);
+    if (!trigger) throw new Error(`Task "${name}" not found.`);
+
+    if (this.isManual(trigger)) {
+      throw new Error(`"${name}" is a manual trigger — it has no schedule to pause.`);
+    }
+
+    if (!trigger.enabled) return false; // already paused
+
+    await this.store.update(trigger.id, { enabled: false } as any);
+    await this.cronEngine.refresh();
+    return true;
+  }
+
+  /** Resume a scheduled task. Rejects manual-only triggers. */
+  async resume(guildId: string, name: string): Promise<boolean> {
+    const trigger = await this.store.getByName(guildId, name);
+    if (!trigger) throw new Error(`Task "${name}" not found.`);
+
+    if (this.isManual(trigger)) {
+      throw new Error(`"${name}" is a manual trigger — it has no schedule to resume.`);
+    }
+
+    // Check task is complete before resuming
+    const missing = this.getMissingFields(trigger);
+    if (missing.length > 0) {
+      throw new Error(
+        `Task "${name}" is incomplete. Still missing: ${missing.join(', ')}.\n` +
+          `Fill them with \`!task edit ${name} set <key>:<value>\` then try again.`
+      );
+    }
+
+    if (trigger.enabled) return false; // already running
+
+    await this.store.update(trigger.id, { enabled: true } as any);
+    await this.cronEngine.refresh();
+    return true;
+  }
+
+  /** Enable a manual trigger (no schedule). Simply marks it ready to run. */
+  async enableManual(guildId: string, name: string): Promise<void> {
+    const trigger = await this.store.getByName(guildId, name);
+    if (!trigger) throw new Error(`Task "${name}" not found.`);
+
+    const missing = this.getMissingFields(trigger);
+    if (missing.length > 0) {
+      throw new Error(
+        `Task "${name}" is incomplete. Still missing: ${missing.join(', ')}.\n` +
+          `Fill them with \`!task edit ${name} set <key>:<value>\` then try again.`
+      );
+    }
+
+    await this.store.update(trigger.id, { enabled: true } as any);
+  }
+
+  /** Retool a task. */
+  async retool(guildId: string, name: string, newAction: string): Promise<Trigger> {
+    const trigger = await this.store.getByName(guildId, name);
+    if (!trigger) throw new Error(`Task "${name}" not found.`);
+
+    const available = this.getAvailableActions();
+    if (!available.find((a) => a.name === newAction)) {
+      throw new Error(
+        `Unknown action "${newAction}". Available: ${available.map((a) => a.name).join(', ')}.`
+      );
+    }
+
+    // Keep channel, replace everything else in config
+    const channel = trigger.config?.channel;
+    await this.store.update(trigger.id, {
+      action: newAction,
+      config: channel ? { channel } : {},
+    } as any);
+
+    const updated = await this.store.get(trigger.id);
+    if (!updated) throw new Error('Failed to retool task.');
+
+    await this.cronEngine.refresh();
+    return updated;
+  }
+
+  /** Create a new task. Omit cronExpression for a manual-only trigger. */
+  async create(guildId: string, payload: TaskCreatePayload): Promise<Trigger> {
+    const now = new Date().toISOString();
+    const hasCron = !!payload.cronExpression;
+    if (hasCron && !cron.validate(payload.cronExpression!)) {
+      throw new Error(`Invalid cron expression: "${payload.cronExpression}".`);
+    }
+
+    // Validate action exists
+    const available = this.getAvailableActions();
+    if (!available.find((a) => a.name === payload.action)) {
+      throw new Error(
+        `Unknown action "${payload.action}". Available: ${available.map((a) => a.name).join(', ')}.`
+      );
+    }
+
+    // Check name uniqueness
+    const existing = await this.store.getByName(guildId, payload.name);
+    if (existing) {
+      throw new Error(`A task named "${payload.name}" already exists.`);
+    }
+
+    const config: Record<string, unknown> = {
+      channel: payload.channelId,
+      ...(payload.rawWhen ? { when: payload.rawWhen } : {}),
+      ...(payload.actionConfig ?? {}),
+    };
+
+    const id = await this.store.create({
+      guildId,
+      cron: payload.cronExpression ?? null,
+      action: payload.action,
+      config,
+      conditions: {},
+      name: payload.name,
+      enabled: payload.enabled ?? true,
+      lastRunAt: null,
+      lastRunResult: null,
+    });
+
+    const created = await this.store.get(id);
+    if (!created) throw new Error('Failed to create task.');
+
+    await this.cronEngine.refresh();
+    return created;
+  }
+
+  /** Edit a field of an existing task. */
+  async edit(
+    guildId: string,
+    name: string,
+    updates: {
+      /** New cron expression, or null to clear (convert to manual trigger). */
+      cronExpression?: string | null;
+      rawWhen?: string;
+      action?: string;
+      channelId?: string;
+      actionConfig?: Record<string, unknown>;
+      clearKeys?: string[];
+    }
+  ): Promise<Trigger> {
+    const trigger = await this.store.getByName(guildId, name);
+    if (!trigger) throw new Error(`Task "${name}" not found.`);
+
+    const storeUpdates: Record<string, unknown> = {};
+
+    if (updates.cronExpression !== undefined) {
+      if (updates.cronExpression === null) {
+        // Clear the schedule which converts to manual trigger
+        storeUpdates.cron = null;
+        // Also remove "when" from config
+        const config = { ...trigger.config };
+        delete config.when;
+        storeUpdates.config = config;
+      } else {
+        if (!cron.validate(updates.cronExpression)) {
+          throw new Error(`Invalid cron expression: "${updates.cronExpression}".`);
+        }
+        storeUpdates.cron = updates.cronExpression;
+        // Also update the human-readable "when" in config
+        if (updates.rawWhen) {
+          storeUpdates.config = {
+            ...trigger.config,
+            when: updates.rawWhen,
+          };
+        }
+      }
+    }
+
+    if (updates.action !== undefined) {
+      const available = this.getAvailableActions();
+      if (!available.find((a) => a.name === updates.action)) {
+        throw new Error(
+          `Unknown action "${updates.action}". Available: ${available.map((a) => a.name).join(', ')}.`
+        );
+      }
+      storeUpdates.action = updates.action;
+    }
+
+    if (updates.channelId !== undefined) {
+      storeUpdates.config = {
+        ...trigger.config,
+        channel: updates.channelId,
+        ...(updates.actionConfig ?? {}),
+      };
+    } else if (updates.actionConfig !== undefined) {
+      storeUpdates.config = {
+        ...trigger.config,
+        ...updates.actionConfig,
+      };
+    }
+
+    // Handle clearing config keys
+    if (updates.clearKeys !== undefined && updates.clearKeys.length > 0) {
+      const current = trigger.config as Record<string, unknown>;
+      for (const key of updates.clearKeys) {
+        delete current[key];
+      }
+      storeUpdates.config = current;
+    }
+
+    await this.store.update(trigger.id, storeUpdates as any);
+
+    const updated = await this.store.get(trigger.id);
+    if (!updated) throw new Error('Failed to update task.');
+
+    await this.cronEngine.refresh();
+    return updated;
+  }
+
+  /** Toggle a task's enabled state. Returns the new state. */
+  async toggle(guildId: string, name: string): Promise<boolean> {
+    const trigger = await this.store.getByName(guildId, name);
+    if (!trigger) throw new Error(`Task "${name}" not found.`);
+
+    const newState = !trigger.enabled;
+    await this.store.update(trigger.id, { enabled: newState });
+    await this.cronEngine.refresh();
+    return newState;
+  }
+
+  /** Delete a task. */
+  async remove(guildId: string, name: string): Promise<void> {
+    const trigger = await this.store.getByName(guildId, name);
+    if (!trigger) throw new Error(`Task "${name}" not found.`);
+
+    await this.store.delete(trigger.id);
+    await this.cronEngine.refresh();
+  }
+
+  /** Manually fire a task. Returns a result message. */
+  async run(guildId: string, name: string): Promise<string> {
+    const trigger = await this.store.getByName(guildId, name);
+    if (!trigger) throw new Error(`Task "${name}" not found.`);
+
+    return this.cronEngine.fireTrigger(trigger);
+  }
+
+  /** Get execution history for a task. */
+  async history(guildId: string, name: string, limit = 10): Promise<TaskRun[]> {
+    const trigger = await this.store.getByName(guildId, name);
+    if (!trigger) throw new Error(`Task "${name}" not found.`);
+
+    return this.store.getRuns(trigger.id, limit);
+  }
+}
+
+/**
+ * Default singleton, picking the backend based on environment.
+ */
+import { t } from '../../i18n.js';
+import { SqliteTriggerStore } from './stores/triggerStoreSqlite.js';
+import { PostgresTriggerStore } from './stores/triggerStorePostgres.js';
+
+const triggerStore: TriggerStore = process.env.DATABASE_URL
+  ? new PostgresTriggerStore()
+  : new SqliteTriggerStore();
+
+console.log(t('tasks.backend', { backend: process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite' }));
+
+export const cronEngine = new CronEngine(triggerStore);
+export const taskService = new TaskService(triggerStore, cronEngine);
