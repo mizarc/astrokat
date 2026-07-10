@@ -473,5 +473,29 @@
       "errorGeneric": "❌ {message}",
       "unknown": "Unknown"
     }
+  },
+  "role": {
+    "guildOnly": "❌ This command can only be used in a server.",
+    "noPermission": "❌ You need the **Manage Roles** permission to manage reaction roles.",
+    "help": "📋 **Role Management**\n\n**Reaction Roles:**\n`!role reaction add <message-id> <emoji> <role>` — Bind emoji to role on a message.\n`!role reaction remove <message-id> <emoji>` — Remove a binding.\n`!role reaction list [message-id]` — Show bindings (optionally filtered).",
+    "reaction": {
+      "add": {
+        "usage": "❌ Usage: `!role reaction add <message-id> <emoji> <role>`\nExample: `!role reaction add 123456789 🎉 @Member`",
+        "invalidRole": "❌ Invalid role. Please mention a role (e.g. @Role) or provide a role ID.",
+        "success": "✅ Bound **{emoji}** → <@&{roleId}> on message `{messageId}`. Users who react with {emoji} will get the role.",
+        "error": "❌ Failed to add binding: {error}"
+      },
+      "remove": {
+        "usage": "❌ Usage: `!role reaction remove <message-id> <emoji>`\nExample: `!role reaction remove 123456789 🎉`",
+        "notFound": "⚠️ No binding found for {emoji} on that message.",
+        "success": "✅ Removed binding for **{emoji}** on message `{messageId}`."
+      },
+      "list": {
+        "title": "📋 Reaction Role Bindings",
+        "empty": "📋 No reaction role bindings configured for this server.",
+        "messageHeader": "**Message:** `{messageId}`",
+        "entry": "　{emoji} → <@&{roleId}>"
+      }
+    }
   }
 }

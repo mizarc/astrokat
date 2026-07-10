@@ -4,6 +4,7 @@ import type { UnifiedMessage, UnifiedAuthor, UnifiedChannel } from '../core/type
 import { handleIncomingMessage, awardMessageXp } from '../core/router.js';
 import { deployCommands } from '../core/deploy.js';
 import { reminderService } from '../core/services/reminders/reminderService.js';
+import { reactionRoleService } from '../core/services/reactionrole/reactionRoleService.js';
 import type { GuildAggregator, GuildStats, ActionDispatcher } from '../core/types.js';
 
 /** Tracks the bot's presence status so setStatus and setPresence compose cleanly. */
@@ -15,12 +16,16 @@ export function startDiscordBot() {
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.MessageContent,
+      GatewayIntentBits.GuildMessageReactions,
     ],
   });
 
-  client.once(Events.ClientReady, () => {
+  client.once(Events.ClientReady, async () => {
     // Auto-deploy slash commands on startup (unless unchanged)
     deployCommands();
+
+    // Reconcile existing reactions on startup
+    reconcileReactionRoles(client);
 
     reminderService.on('reminderDue', async ({ reminder }) => {
       if (reminder.platform !== 'discord') return;
@@ -320,9 +325,182 @@ export function startDiscordBot() {
     await awardMessageXp(unified);
   });
 
+  client.on(Events.MessageReactionAdd, async (reaction, user) => {
+    if (user.bot) return;
+    if (!reaction.message.guildId) return;
+
+    // For uncached messages, fetch the partial
+    if (reaction.partial) {
+      try {
+        await reaction.fetch();
+      } catch {
+        return;
+      }
+    }
+
+    const guildId = reaction.message.guildId;
+    const messageId = reaction.message.id;
+    const emoji = reaction.emoji.id
+      ? `<:${reaction.emoji.name}:${reaction.emoji.id}>`
+      : reaction.emoji.name!;
+
+    try {
+      const guild = await client.guilds.fetch(guildId);
+      const member = await guild.members.fetch(user.id);
+
+      await reactionRoleService.handleReactionAdd(guildId, messageId, emoji, {
+        roles: {
+          add: async (roleId: string) => {
+            const role = guild.roles.cache.get(roleId);
+            if (role) await member.roles.add(role);
+          },
+        },
+      });
+    } catch (error) {
+      console.error('[REACTION_ROLE] Error handling reaction add:', error);
+    }
+  });
+
+  client.on(Events.MessageReactionRemove, async (reaction, user) => {
+    if (user.bot) return;
+    if (!reaction.message.guildId) return;
+
+    if (reaction.partial) {
+      try {
+        await reaction.fetch();
+      } catch {
+        return;
+      }
+    }
+
+    const guildId = reaction.message.guildId;
+    const messageId = reaction.message.id;
+    const emoji = reaction.emoji.id
+      ? `<:${reaction.emoji.name}:${reaction.emoji.id}>`
+      : reaction.emoji.name!;
+
+    try {
+      const guild = await client.guilds.fetch(guildId);
+      const member = await guild.members.fetch(user.id);
+
+      await reactionRoleService.handleReactionRemove(guildId, messageId, emoji, {
+        roles: {
+          remove: async (roleId: string) => {
+            const role = guild.roles.cache.get(roleId);
+            if (role) await member.roles.remove(role);
+          },
+        },
+      });
+    } catch (error) {
+      console.error('[REACTION_ROLE] Error handling reaction remove:', error);
+    }
+  });
+
   client.login(process.env.DISCORD_TOKEN);
 
   return client;
+}
+
+/**
+ * Reconcile existing reactions on startup.
+ * Scans all reaction role bindings and assigns roles to users who
+ * already have the reaction, catching any missed assignments.
+ */
+async function reconcileReactionRoles(client: Client): Promise<void> {
+  console.log('[REACTION_ROLE] Reconciling existing reactions...');
+
+  try {
+    const bindings = await reactionRoleService.getAllBindings();
+
+    if (bindings.length === 0) {
+      console.log('[REACTION_ROLE] No bindings to reconcile.');
+      return;
+    }
+
+    const byGuild = new Map<string, typeof bindings>();
+    for (const b of bindings) {
+      if (!byGuild.has(b.guildId)) {
+        byGuild.set(b.guildId, []);
+      }
+      byGuild.get(b.guildId)!.push(b);
+    }
+
+    let assigned = 0;
+    let failed = 0;
+
+    for (const [guildId, guildBindings] of byGuild) {
+      try {
+        const guild = await client.guilds.fetch(guildId);
+
+        const byMessage = new Map<string, typeof guildBindings>();
+        for (const b of guildBindings) {
+          if (!byMessage.has(b.messageId)) {
+            byMessage.set(b.messageId, []);
+          }
+          byMessage.get(b.messageId)!.push(b);
+        }
+
+        for (const [messageId, messageBindings] of byMessage) {
+          try {
+            let message: any = null;
+            for (const [, channel] of guild.channels.cache) {
+              if ('messages' in channel && typeof (channel as any).messages?.fetch === 'function') {
+                try {
+                  message = await (channel as any).messages.fetch(messageId);
+                  if (message) break;
+                } catch {
+                  // Message not in this channel, try next
+                }
+              }
+            }
+
+            if (!message) continue;
+
+            for (const binding of messageBindings) {
+              const emojiStr = binding.emoji;
+
+              const reaction = message.reactions.cache.find((r: any) => {
+                const rEmoji = r.emoji.id ? `<:${r.emoji.name}:${r.emoji.id}>` : r.emoji.name;
+                return rEmoji === emojiStr;
+              });
+
+              if (!reaction) continue;
+
+              const users = await reaction.users.fetch();
+
+              for (const [, user] of users) {
+                if (user.bot) continue;
+
+                try {
+                  const member = await guild.members.fetch(user.id);
+
+                  if (!member.roles.cache.has(binding.roleId)) {
+                    const role = guild.roles.cache.get(binding.roleId);
+                    if (role) {
+                      await member.roles.add(role);
+                      assigned++;
+                    }
+                  }
+                } catch {
+                  failed++;
+                }
+              }
+            }
+          } catch {
+            // Skip messages we can't fetch
+          }
+        }
+      } catch {
+        // Skip guilds we can't fetch
+      }
+    }
+
+    console.log(
+      `[REACTION_ROLE] Reconciliation complete: ${assigned} roles assigned, ${failed} failures.`
+    );
+  } catch (error) {
+    console.error('[REACTION_ROLE] Reconciliation failed:', error);
+  }
 }
 
 /**

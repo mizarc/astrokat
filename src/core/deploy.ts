@@ -179,17 +179,37 @@ async function buildSlashCommands(): Promise<SlashCommandBuilder[]> {
             .setDescription(command.description);
 
           if (command.subcommands && command.subcommands.length > 0) {
-            // Deploy as a subcommand group
+            // Deploy as subcommands (possibly organised into subcommand groups)
             for (const sub of command.subcommands) {
-              builder.addSubcommand((s) => {
-                s.setName(sub.name).setDescription(sub.description);
-                if (sub.parameters) {
-                  for (const opt of sub.parameters) {
-                    addSubcommandOption(s, opt);
+              if (sub.subcommands && sub.subcommands.length > 0) {
+                // Subcommand group (e.g. /role reaction add)
+                builder.addSubcommandGroup((group) => {
+                  group.setName(sub.name).setDescription(sub.description);
+                  for (const child of sub.subcommands!) {
+                    group.addSubcommand((s) => {
+                      s.setName(child.name).setDescription(child.description);
+                      if (child.parameters) {
+                        for (const opt of child.parameters) {
+                          addSubcommandOption(s, opt);
+                        }
+                      }
+                      return s;
+                    });
                   }
-                }
-                return s;
-              });
+                  return group;
+                });
+              } else {
+                // Flat subcommand (e.g. /task list)
+                builder.addSubcommand((s) => {
+                  s.setName(sub.name).setDescription(sub.description);
+                  if (sub.parameters) {
+                    for (const opt of sub.parameters) {
+                      addSubcommandOption(s, opt);
+                    }
+                  }
+                  return s;
+                });
+              }
             }
           } else if (command.parameters) {
             for (const opt of command.parameters) {

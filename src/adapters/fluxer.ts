@@ -3,6 +3,7 @@ import { Client, EmbedBuilder, Events, PermissionFlags, GatewayOpcodes } from '@
 import type { UnifiedMessage, UnifiedAuthor, UnifiedChannel, ReplyEmbed } from '../core/types.js';
 import { handleIncomingMessage, awardMessageXp } from '../core/router.js';
 import { reminderService } from '../core/services/reminders/reminderService.js';
+import { reactionRoleService } from '../core/services/reactionrole/reactionRoleService.js';
 import type { GuildAggregator, GuildStats, ActionDispatcher } from '../core/types.js';
 
 /** Tracks the bot's presence status so setStatus and setPresence compose cleanly. */
@@ -261,6 +262,67 @@ export function startFluxerBot() {
       }
     });
     console.log(t('reminder.listeningFluxer'));
+
+    // Reconcile existing reactions on startup
+    reconcileReactionRoles(client);
+  });
+
+  // ── Reaction Role Event Handlers ──────────────────────────────────────
+
+  client.on(Events.MessageReactionAdd, async (reaction, user) => {
+    if (user.bot) return;
+    if (!reaction.guildId) return;
+
+    const guildId = reaction.guildId;
+    const messageId = reaction.messageId;
+    const emoji = reaction.emoji.id
+      ? `<:${reaction.emoji.name}:${reaction.emoji.id}>`
+      : reaction.emoji.name;
+
+    try {
+      const guild = await client.guilds.get(guildId);
+      if (!guild) return;
+
+      const member = await guild.fetchMember(user.id);
+
+      await reactionRoleService.handleReactionAdd(guildId, messageId, emoji, {
+        roles: {
+          add: async (roleId: string) => {
+            await member.roles.add(roleId);
+          },
+        },
+      });
+    } catch (error) {
+      console.error('[REACTION_ROLE] Error handling Fluxer reaction add:', error);
+    }
+  });
+
+  client.on(Events.MessageReactionRemove, async (reaction, user) => {
+    if (user.bot) return;
+    if (!reaction.guildId) return;
+
+    const guildId = reaction.guildId;
+    const messageId = reaction.messageId;
+    const emoji = reaction.emoji.id
+      ? `<:${reaction.emoji.name}:${reaction.emoji.id}>`
+      : reaction.emoji.name;
+
+    try {
+      const guild = await client.guilds.get(guildId);
+      if (!guild) return;
+
+      const member = await guild.fetchMember(user.id);
+
+      await reactionRoleService.handleReactionRemove(guildId, messageId, emoji, {
+        roles: {
+          remove: async (roleId: string) => {
+            await member.roles.remove(roleId);
+          },
+        },
+      });
+    } catch (error) {
+      console.error('[REACTION_ROLE] Error handling Fluxer reaction remove:', error);
+    }
   });
 
   // Gracefully handle connection drops (sleep/wake, network blips)
@@ -276,6 +338,113 @@ export function startFluxerBot() {
   client.login(fluxerToken);
 
   return client;
+}
+
+/**
+ * Reconcile existing reactions on startup.
+ * Scans all reaction role bindings and assigns roles to users who
+ * already have the reaction, catching any missed assignments.
+ */
+async function reconcileReactionRoles(client: Client): Promise<void> {
+  console.log('[REACTION_ROLE] Reconciling existing reactions (Fluxer)...');
+
+  try {
+    const bindings = await reactionRoleService.getAllBindings();
+
+    if (bindings.length === 0) {
+      console.log('[REACTION_ROLE] No bindings to reconcile.');
+      return;
+    }
+
+    const byGuild = new Map<string, typeof bindings>();
+    for (const b of bindings) {
+      if (!byGuild.has(b.guildId)) {
+        byGuild.set(b.guildId, []);
+      }
+      byGuild.get(b.guildId)!.push(b);
+    }
+
+    let assigned = 0;
+    let failed = 0;
+
+    for (const [guildId, guildBindings] of byGuild) {
+      try {
+        const guild = client.guilds.get(guildId);
+        if (!guild) continue;
+
+        const byMessage = new Map<string, typeof guildBindings>();
+        for (const b of guildBindings) {
+          if (!byMessage.has(b.messageId)) {
+            byMessage.set(b.messageId, []);
+          }
+          byMessage.get(b.messageId)!.push(b);
+        }
+
+        // Collect text-based channels to search for messages
+        const textChannels: { id: string }[] = [];
+        for (const [, channel] of guild.channels) {
+          if (channel.isTextBased()) {
+            textChannels.push(channel);
+          }
+        }
+
+        for (const [messageId, messageBindings] of byMessage) {
+          let found = false;
+
+          for (const channel of textChannels) {
+            if (found) break;
+
+            let raw: any;
+            try {
+              raw = await client.rest.get(`/channels/${channel.id}/messages/${messageId}`);
+            } catch {
+              continue; // Message not in this channel
+            }
+
+            if (!raw || !raw.reactions) continue;
+            found = true;
+
+            for (const binding of messageBindings) {
+              const targetEmoji = binding.emoji;
+
+              const apiReaction = (raw.reactions as any[]).find((r: any) => {
+                const rEmoji = r.emoji?.id ? `<:${r.emoji.name}:${r.emoji.id}>` : r.emoji?.name;
+                return rEmoji === targetEmoji;
+              });
+
+              if (!apiReaction) continue;
+
+              // Fetch users who reacted with this emoji
+              const usersRaw: any[] = await client.rest.get(
+                `/channels/${channel.id}/messages/${messageId}/reactions/${encodeURIComponent(targetEmoji)}`
+              );
+              const users: any[] = Array.isArray(usersRaw) ? usersRaw : [];
+
+              for (const u of users) {
+                if (u.bot) continue;
+
+                try {
+                  const member = await guild.fetchMember(u.id);
+                  await member.roles.add(binding.roleId);
+                  assigned++;
+                } catch {
+                  failed++;
+                }
+              }
+            }
+          }
+        }
+      } catch {
+        // Skip guilds we can't fetch
+      }
+    }
+
+    console.log(
+      `[REACTION_ROLE] Reconciliation complete: ${assigned} roles assigned, ${failed} failures.`
+    );
+  } catch (error) {
+    console.error('[REACTION_ROLE] Reconciliation failed:', error);
+  }
 }
 
 /**

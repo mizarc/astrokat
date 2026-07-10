@@ -132,6 +132,8 @@ export interface BotSubcommand {
   name: string;
   description: string;
   parameters?: CommandParameter[];
+  /** Nested subcommands — when set, this subcommand deploys as a subcommand group. */
+  subcommands?: BotSubcommand[];
 }
 
 export interface BotCommand {
