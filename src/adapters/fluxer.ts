@@ -94,6 +94,17 @@ export function startFluxerBot() {
           return false;
         }
       },
+      fetchMessage: async (messageId: string) => {
+        try {
+          const raw: any = await client.rest.get(
+            `/channels/${message.channelId}/messages/${messageId}`
+          );
+          if (!raw) return null;
+          return { id: raw.id, content: raw.content ?? '', channelId: message.channelId };
+        } catch {
+          return null;
+        }
+      },
       fetchMessages: async (limit: number) => {
         try {
           const raw: any[] = await client.rest.get(
@@ -267,7 +278,7 @@ export function startFluxerBot() {
     reconcileReactionRoles(client);
   });
 
-  // ── Reaction Role Event Handlers ──────────────────────────────────────
+  // Reaction Role Event Handlers
 
   client.on(Events.MessageReactionAdd, async (reaction, user) => {
     if (user.bot) return;

@@ -115,6 +115,24 @@ export function startDiscordBot() {
         if (!member) return false;
         return ch.permissionsFor(member)?.has('ManageGuild') ?? false;
       },
+      fetchMessage: async (messageId: string) => {
+        let ch: any = interaction.channel ?? null;
+        if (!ch && interaction.guild) {
+          try {
+            ch = await interaction.guild.channels.fetch(interaction.channelId);
+          } catch {
+            return null;
+          }
+        }
+        if (!ch || typeof ch.messages?.fetch !== 'function') return null;
+        try {
+          const msg = await ch.messages.fetch(messageId);
+          if (!msg) return null;
+          return { id: msg.id, content: msg.content ?? '', channelId: ch.id };
+        } catch {
+          return null;
+        }
+      },
       fetchMessages: async (limit: number) => {
         let ch: any = interaction.channel ?? null;
         if (!ch && interaction.guild) {
@@ -257,6 +275,16 @@ export function startDiscordBot() {
       },
       userCanManageMessages: async () => false,
       userCanManageGuild: async () => false,
+      fetchMessage: async (messageId: string) => {
+        try {
+          const ch: any = message.channel;
+          const msg = await ch.messages.fetch(messageId);
+          if (!msg) return null;
+          return { id: msg.id, content: msg.content ?? '', channelId: ch.id };
+        } catch {
+          return null;
+        }
+      },
       fetchMessages: async (limit: number) => {
         try {
           const ch: any = message.channel;

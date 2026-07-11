@@ -477,24 +477,27 @@
   "role": {
     "guildOnly": "❌ This command can only be used in a server.",
     "noPermission": "❌ You need the **Manage Roles** permission to manage reaction roles.",
-    "help": "📋 **Role Management**\n\n**Reaction Roles:**\n`!role reaction add <message-id> <emoji> <role>` — Bind emoji to role on a message.\n`!role reaction remove <message-id> <emoji>` — Remove a binding.\n`!role reaction list [message-id]` — Show bindings (optionally filtered).",
     "reaction": {
       "add": {
+        "description": "Bind an emoji to a role on a message.",
         "usage": "❌ Usage: `!role reaction add <message-id> <emoji> <role>`\nExample: `!role reaction add 123456789 🎉 @Member`",
         "invalidRole": "❌ Invalid role. Please mention a role (e.g. @Role) or provide a role ID.",
-        "success": "✅ Bound **{emoji}** → <@&{roleId}> on message `{messageId}`. Users who react with {emoji} will get the role.",
+        "success": "✅ Bound **{emoji}** to <@&{roleId}> on message `{messageId}`.",
         "error": "❌ Failed to add binding: {error}"
       },
       "remove": {
+        "description": "Remove an emoji-to-role binding from a message.",
         "usage": "❌ Usage: `!role reaction remove <message-id> <emoji>`\nExample: `!role reaction remove 123456789 🎉`",
         "notFound": "⚠️ No binding found for {emoji} on that message.",
         "success": "✅ Removed binding for **{emoji}** on message `{messageId}`."
       },
       "list": {
+        "description": "Show bindings, optionally filtered by message.",
         "title": "📋 Reaction Role Bindings",
         "empty": "📋 No reaction role bindings configured for this server.",
-        "messageHeader": "**Message:** `{messageId}`",
-        "entry": "　{emoji} → <@&{roleId}>"
+        "entry": "{index}. {emoji} → <@&{roleId}> — `{messageId}`",
+        "entryWithPreview": "{index}. {emoji} → <@&{roleId}> — `{messageId}`\n> {preview}",
+        "footer": "Showing {shown} of {total} — use `!role reaction list <message-id>` to filter."
       }
     }
   }

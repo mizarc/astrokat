@@ -39,6 +39,9 @@ export interface UnifiedAuthor {
 export interface UnifiedChannel {
   id: string;
   fetchMessages?: (limit: number) => Promise<ChannelMessage[]>;
+  fetchMessage?: (
+    messageId: string
+  ) => Promise<{ id: string; content: string; channelId: string } | null>;
   bulkDelete?: (messageIds: string[]) => Promise<void>;
   canManageMessages?: () => Promise<boolean>;
   userCanManageMessages?: () => Promise<boolean>;
