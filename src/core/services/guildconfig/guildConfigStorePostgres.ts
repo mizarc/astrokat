@@ -47,14 +47,19 @@ export class PostgresGuildConfigStore implements GuildConfigStore {
         rateLimitUserMax: null,
         rateLimitGuildMax: null,
         levelUpMessages: true,
+        reactionRolePerMessageLimit: null,
+        reactionRolePerGuildLimit: null,
       };
     }
 
+    const r = result.rows[0];
     return {
       guildId,
-      rateLimitUserMax: result.rows[0].rate_limit_user_max ?? null,
-      rateLimitGuildMax: result.rows[0].rate_limit_guild_max ?? null,
-      levelUpMessages: result.rows[0].level_up_messages,
+      rateLimitUserMax: r.rate_limit_user_max ?? null,
+      rateLimitGuildMax: r.rate_limit_guild_max ?? null,
+      levelUpMessages: r.level_up_messages,
+      reactionRolePerMessageLimit: r.reaction_role_per_message_limit ?? null,
+      reactionRolePerGuildLimit: r.reaction_role_per_guild_limit ?? null,
     };
   }
 
@@ -86,15 +91,38 @@ export class PostgresGuildConfigStore implements GuildConfigStore {
           ? existing.rows[0].level_up_messages
           : true;
 
+    const reactionRolePerMessageLimit =
+      config.reactionRolePerMessageLimit !== undefined
+        ? config.reactionRolePerMessageLimit
+        : hasExisting
+          ? existing.rows[0].reaction_role_per_message_limit
+          : null;
+
+    const reactionRolePerGuildLimit =
+      config.reactionRolePerGuildLimit !== undefined
+        ? config.reactionRolePerGuildLimit
+        : hasExisting
+          ? existing.rows[0].reaction_role_per_guild_limit
+          : null;
+
     await this.pool.query(
       `INSERT INTO guild_config
-         (guild_id, rate_limit_user_max, rate_limit_guild_max, level_up_messages)
-       VALUES ($1, $2, $3, $4)
+         (guild_id, rate_limit_user_max, rate_limit_guild_max, level_up_messages, reaction_role_per_message_limit, reaction_role_per_guild_limit)
+       VALUES ($1, $2, $3, $4, $5, $6)
        ON CONFLICT (guild_id) DO UPDATE SET
          rate_limit_user_max = EXCLUDED.rate_limit_user_max,
          rate_limit_guild_max = EXCLUDED.rate_limit_guild_max,
-         level_up_messages = EXCLUDED.level_up_messages`,
-      [guildId, rateLimitUserMax, rateLimitGuildMax, levelUpMessages]
+         level_up_messages = EXCLUDED.level_up_messages,
+         reaction_role_per_message_limit = EXCLUDED.reaction_role_per_message_limit,
+         reaction_role_per_guild_limit = EXCLUDED.reaction_role_per_guild_limit`,
+      [
+        guildId,
+        rateLimitUserMax,
+        rateLimitGuildMax,
+        levelUpMessages,
+        reactionRolePerMessageLimit,
+        reactionRolePerGuildLimit,
+      ]
     );
   }
 
@@ -119,6 +147,14 @@ export class PostgresGuildConfigStore implements GuildConfigStore {
     await this.pool.query(`
       ALTER TABLE guild_config
         ADD COLUMN IF NOT EXISTS rate_limit_guild_max INTEGER
+    `);
+    await this.pool.query(`
+      ALTER TABLE guild_config
+        ADD COLUMN IF NOT EXISTS reaction_role_per_message_limit INTEGER
+    `);
+    await this.pool.query(`
+      ALTER TABLE guild_config
+        ADD COLUMN IF NOT EXISTS reaction_role_per_guild_limit INTEGER
     `);
   }
 }

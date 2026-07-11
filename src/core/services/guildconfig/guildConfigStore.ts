@@ -15,10 +15,22 @@ export interface GuildConfig {
    */
   rateLimitGuildMax: number | null;
 
-  /** 
-   * Whether level-up messages are sent in the guild. Defaults to false. 
+  /**
+   * Whether level-up messages are sent in the guild. Defaults to false.
    * */
   levelUpMessages: boolean;
+
+  /**
+   * Max reaction role bindings allowed per message in this guild.
+   * `null` means use the default (20).
+   */
+  reactionRolePerMessageLimit: number | null;
+
+  /**
+   * Max reaction role bindings allowed across all messages in this guild.
+   * `null` means use the default (50).
+   */
+  reactionRolePerGuildLimit: number | null;
 }
 
 /**

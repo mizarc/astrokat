@@ -5,6 +5,13 @@ import type {
 } from './reactionRoleStore.js';
 import { SqliteReactionRoleStore } from './reactionRoleStoreSqlite.js';
 import { PostgresReactionRoleStore } from './reactionRoleStorePostgres.js';
+import { guildConfigService } from '../guildconfig/guildConfigService.js';
+
+/** Default max reaction role bindings per message. Override with `REACTION_ROLE_PER_MESSAGE_LIMIT`. */
+const DEFAULT_PER_MESSAGE_LIMIT = Number(process.env.REACTION_ROLE_PER_MESSAGE_LIMIT) || 20;
+
+/** Default max reaction role bindings across all messages in a guild. Override with `REACTION_ROLE_PER_GUILD_LIMIT`. */
+const DEFAULT_PER_GUILD_LIMIT = Number(process.env.REACTION_ROLE_PER_GUILD_LIMIT) || 50;
 
 /**
  * Service layer for reaction roles.
@@ -12,6 +19,9 @@ import { PostgresReactionRoleStore } from './reactionRoleStorePostgres.js';
  * Manages bindings between (message + emoji) pairs and roles,
  * and handles role assignment/removal when reactions are added or removed.
  * Platform-agnostic — the adapter feeds events in, the service does the rest.
+ *
+ * Rate limits are enforced via per-message and per-guild caps.
+ * Guilds can override the defaults through `guildConfigService`.
  */
 class ReactionRoleService {
   private readonly persistence: ReactionRoleStore;
@@ -21,8 +31,26 @@ class ReactionRoleService {
   }
 
   /**
+   * Resolve the effective per-message limit for a guild.
+   * Checks guild config first, falls back to the default.
+   */
+  private async perMessageLimit(guildId: string): Promise<number> {
+    const config = await guildConfigService.get(guildId);
+    return config.reactionRolePerMessageLimit ?? DEFAULT_PER_MESSAGE_LIMIT;
+  }
+
+  /**
+   * Resolve the effective per-guild limit for a guild.
+   * Checks guild config first, falls back to the default.
+   */
+  private async perGuildLimit(guildId: string): Promise<number> {
+    const config = await guildConfigService.get(guildId);
+    return config.reactionRolePerGuildLimit ?? DEFAULT_PER_GUILD_LIMIT;
+  }
+
+  /**
    * Bind an emoji to a role on a specific message.
-   * Throws if the binding already exists.
+   * Throws if the binding already exists or if a limit would be exceeded.
    */
   async addBinding(binding: ReactionRoleCreate): Promise<ReactionRoleBinding> {
     const existing = await this.persistence.getByMessageAndEmoji(
@@ -33,6 +61,24 @@ class ReactionRoleService {
 
     if (existing) {
       throw new Error(`Emoji "${binding.emoji}" is already bound on that message.`);
+    }
+
+    // Enforce per-message limit
+    const msgBindings = await this.persistence.getByMessage(binding.guildId, binding.messageId);
+    const msgLimit = await this.perMessageLimit(binding.guildId);
+    if (msgBindings.length >= msgLimit) {
+      throw new Error(
+        `This message already has ${msgLimit} reaction role binding(s) — the per-message limit has been reached.`
+      );
+    }
+
+    // Enforce per-guild limit
+    const guildBindings = await this.persistence.getByGuild(binding.guildId);
+    const guildLimit = await this.perGuildLimit(binding.guildId);
+    if (guildBindings.length >= guildLimit) {
+      throw new Error(
+        `This server already has ${guildLimit} reaction role binding(s) — the per-server limit has been reached.`
+      );
     }
 
     const id = await this.persistence.create(binding);
