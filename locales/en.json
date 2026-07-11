@@ -492,12 +492,12 @@
         "success": "✅ Removed binding for **{emoji}** on message `{messageId}`."
       },
       "list": {
-        "description": "Show bindings, optionally filtered by message.",
+        "description": "Show bindings, optionally filtered by message or page.",
         "title": "📋 Reaction Role Bindings",
         "empty": "📋 No reaction role bindings configured for this server.",
         "entry": "{index}. {emoji} → <@&{roleId}> — `{messageId}`",
         "entryWithPreview": "{index}. {emoji} → <@&{roleId}> — `{messageId}`\n> {preview}",
-        "footer": "Showing {shown} of {total} — use `!role reaction list <message-id>` to filter."
+        "footer": "Page {page}/{totalPages} ({total} total) — use `!role reaction list [message_id] and/or [page]` to filter"
       }
     }
   }

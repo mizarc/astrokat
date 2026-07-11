@@ -68,13 +68,20 @@ export const RoleCommand: BotCommand = {
         },
         {
           name: 'list',
-          description: 'List all reaction role bindings, optionally filtered by message.',
+          description: 'List reaction role bindings — pass a message ID or page number.',
           parameters: [
             {
-              name: 'message_id',
-              description: 'Optional message ID to filter by.',
+              name: 'query',
+              description: 'Message ID or page number (e.g. 2).',
               type: 'string',
               required: false,
+            },
+            {
+              name: 'page',
+              description: 'Page number when filtering by message ID.',
+              type: 'integer',
+              required: false,
+              minValue: 1,
             },
           ],
         },
@@ -132,7 +139,7 @@ async function showHelp(message: any): Promise<void> {
       '',
       `\`!role reaction add <message-id> <emoji> <role>\` — ${t('role.reaction.add.description')}`,
       `\`!role reaction remove <message-id> <emoji>\` — ${t('role.reaction.remove.description')}`,
-      `\`!role reaction list [message-id]\` — ${t('role.reaction.list.description')}`,
+      `\`!role reaction list [message-id|page]\` — ${t('role.reaction.list.description')}`,
     ].join('\n'),
   };
   await message.reply({ content: '', embeds: [embed] });
@@ -213,7 +220,30 @@ async function handleReactionRemove(message: any, args: string[]) {
 async function handleReactionList(message: any, args: string[]) {
   const guildId = message.guildId!;
 
-  const messageId = args[0] || undefined;
+  const PAGE_SIZE = 5;
+
+  let messageId: string | undefined;
+  let page = 1;
+
+  const raw1 = args[0];
+  const raw2 = args[1];
+
+  if (raw1) {
+    const isPage = /^\d{1,9}$/.test(raw1) && raw1.length < 17;
+    const isMessageId = raw1.length >= 17 || !isPage;
+
+    if (raw2 && /^\d{1,9}$/.test(raw2) && raw2.length < 17) {
+      // Two args: message ID then page number
+      messageId = raw1;
+      page = Math.max(1, Number(raw2));
+    } else if (isPage && !isMessageId) {
+      // Single arg that's a page number
+      page = Math.max(1, Number(raw1));
+    } else {
+      // Single arg that's a message ID
+      messageId = raw1;
+    }
+  }
 
   const bindings = await reactionRoleService.listBindings(guildId, messageId);
 
@@ -222,58 +252,45 @@ async function handleReactionList(message: any, args: string[]) {
     return;
   }
 
-  // Group by message for readability
-  const grouped = new Map<string, typeof bindings>();
-  for (const b of bindings) {
-    if (!grouped.has(b.messageId)) {
-      grouped.set(b.messageId, []);
-    }
-    grouped.get(b.messageId)!.push(b);
-  }
+  const totalPages = Math.ceil(bindings.length / PAGE_SIZE);
+  page = Math.min(page, totalPages);
 
-  const entries = [...grouped.entries()];
-  const total = bindings.length;
-  const shown = Math.min(total, 10);
-  let shownCount = 0;
+  const start = (page - 1) * PAGE_SIZE;
+  const shown = Math.min(PAGE_SIZE, bindings.length - start);
 
   const lines: string[] = [];
-  for (let i = 0; i < entries.length && shownCount < shown; i++) {
-    const [msgId, binds] = entries[i]!;
+  for (let i = start; i < start + shown; i++) {
+    const b = bindings[i]!;
 
-    for (const b of binds) {
-      if (shownCount >= shown) break;
-
-      // Best-effort fetch of message preview
-      let preview: string | null = null;
-      if (message.channel?.fetchMessage && !preview) {
-        const msg = await message.channel.fetchMessage(msgId);
-        if (msg?.content) {
-          preview = msg.content.slice(0, 30).replace(/\n/g, ' ');
-          if (msg.content.length > 30) preview += '…';
-        }
+    // Best-effort fetch of message preview
+    let preview: string | null = null;
+    if (message.channel?.fetchMessage) {
+      const msg = await message.channel.fetchMessage(b.messageId);
+      if (msg?.content) {
+        preview = msg.content.slice(0, 30).replace(/\n/g, ' ');
+        if (msg.content.length > 30) preview += '…';
       }
+    }
 
-      if (preview) {
-        lines.push(
-          t('role.reaction.list.entryWithPreview', {
-            index: shownCount + 1,
-            emoji: b.emoji,
-            roleId: b.roleId,
-            messageId: msgId,
-            preview,
-          })
-        );
-      } else {
-        lines.push(
-          t('role.reaction.list.entry', {
-            index: shownCount + 1,
-            emoji: b.emoji,
-            roleId: b.roleId,
-            messageId: msgId,
-          })
-        );
-      }
-      shownCount++;
+    if (preview) {
+      lines.push(
+        t('role.reaction.list.entryWithPreview', {
+          index: i + 1,
+          emoji: b.emoji,
+          roleId: b.roleId,
+          messageId: b.messageId,
+          preview,
+        })
+      );
+    } else {
+      lines.push(
+        t('role.reaction.list.entry', {
+          index: i + 1,
+          emoji: b.emoji,
+          roleId: b.roleId,
+          messageId: b.messageId,
+        })
+      );
     }
   }
 
@@ -285,8 +302,14 @@ async function handleReactionList(message: any, args: string[]) {
     color: 0x5865f2,
   };
 
-  if (total > 10) {
-    embed.footer = { text: t('role.reaction.list.footer', { shown, total }) };
+  if (totalPages > 1) {
+    embed.footer = {
+      text: t('role.reaction.list.footer', {
+        total: bindings.length,
+        page,
+        totalPages,
+      }),
+    };
   }
 
   await message.reply({ content: '', embeds: [embed] });
