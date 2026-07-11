@@ -1,5 +1,6 @@
 import { t } from '../core/i18n.js';
 import { Client, GatewayIntentBits, type Message, Events } from 'discord.js';
+import { RESTJSONErrorCodes } from 'discord-api-types/rest/v10';
 import type { UnifiedMessage, UnifiedAuthor, UnifiedChannel } from '../core/types.js';
 import { handleIncomingMessage, awardMessageXp } from '../core/router.js';
 import { deployCommands } from '../core/deploy.js';
@@ -396,6 +397,26 @@ export function startDiscordBot() {
     }
   });
 
+  // Clean up reaction role bindings
+  client.on(Events.MessageDelete, async (message) => {
+    if (!message.guildId) return;
+
+    // For uncached messages, the ID is still available (partial)
+    const guildId = message.guildId;
+    const messageId = message.id;
+
+    try {
+      const removed = await reactionRoleService.removeBindingsByMessage(guildId, messageId);
+      if (removed > 0) {
+        console.log(
+          `[REACTION_ROLE] Cleaned up ${removed} binding(s) for deleted message ${messageId}`
+        );
+      }
+    } catch (error) {
+      console.error('[REACTION_ROLE] Error cleaning up deleted message:', error);
+    }
+  });
+
   client.login(process.env.DISCORD_TOKEN);
 
   return client;
@@ -410,7 +431,7 @@ async function reconcileReactionRoles(client: Client): Promise<void> {
   console.log('[REACTION_ROLE] Reconciling existing reactions...');
 
   try {
-    const bindings = await reactionRoleService.getAllBindings();
+    const bindings = await reactionRoleService.getAllBindings('discord');
 
     if (bindings.length === 0) {
       console.log('[REACTION_ROLE] No bindings to reconcile.');
@@ -440,21 +461,52 @@ async function reconcileReactionRoles(client: Client): Promise<void> {
           byMessage.get(b.messageId)!.push(b);
         }
 
+        // Ensure channels are loaded so we can search for the bound messages
+        await guild.channels.fetch();
+        console.log(
+          `[REACTION_ROLE] Guild ${guildId}: ${guild.channels.cache.size} channels cached, ${byMessage.size} messages to check`
+        );
+
         for (const [messageId, messageBindings] of byMessage) {
+          let cleanedUp = false;
           try {
             let message: any = null;
+            let channelsChecked = 0;
             for (const [, channel] of guild.channels.cache) {
               if ('messages' in channel && typeof (channel as any).messages?.fetch === 'function') {
+                channelsChecked++;
                 try {
                   message = await (channel as any).messages.fetch(messageId);
-                  if (message) break;
-                } catch {
-                  // Message not in this channel, try next
+                  if (message) {
+                    console.log(
+                      `[REACTION_ROLE] Found message ${messageId} in channel ${channel.id}`
+                    );
+                    break;
+                  }
+                } catch (err: any) {
+                  if (err.code === RESTJSONErrorCodes.UnknownMessage) {
+                    console.log(
+                      `[REACTION_ROLE] Message ${messageId} returned UnknownMessage in channel ${channel.id}`
+                    );
+                    if (!cleanedUp) {
+                      await reactionRoleService.removeBindingsByMessage(guildId, messageId);
+                      cleanedUp = true;
+                    }
+                  } else {
+                    console.log(
+                      `[REACTION_ROLE] Fetch error for message ${messageId} in channel ${channel.id}: code=${err.code} status=${err.statusCode}`
+                    );
+                  }
                 }
               }
             }
 
-            if (!message) continue;
+            if (!message) {
+              console.log(
+                `[REACTION_ROLE] Message ${messageId} not found after checking ${channelsChecked} text channels, cleanedUp=${cleanedUp} — skipping (may be in an inaccessible channel)`
+              );
+              continue;
+            }
 
             for (const binding of messageBindings) {
               const emojiStr = binding.emoji;
@@ -486,12 +538,18 @@ async function reconcileReactionRoles(client: Client): Promise<void> {
                 }
               }
             }
-          } catch {
-            // Skip messages we can't fetch
+          } catch (err) {
+            console.log(
+              `[REACTION_ROLE] Unexpected error processing message bindings:`,
+              err instanceof Error ? err.message : err
+            );
           }
         }
-      } catch {
-        // Skip guilds we can't fetch
+      } catch (err) {
+        console.log(
+          `[REACTION_ROLE] Could not fetch guild ${guildId}:`,
+          err instanceof Error ? err.message : err
+        );
       }
     }
 

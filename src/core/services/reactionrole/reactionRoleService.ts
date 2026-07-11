@@ -56,6 +56,19 @@ class ReactionRoleService {
   }
 
   /**
+   * Remove all bindings for a specific message.
+   * Used when a message is deleted — cleans up orphaned rows.
+   * Returns the number of bindings removed.
+   */
+  async removeBindingsByMessage(guildId: string, messageId: string): Promise<number> {
+    const bindings = await this.persistence.getByMessage(guildId, messageId);
+    if (bindings.length === 0) return 0;
+
+    await this.persistence.deleteByMessage(guildId, messageId);
+    return bindings.length;
+  }
+
+  /**
    * List all bindings for a guild, optionally filtered by message.
    */
   async listBindings(guildId: string, messageId?: string): Promise<ReactionRoleBinding[]> {
@@ -124,8 +137,8 @@ class ReactionRoleService {
    * Fetch all bindings across the database for reconciliation.
    * Used on startup to scan existing reactions and assign missed roles.
    */
-  async getAllBindings(): Promise<ReactionRoleBinding[]> {
-    return this.persistence.getAllBindings();
+  async getAllBindings(platform?: string): Promise<ReactionRoleBinding[]> {
+    return this.persistence.getAllBindings(platform);
   }
 
   /**

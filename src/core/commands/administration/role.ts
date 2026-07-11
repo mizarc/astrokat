@@ -148,6 +148,7 @@ async function handleReactionAdd(message: any, args: string[]) {
       messageId,
       emoji,
       roleId,
+      platform: message.platform as string,
     });
 
     await message.reply(

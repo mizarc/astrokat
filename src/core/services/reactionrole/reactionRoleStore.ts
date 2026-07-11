@@ -10,6 +10,7 @@ export interface ReactionRoleBinding {
   messageId: string;
   emoji: string;
   roleId: string;
+  platform: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -17,7 +18,7 @@ export interface ReactionRoleBinding {
 /** Fields needed to create a new binding. */
 export type ReactionRoleCreate = Pick<
   ReactionRoleBinding,
-  'guildId' | 'messageId' | 'emoji' | 'roleId'
+  'guildId' | 'messageId' | 'emoji' | 'roleId' | 'platform'
 >;
 
 /**
@@ -46,11 +47,14 @@ export interface ReactionRoleStore {
   /** Delete a binding by its primary key. */
   delete(id: number): Promise<void>;
 
+  /** Delete all bindings for a specific message. */
+  deleteByMessage(guildId: string, messageId: string): Promise<void>;
+
   /** Delete a binding by guild + message + emoji. */
   deleteByMessageAndEmoji(guildId: string, messageId: string, emoji: string): Promise<void>;
 
-  /** Get all bindings across all guilds (for startup reconciliation). */
-  getAllBindings(): Promise<ReactionRoleBinding[]>;
+  /** Get all bindings across all guilds (for startup reconciliation). Optionally filter by platform. */
+  getAllBindings(platform?: string): Promise<ReactionRoleBinding[]>;
 
   /** Get all distinct guild IDs that have bindings. */
   getAllGuildIds(): Promise<string[]>;

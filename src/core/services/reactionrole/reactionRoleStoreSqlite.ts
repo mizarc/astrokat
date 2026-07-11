@@ -34,8 +34,8 @@ export class SqliteReactionRoleStore implements ReactionRoleStore {
 
   async create(binding: ReactionRoleCreate): Promise<number> {
     const stmt = this.db.prepare(`
-      INSERT INTO reaction_roles (guild_id, message_id, emoji, role_id)
-      VALUES (@guildId, @messageId, @emoji, @roleId)
+      INSERT INTO reaction_roles (guild_id, message_id, emoji, role_id, platform)
+      VALUES (@guildId, @messageId, @emoji, @roleId, @platform)
     `);
 
     const result = stmt.run({
@@ -43,6 +43,7 @@ export class SqliteReactionRoleStore implements ReactionRoleStore {
       messageId: binding.messageId,
       emoji: binding.emoji,
       roleId: binding.roleId,
+      platform: binding.platform,
     });
 
     return Number(result.lastInsertRowid);
@@ -92,16 +93,31 @@ export class SqliteReactionRoleStore implements ReactionRoleStore {
     this.db.prepare('DELETE FROM reaction_roles WHERE id = ?').run(id);
   }
 
+  async deleteByMessage(guildId: string, messageId: string): Promise<void> {
+    this.db
+      .prepare('DELETE FROM reaction_roles WHERE guild_id = ? AND message_id = ?')
+      .run(guildId, messageId);
+  }
+
   async deleteByMessageAndEmoji(guildId: string, messageId: string, emoji: string): Promise<void> {
     this.db
       .prepare('DELETE FROM reaction_roles WHERE guild_id = ? AND message_id = ? AND emoji = ?')
       .run(guildId, messageId, emoji);
   }
 
-  async getAllBindings(): Promise<ReactionRoleBinding[]> {
-    const rows = this.db
-      .prepare('SELECT * FROM reaction_roles ORDER BY guild_id, created_at ASC')
-      .all() as Record<string, unknown>[];
+  async getAllBindings(platform?: string): Promise<ReactionRoleBinding[]> {
+    let rows: Record<string, unknown>[];
+    if (platform) {
+      rows = this.db
+        .prepare(
+          'SELECT * FROM reaction_roles WHERE platform = ? ORDER BY guild_id, created_at ASC'
+        )
+        .all(platform) as Record<string, unknown>[];
+    } else {
+      rows = this.db
+        .prepare('SELECT * FROM reaction_roles ORDER BY guild_id, created_at ASC')
+        .all() as Record<string, unknown>[];
+    }
 
     return rows.map((row) => this.rowToBinding(row));
   }
@@ -121,6 +137,7 @@ export class SqliteReactionRoleStore implements ReactionRoleStore {
       messageId: row.message_id as string,
       emoji: row.emoji as string,
       roleId: row.role_id as string,
+      platform: row.platform as string,
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
     };
@@ -134,11 +151,21 @@ export class SqliteReactionRoleStore implements ReactionRoleStore {
         message_id  TEXT NOT NULL,
         emoji       TEXT NOT NULL,
         role_id     TEXT NOT NULL,
+        platform    TEXT NOT NULL DEFAULT 'discord',
         created_at  TEXT NOT NULL DEFAULT (datetime('now')),
         updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
         UNIQUE(guild_id, message_id, emoji)
       )
     `);
+
+    // Add platform column to existing tables (safe to run repeatedly)
+    try {
+      this.db.exec(
+        `ALTER TABLE reaction_roles ADD COLUMN platform TEXT NOT NULL DEFAULT 'discord'`
+      );
+    } catch {
+      // Column already exists — ignore
+    }
 
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_reaction_roles_lookup

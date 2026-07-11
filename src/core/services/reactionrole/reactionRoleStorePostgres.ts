@@ -31,10 +31,10 @@ export class PostgresReactionRoleStore implements ReactionRoleStore {
 
   async create(binding: ReactionRoleCreate): Promise<number> {
     const result = await this.pool.query(
-      `INSERT INTO reaction_roles (guild_id, message_id, emoji, role_id)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO reaction_roles (guild_id, message_id, emoji, role_id, platform)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING id`,
-      [binding.guildId, binding.messageId, binding.emoji, binding.roleId]
+      [binding.guildId, binding.messageId, binding.emoji, binding.roleId, binding.platform]
     );
 
     return result.rows[0].id as number;
@@ -83,6 +83,13 @@ export class PostgresReactionRoleStore implements ReactionRoleStore {
     await this.pool.query('DELETE FROM reaction_roles WHERE id = $1', [id]);
   }
 
+  async deleteByMessage(guildId: string, messageId: string): Promise<void> {
+    await this.pool.query('DELETE FROM reaction_roles WHERE guild_id = $1 AND message_id = $2', [
+      guildId,
+      messageId,
+    ]);
+  }
+
   async deleteByMessageAndEmoji(guildId: string, messageId: string, emoji: string): Promise<void> {
     await this.pool.query(
       'DELETE FROM reaction_roles WHERE guild_id = $1 AND message_id = $2 AND emoji = $3',
@@ -90,10 +97,18 @@ export class PostgresReactionRoleStore implements ReactionRoleStore {
     );
   }
 
-  async getAllBindings(): Promise<ReactionRoleBinding[]> {
-    const result = await this.pool.query(
-      'SELECT * FROM reaction_roles ORDER BY guild_id, created_at ASC'
-    );
+  async getAllBindings(platform?: string): Promise<ReactionRoleBinding[]> {
+    let result;
+    if (platform) {
+      result = await this.pool.query(
+        'SELECT * FROM reaction_roles WHERE platform = $1 ORDER BY guild_id, created_at ASC',
+        [platform]
+      );
+    } else {
+      result = await this.pool.query(
+        'SELECT * FROM reaction_roles ORDER BY guild_id, created_at ASC'
+      );
+    }
 
     return result.rows.map((row) => this.rowToBinding(row));
   }
@@ -115,6 +130,7 @@ export class PostgresReactionRoleStore implements ReactionRoleStore {
       messageId: row.message_id as string,
       emoji: row.emoji as string,
       roleId: row.role_id as string,
+      platform: row.platform as string,
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
     };
@@ -128,10 +144,16 @@ export class PostgresReactionRoleStore implements ReactionRoleStore {
         message_id  TEXT NOT NULL,
         emoji       TEXT NOT NULL,
         role_id     TEXT NOT NULL,
+        platform    TEXT NOT NULL DEFAULT 'discord',
         created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         UNIQUE(guild_id, message_id, emoji)
       )
+    `);
+
+    // Add platform column to existing tables
+    await this.pool.query(`
+      ALTER TABLE reaction_roles ADD COLUMN IF NOT EXISTS platform TEXT NOT NULL DEFAULT 'discord'
     `);
 
     await this.pool.query(`
