@@ -39,6 +39,18 @@ export interface UnifiedAuthor {
 export interface UnifiedChannel {
   id: string;
   fetchMessages?: (limit: number) => Promise<ChannelMessage[]>;
+  fetchMessage?: (
+    messageId: string
+  ) => Promise<{ id: string; content: string; channelId: string } | null>;
+  reactToMessage?: (channelId: string, messageId: string, emoji: string) => Promise<void>;
+  /** Remove the bot's reaction from a message (best-effort). */
+  removeReactionFromMessage?: (
+    channelId: string,
+    messageId: string,
+    emoji: string
+  ) => Promise<void>;
+  /** Normalise an emoji string to the platform's canonical storage format. */
+  resolveEmoji?: (emoji: string) => Promise<string>;
   bulkDelete?: (messageIds: string[]) => Promise<void>;
   canManageMessages?: () => Promise<boolean>;
   userCanManageMessages?: () => Promise<boolean>;
@@ -132,6 +144,8 @@ export interface BotSubcommand {
   name: string;
   description: string;
   parameters?: CommandParameter[];
+  /** Nested subcommands — when set, this subcommand deploys as a subcommand group. */
+  subcommands?: BotSubcommand[];
 }
 
 export interface BotCommand {

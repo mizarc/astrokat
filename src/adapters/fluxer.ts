@@ -3,6 +3,7 @@ import { Client, EmbedBuilder, Events, PermissionFlags, GatewayOpcodes } from '@
 import type { UnifiedMessage, UnifiedAuthor, UnifiedChannel, ReplyEmbed } from '../core/types.js';
 import { handleIncomingMessage, awardMessageXp } from '../core/router.js';
 import { reminderService } from '../core/services/reminders/reminderService.js';
+import { reactionRoleService } from '../core/services/reactionrole/reactionRoleService.js';
 import type { GuildAggregator, GuildStats, ActionDispatcher } from '../core/types.js';
 
 /** Tracks the bot's presence status so setStatus and setPresence compose cleanly. */
@@ -91,6 +92,86 @@ export function startFluxerBot() {
           return authorMember.permissions.has(PermissionFlags.ManageGuild);
         } catch {
           return false;
+        }
+      },
+      fetchMessage: async (messageId: string) => {
+        // Try current channel first
+        try {
+          const raw: any = await client.rest.get(
+            `/channels/${message.channelId}/messages/${messageId}`
+          );
+          if (raw) return { id: raw.id, content: raw.content ?? '', channelId: message.channelId };
+        } catch {
+          // Not in current channel
+        }
+        // Try searching other guild channels via REST
+        try {
+          const guild = await (message as any).resolveGuild?.();
+          if (guild && guild.channels) {
+            for (const [, channel] of guild.channels) {
+              if (channel.id === message.channelId) continue;
+              if ((channel as any).isTextBased?.()) {
+                try {
+                  const raw: any = await client.rest.get(
+                    `/channels/${channel.id}/messages/${messageId}`
+                  );
+                  if (raw) return { id: raw.id, content: raw.content ?? '', channelId: channel.id };
+                } catch {
+                  continue;
+                }
+              }
+            }
+          }
+        } catch {
+          // Can't search guild channels
+        }
+        return null;
+      },
+      resolveEmoji: async (emoji: string) => {
+        // Strip Discord <:name:id> format to name:id (already validated by Discord)
+        const discordMatch = emoji.match(/^<a?:(\w+):(\d+)>$/);
+        if (discordMatch) return `${discordMatch[1]!}:${discordMatch[2]!}`;
+        // Strip colons from :name: format and resolve via Fluxer
+        const stripped = emoji.replace(/^:+|:+$/g, '');
+        const guildId = (message as any).guildId;
+        return await client.resolveEmoji(stripped, guildId ?? undefined);
+      },
+      reactToMessage: async (channelId: string, messageId: string, emoji: string) => {
+        try {
+          const guildId = (message as any).guildId;
+          // Strip Discord <:name:id> format to name:id
+          const discordMatch = emoji.match(/^<a?:(\w+):(\d+)>$/);
+          const resolved = discordMatch
+            ? `${discordMatch[1]!}:${discordMatch[2]!}`
+            : await client.resolveEmoji(emoji, guildId ?? undefined);
+          const route = `/channels/${channelId}/messages/${messageId}/reactions/${encodeURIComponent(resolved)}/@me`;
+          await client.rest.put(route);
+        } catch (err: any) {
+          if (err?.statusCode === 400 || err?.statusCode === 403) {
+            // Custom emoji not available on this platform — skip gracefully
+          } else {
+            console.error(
+              `[REACTION_ROLE] Auto-react failed:`,
+              err instanceof Error ? err.message : err
+            );
+          }
+        }
+      },
+      removeReactionFromMessage: async (channelId: string, messageId: string, emoji: string) => {
+        try {
+          const guildId = (message as any).guildId;
+          const cleaned = emoji.replace(/^:+|:+$/g, '');
+          const resolved = cleaned.includes(':')
+            ? cleaned
+            : await client.resolveEmoji(cleaned, guildId ?? undefined);
+          const route = `/channels/${channelId}/messages/${messageId}/reactions/${encodeURIComponent(resolved)}/@me`;
+          console.log(`[REACTION_ROLE] Removing reaction: msg=${messageId} emoji="${resolved}"`);
+          await client.rest.delete(route);
+        } catch (err) {
+          console.error(
+            `[REACTION_ROLE] Remove reaction failed:`,
+            err instanceof Error ? err.message : err
+          );
         }
       },
       fetchMessages: async (limit: number) => {
@@ -261,6 +342,82 @@ export function startFluxerBot() {
       }
     });
     console.log(t('reminder.listeningFluxer'));
+  });
+
+  // Reaction Role Event Handlers
+
+  client.on(Events.MessageReactionAdd, async (reaction, user) => {
+    if (user.bot) return;
+    if (!reaction.guildId) return;
+
+    const guildId = reaction.guildId;
+    const messageId = reaction.messageId;
+    const emoji = reaction.emojiIdentifier;
+
+    try {
+      const guild = await client.guilds.resolve(guildId);
+      if (!guild) return;
+
+      const member = await guild.fetchMember(user.id);
+
+      await reactionRoleService.handleReactionAdd(guildId, messageId, emoji, {
+        roles: {
+          add: async (roleId: string) => {
+            await member.roles.add(roleId);
+          },
+        },
+      });
+    } catch (error) {
+      console.error('[REACTION_ROLE] Error handling Fluxer reaction add:', error);
+    }
+  });
+
+  client.on(Events.MessageReactionRemove, async (reaction, user) => {
+    if (user.bot) return;
+    if (!reaction.guildId) return;
+
+    const guildId = reaction.guildId;
+    const messageId = reaction.messageId;
+    const emoji = reaction.emojiIdentifier;
+
+    try {
+      const guild = await client.guilds.resolve(guildId);
+      if (!guild) return;
+
+      const member = await guild.fetchMember(user.id);
+
+      await reactionRoleService.handleReactionRemove(guildId, messageId, emoji, {
+        roles: {
+          remove: async (roleId: string) => {
+            await member.roles.remove(roleId);
+          },
+        },
+      });
+    } catch (error) {
+      console.error('[REACTION_ROLE] Error handling Fluxer reaction remove:', error);
+    }
+  });
+
+  // Clean up reaction role bindings
+
+  client.on(Events.MessageDelete, async (message) => {
+    // PartialMessage has id, channelId, and channel
+    const guildId =
+      message.channel && 'guildId' in message.channel
+        ? (message.channel as { guildId: string }).guildId
+        : undefined;
+    if (!guildId) return;
+
+    try {
+      const removed = await reactionRoleService.removeBindingsByMessage(guildId, message.id);
+      if (removed > 0) {
+        console.log(
+          `[REACTION_ROLE] Cleaned up ${removed} binding(s) for deleted message ${message.id}`
+        );
+      }
+    } catch (error) {
+      console.error('[REACTION_ROLE] Error cleaning up Fluxer deleted message:', error);
+    }
   });
 
   // Gracefully handle connection drops (sleep/wake, network blips)

@@ -1,0 +1,253 @@
+import type {
+  ReactionRoleStore,
+  ReactionRoleBinding,
+  ReactionRoleCreate,
+} from './reactionRoleStore.js';
+import { SqliteReactionRoleStore } from './reactionRoleStoreSqlite.js';
+import { PostgresReactionRoleStore } from './reactionRoleStorePostgres.js';
+import { guildConfigService } from '../guildconfig/guildConfigService.js';
+import { getUnicodeFromShortcode } from '@fluxerjs/util';
+/** Default max reaction role bindings per message. Override with `REACTION_ROLE_PER_MESSAGE_LIMIT`. */
+const DEFAULT_PER_MESSAGE_LIMIT = Number(process.env.REACTION_ROLE_PER_MESSAGE_LIMIT) || 20;
+
+/** Default max reaction role bindings across all messages in a guild. Override with `REACTION_ROLE_PER_GUILD_LIMIT`. */
+const DEFAULT_PER_GUILD_LIMIT = Number(process.env.REACTION_ROLE_PER_GUILD_LIMIT) || 50;
+
+/**
+ * Try to match an input emoji against stored emoji strings with fallbacks
+ * for legacy `:name:` / `name:id` / `:name:id` format mismatches.
+ */
+function emojiMatch(stored: string, input: string): boolean {
+  if (stored === input) return true;
+
+  const storedClean = stored.replace(/^:+|:+$/g, '');
+  const inputClean = input.replace(/^:+|:+$/g, '');
+
+  if (storedClean === inputClean) return true;
+  if (storedClean === input) return true;
+  if (stored === inputClean) return true;
+
+  // ":name:" or bare "name" — try resolving shortcode to unicode
+  const inputName = input.match(/^:(\w+):$/)?.[1] ?? (/^\w+$/.test(input) ? input : null);
+  if (inputName) {
+    // Resolve ":thumbsup:" → "👍" for comparison against stored unicode
+    const unicode = getUnicodeFromShortcode(inputName);
+    if (unicode && (stored === unicode || storedClean === unicode)) return true;
+    // Check against stored "name:id" prefix
+    if (storedClean.startsWith(`${inputName}:`)) return true;
+  }
+
+  // stored "name:id" matched by bare input name
+  const storedNameId = storedClean.match(/^(\w+):\d+$/);
+  if (storedNameId && storedNameId[1] === inputClean) return true;
+
+  return false;
+}
+
+/**
+ * Find a binding with fallback for legacy emoji format mismatches.
+ * Does an exact DB match first, then iterates message bindings with fuzzy matching.
+ */
+async function findBinding(
+  store: ReactionRoleStore,
+  guildId: string,
+  messageId: string,
+  emoji: string
+): Promise<ReactionRoleBinding | null> {
+  const exact = await store.getByMessageAndEmoji(guildId, messageId, emoji);
+  if (exact) return exact;
+
+  const all = await store.getByMessage(guildId, messageId);
+  for (const b of all) {
+    if (emojiMatch(b.emoji, emoji)) return b;
+  }
+  return null;
+}
+
+/**
+ * Service layer for reaction roles.
+ *
+ * Manages bindings between (message + emoji) pairs and roles,
+ * and handles role assignment/removal when reactions are added or removed.
+ * Platform-agnostic — the adapter feeds events in, the service does the rest.
+ *
+ * Rate limits are enforced via per-message and per-guild caps.
+ * Guilds can override the defaults through `guildConfigService`.
+ */
+class ReactionRoleService {
+  private readonly persistence: ReactionRoleStore;
+
+  constructor(store: ReactionRoleStore) {
+    this.persistence = store;
+  }
+
+  /**
+   * Resolve the effective per-message limit for a guild.
+   * Checks guild config first, falls back to the default.
+   */
+  private async perMessageLimit(guildId: string): Promise<number> {
+    const config = await guildConfigService.get(guildId);
+    return config.reactionRolePerMessageLimit ?? DEFAULT_PER_MESSAGE_LIMIT;
+  }
+
+  /**
+   * Resolve the effective per-guild limit for a guild.
+   * Checks guild config first, falls back to the default.
+   */
+  private async perGuildLimit(guildId: string): Promise<number> {
+    const config = await guildConfigService.get(guildId);
+    return config.reactionRolePerGuildLimit ?? DEFAULT_PER_GUILD_LIMIT;
+  }
+
+  /**
+   * Bind an emoji to a role on a specific message.
+   * Throws if the binding already exists or if a limit would be exceeded.
+   */
+  async addBinding(binding: ReactionRoleCreate): Promise<ReactionRoleBinding> {
+    const existing = await this.persistence.getByMessageAndEmoji(
+      binding.guildId,
+      binding.messageId,
+      binding.emoji
+    );
+
+    if (existing) {
+      throw new Error(`Emoji "${binding.emoji}" is already bound on that message.`);
+    }
+
+    // Enforce per-message limit
+    const msgBindings = await this.persistence.getByMessage(binding.guildId, binding.messageId);
+    const msgLimit = await this.perMessageLimit(binding.guildId);
+    if (msgBindings.length >= msgLimit) {
+      throw new Error(
+        `This message already has ${msgLimit} reaction role binding(s) — the per-message limit has been reached.`
+      );
+    }
+
+    // Enforce per-guild limit
+    const guildBindings = await this.persistence.getByGuild(binding.guildId);
+    const guildLimit = await this.perGuildLimit(binding.guildId);
+    if (guildBindings.length >= guildLimit) {
+      throw new Error(
+        `This server already has ${guildLimit} reaction role binding(s) — the per-server limit has been reached.`
+      );
+    }
+
+    const id = await this.persistence.create(binding);
+    const created = await this.persistence.getById(id);
+    if (!created) {
+      throw new Error('Failed to create reaction role binding.');
+    }
+    return created;
+  }
+
+  /**
+   * Remove a binding by guild + message + emoji.
+   * Returns true if a binding was removed, false if none existed.
+   */
+  async removeBinding(guildId: string, messageId: string, emoji: string): Promise<boolean> {
+    const existing = await findBinding(this.persistence, guildId, messageId, emoji);
+    if (!existing) return false;
+
+    await this.persistence.delete(existing.id);
+    return true;
+  }
+
+  /**
+   * Remove all bindings for a specific message.
+   * Used when a message is deleted — cleans up orphaned rows.
+   * Returns the number of bindings removed.
+   */
+  async removeBindingsByMessage(guildId: string, messageId: string): Promise<number> {
+    const bindings = await this.persistence.getByMessage(guildId, messageId);
+    if (bindings.length === 0) return 0;
+
+    await this.persistence.deleteByMessage(guildId, messageId);
+    return bindings.length;
+  }
+
+  /**
+   * List all bindings for a guild, optionally filtered by message.
+   */
+  async listBindings(guildId: string, messageId?: string): Promise<ReactionRoleBinding[]> {
+    if (messageId) {
+      return this.persistence.getByMessage(guildId, messageId);
+    }
+    return this.persistence.getByGuild(guildId);
+  }
+
+  /**
+   * Get a single binding by guild + message + emoji.
+   */
+  async getBinding(
+    guildId: string,
+    messageId: string,
+    emoji: string
+  ): Promise<ReactionRoleBinding | null> {
+    return this.persistence.getByMessageAndEmoji(guildId, messageId, emoji);
+  }
+
+  /**
+   * Assign a role to a user when they add a reaction.
+   * Returns the role ID that was assigned, or null if no binding matched.
+   */
+  async handleReactionAdd(
+    guildId: string,
+    messageId: string,
+    emoji: string,
+    member: { roles: { add: (roleId: string) => Promise<void> } }
+  ): Promise<string | null> {
+    const binding = await findBinding(this.persistence, guildId, messageId, emoji);
+    if (!binding) return null;
+
+    try {
+      await member.roles.add(binding.roleId);
+      return binding.roleId;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Remove a role from a user when they remove a reaction.
+   * Returns the role ID that was removed, or null if no binding matched.
+   */
+  async handleReactionRemove(
+    guildId: string,
+    messageId: string,
+    emoji: string,
+    member: { roles: { remove: (roleId: string) => Promise<void> } }
+  ): Promise<string | null> {
+    const binding = await findBinding(this.persistence, guildId, messageId, emoji);
+    if (!binding) return null;
+
+    try {
+      await member.roles.remove(binding.roleId);
+      return binding.roleId;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Fetch all bindings across the database for reconciliation.
+   * Used on startup to scan existing reactions and assign missed roles.
+   */
+  async getAllBindings(platform?: string): Promise<ReactionRoleBinding[]> {
+    return this.persistence.getAllBindings(platform);
+  }
+
+  /**
+   * Get all unique guild IDs that have reaction role bindings.
+   */
+  async getGuildIds(): Promise<string[]> {
+    return this.persistence.getAllGuildIds();
+  }
+}
+
+export { ReactionRoleService };
+
+const store = process.env.DATABASE_URL
+  ? new PostgresReactionRoleStore()
+  : new SqliteReactionRoleStore();
+
+export const reactionRoleService = new ReactionRoleService(store);

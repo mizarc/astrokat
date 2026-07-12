@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Commands
 
+- **Administration:** `!role reaction` — Reaction role management (requires **Manage Roles**). Subcommands:
+  - `add <message-id> <emoji> <role>` — Bind an emoji to a role on a message. Users who react with the emoji gain the role; removing the reaction loses it. The bot auto-reacts to confirm. Limited to 20 per message and 50 per server by default (configurable).
+  - `remove <message-id> <emoji>` — Remove an emoji-to-role binding.
+  - `clear <message-id>` — Remove all bindings from a message and clean up the bot's reactions.
+  - `list [message-id] [page]` — Show all reaction role bindings with pagination and message previews.
+
 - **Automation:** `!task` — Task automation system for creating and managing scheduled or manual triggers. Subcommands:
   - `create <name> [action] [when]` — Create a task with plain English schedules (`daily`, `hourly`, `daily at 9am`) or raw cron. Inline config supported (`channel:#general message:Hello!`), or use draft mode.
   - `list` — View all tasks with status and last run time.
