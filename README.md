@@ -23,10 +23,10 @@ Have open questions, suggestions, or just want to hang out? Join the **[Astrokat
 ## ✨ Features
 
 - **Multi-platform by design** — Built on a shared command system. Write a command once, it works everywhere. Currently supports Discord and Fluxer.
-- **20+ commands** — From utility (ping, calc, QR codes, timestamps) to social (coinflip, diceroll, wheelspin, slap with animated GIFs) to knowledge (Wikipedia, thesaurus, translations).
-- **Persistent reminders** — Set `!remindme in 30 minutes ...` and get pinged when the time comes. Backed by SQLite (zero setup) or PostgreSQL for clustered deployments.
-- **Fully localised** — All user-facing text is managed through locale files. Drop in a new language and Astrokat speaks it.
-- **Pluggable adapters** — Adding a new chat platform is as simple as implementing a handful of methods.
+- **35+ commands** — From utility (ping, calc, QR codes, timestamps) to social (coinflip, diceroll, wheelspin, slap with animated GIFs) to knowledge (Wikipedia, thesaurus, translations) to reaction roles and task automation.
+- **Persistent reminders** — Set `!remindme in 30 minutes ...` and get pinged when the time comes.
+- **Reaction roles** — Let users self-assign roles by reacting to a message. Manage bindings via `!role reaction`.
+- **Task automation** — Schedule automated actions (announcements, purges) via `!task`.
 - **Docker-first** — One command to start. SQLite for small deployments, PostgreSQL for larger scale clusters.
 
 ## 🏁 Getting Started
@@ -61,7 +61,7 @@ Before you can run the bot, you need to create bot applications on the platforms
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications) and click **New Application**.
 2. Give it a name (e.g. "Astrokat") and click **Create**.
 3. Go to the **Bot** tab in the left sidebar.
-4. Under **Token**, click **Reset Token** then **Copy** — this is your `DISCORD_TOKEN`.
+4. Under **Token**, click **Reset Token** then **Copy**. This is your `DISCORD_TOKEN`.
 5. Under **Privileged Gateway Intents**, enable:
    - **Message Content Intent** — required for text-based commands (`!ping`, `!help`, etc.)
 
@@ -77,16 +77,19 @@ Before you can run the bot, you need to create bot applications on the platforms
    - `Embed Links`
    - `Attach Files`
    - `Use External Emoji`
+   - `Manage Roles`
 4. Copy the generated URL, open it in your browser, and select the server to add the bot to.
 
 ## 🐳 Docker Deployment
 
 ### Prerequisites
+
 - [Docker](https://docs.docker.com/engine/install/) & [Docker Compose](https://docs.docker.com/compose/install/)
 
-### Quick Start (SQLite — no external services)
+### Quick Start (SQLite)
 
 1. **Create a project folder and download the files:**
+
    ```bash
    mkdir astrokat
    cd astrokat
@@ -95,13 +98,14 @@ Before you can run the bot, you need to create bot applications on the platforms
    ```
 
 2. **Configure the environment:**
+
    ```bash
    cp .env.example .env
    ```
+
    Open `.env` in any text editor and fill in at least `DISCORD_TOKEN` and/or `FLUXER_TOKEN` with the tokens you got from the previous category.
 
    If you want to use operator-only commands (`status`, `presence`), also add your operator ID:
-
    - **Fluxer:** Right-click your profile and click **Copy User ID**.
    - **Discord:** Enable Developer Mode (Settings → Advanced → Developer Mode), then right-click your profile and click **Copy User ID**.
 
@@ -110,6 +114,7 @@ Before you can run the bot, you need to create bot applications on the platforms
    ```
 
    For multiple operators, separate with commas:
+
    ```bash
    BOT_OPERATOR_IDS=123456789012345678,987654321098765432
    ```
@@ -132,11 +137,11 @@ The `postgres` profile spins up a PostgreSQL 17 container alongside the bot and 
 
 Set `ADAPTERS` in your `.env` file:
 
-| Value | Adapters |
-|---|---|
+| Value            | Adapters       |
+| ---------------- | -------------- |
 | `discord,fluxer` | Both (default) |
-| `discord` | Discord only |
-| `fluxer` | Fluxer only |
+| `discord`        | Discord only   |
+| `fluxer`         | Fluxer only    |
 
 ### Run in background
 
@@ -192,6 +197,7 @@ docker run --rm -v <project>_astrokat-data:/data alpine tar xzf - -C /data < ast
 ## 🚀 Local Development
 
 ### Prerequisites
+
 - Node.js 24+
 - npm
 
@@ -227,26 +233,28 @@ npm run test:coverage   # with coverage report
 
 Astrokat is configured through environment variables set in your `.env` file. Below is the full list of supported variables. Copy `.env.example` to `.env` and fill in the values relevant to your setup. Anything left as the default can be safely omitted.
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `ADAPTERS` | No | `discord,fluxer` | Which chat platforms to connect to |
-| `DISCORD_TOKEN` | Conditional | — | Discord bot token (needed for Discord) |
-| `FLUXER_TOKEN` | Conditional | — | Fluxer bot token (needed for Fluxer) |
-| `DISCORD_ID` | Yes, for slash commands | — | Discord application ID (slash commands auto-deploy on startup) |
-| `BOT_OPERATOR_IDS` | No | — | Comma-separated user IDs allowed to run owner commands (!status, !presence) |
-| `DATABASE_URL` | No | — | PostgreSQL connection string (unset → SQLite) |
-| `RATE_LIMIT_USER_MAX` | No | `10` | Max commands per user per guild per time window |
-| `RATE_LIMIT_GUILD_MAX` | No | `100` | Max commands per guild per time window |
-| `RATE_LIMIT_WINDOW_MS` | No | `60000` | Rate limit time window in milliseconds (default: 1 min) |
+| Variable                          | Required                | Default          | Description                                                                 |
+| --------------------------------- | ----------------------- | ---------------- | --------------------------------------------------------------------------- |
+| `ADAPTERS`                        | No                      | `discord,fluxer` | Which chat platforms to connect to                                          |
+| `DISCORD_TOKEN`                   | Conditional             | —                | Discord bot token (needed for Discord)                                      |
+| `FLUXER_TOKEN`                    | Conditional             | —                | Fluxer bot token (needed for Fluxer)                                        |
+| `DISCORD_ID`                      | Yes, for slash commands | —                | Discord application ID (slash commands auto-deploy on startup)              |
+| `BOT_OPERATOR_IDS`                | No                      | —                | Comma-separated user IDs allowed to run owner commands (!status, !presence) |
+| `DATABASE_URL`                    | No                      | —                | PostgreSQL connection string (unset to use SQLite)                               |
+| `RATE_LIMIT_USER_MAX`             | No                      | `10`             | Max commands per user per guild per time window                             |
+| `RATE_LIMIT_GUILD_MAX`            | No                      | `100`            | Max commands per guild per time window                                      |
+| `RATE_LIMIT_WINDOW_MS`            | No                      | `60000`          | Rate limit time window in milliseconds (default: 1 min)                     |
+| `REACTION_ROLE_PER_MESSAGE_LIMIT` | No                      | `20`             | Max reaction role bindings per message                                      |
+| `REACTION_ROLE_PER_GUILD_LIMIT`   | No                      | `50`             | Max reaction role bindings per guild                                        |
 
 ## 📦 Storage Backends
 
 Astrokat stores data in one of two backends. The bot picks automatically based on whether `DATABASE_URL` is set in your `.env` file. If set, it connects to PostgreSQL; otherwise it uses an embedded SQLite database.
 
-| Backend | When to use | Setup |
-|---|---|---|
-| **SQLite** (default) | Single-instance deployment, quick start | No setup. Data persists in a Docker volume at `/app/data/astrokat.db`. |
-| **PostgreSQL** | Multi-instance deployments where multiple bot processes share reminder data | Either spin up the bundled database via `docker compose --profile postgres up`, or set `DATABASE_URL` in `.env` to point at your own PostgreSQL instance. |
+| Backend              | When to use                                                                 | Setup                                                                                                                                                     |
+| -------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SQLite** (default) | Single-instance deployment, quick start                                     | No setup. Data persists in a Docker volume at `/app/data/astrokat.db`.                                                                                    |
+| **PostgreSQL**       | Multi-instance deployments where multiple bot processes share reminder data | Either spin up the bundled database via `docker compose --profile postgres up`, or set `DATABASE_URL` in `.env` to point at your own PostgreSQL instance. |
 
 ## 🤝 Contributing
 
@@ -265,19 +273,19 @@ Please also note that this project is governed by a [Code of Conduct](./CODE_OF_
 ## 🔧 Troubleshooting
 
 - **Bot is online but doesn't respond to commands.**
-Make sure you invited the bot with the required permissions (see the permissions list for each platform above). On Discord, also verify the **Message Content Intent** is enabled in the Bot settings of the Developer Portal.
+  Make sure you invited the bot with the required permissions (see the permissions list for each platform above). On Discord, also verify the **Message Content Intent** is enabled in the Bot settings of the Developer Portal.
 
 - **Bot joins the server but no slash commands (`/`) appear.**
-The bot auto-deploys slash commands on startup. Restart the bot and after waiting a few seconds, they should appear. If they don't, verify `DISCORD_ID` is set correctly in your `.env` file.
+  The bot auto-deploys slash commands on startup. Restart the bot and after waiting a few seconds, they should appear. If they don't, verify `DISCORD_ID` is set correctly in your `.env` file.
 
 - **`docker compose up` fails with "Cannot connect to the Docker daemon".**
-Docker isn't running or isn't installed. Make sure Docker Desktop is open, or if on Linux, that the Docker service is started (`sudo systemctl start docker`).
+  Docker isn't running or isn't installed. Make sure Docker Desktop is open, or if on Linux, that the Docker service is started (`sudo systemctl start docker`).
 
 - **`docker compose pull` says "pull access denied".**
-You're trying to pull a private image. Astrokat is public. Make sure the image name is `ghcr.io/mizarc/astrokat:latest` (not `astrokat:latest` or another shorthand).
+  You're trying to pull a private image. Astrokat is public. Make sure the image name is `ghcr.io/mizarc/astrokat:latest` (not `astrokat:latest` or another shorthand).
 
 - **Bot runs but data isn't saved after a restart.**
-The SQLite data volume isn't persisting. Check that the volume mapping is present in your `docker-compose.yml` (`astrokat-data:/app/data`) and that you're not running with `docker compose down -v` (the `-v` flag deletes volumes).
+  The SQLite data volume isn't persisting. Check that the volume mapping is present in your `docker-compose.yml` (`astrokat-data:/app/data`) and that you're not running with `docker compose down -v` (the `-v` flag deletes volumes).
 
 - **Permission denied when running Docker commands on Linux.**
-Add your user to the Docker group: `sudo usermod -aG docker $USER`, then log out and back in.
+  Add your user to the Docker group: `sudo usermod -aG docker $USER`, then log out and back in.
