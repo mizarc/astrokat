@@ -142,7 +142,7 @@ export const RoleCommand: BotCommand = {
   async execute(message, args) {
     const guildId = message.guildId;
     if (!guildId) {
-      await message.reply(t('role.guildOnly'));
+      await message.reply(t('commands.role.guildOnly'));
       return;
     }
 
@@ -150,7 +150,7 @@ export const RoleCommand: BotCommand = {
     if (message.channel?.userCanManageGuild) {
       const canManage = await message.channel.userCanManageGuild();
       if (!canManage) {
-        await message.reply(t('role.noPermission'));
+        await message.reply(t('commands.role.noPermission'));
         return;
       }
     }
@@ -185,15 +185,27 @@ export const RoleCommand: BotCommand = {
 
 async function showHelp(message: any): Promise<void> {
   const embed: ReplyEmbed = {
-    title: '📋 Role Management',
+    title: t('commands.role.help.title'),
     color: 0x5865f2,
     description: [
-      '**Reaction Roles**',
+      t('commands.role.help.reactionRoles'),
       '',
-      `\`!role reaction add <message-id> <emoji> <role>\` — ${t('role.reaction.add.description')}`,
-      `\`!role reaction remove <message-id> <emoji>\` — ${t('role.reaction.remove.description')}`,
-      `\`!role reaction clear <message-id>\` — ${t('role.reaction.clear.description')}`,
-      `\`!role reaction list [message-id|page]\` — ${t('role.reaction.list.description')}`,
+      t('commands.role.help.entry', {
+        usage: '`!role reaction add <message-id> <emoji> <role>`',
+        description: t('commands.role.reaction.add.description'),
+      }),
+      t('commands.role.help.entry', {
+        usage: '`!role reaction remove <message-id> <emoji>`',
+        description: t('commands.role.reaction.remove.description'),
+      }),
+      t('commands.role.help.entry', {
+        usage: '`!role reaction clear <message-id>`',
+        description: t('commands.role.reaction.clear.description'),
+      }),
+      t('commands.role.help.entry', {
+        usage: '`!role reaction list [message-id|page]`',
+        description: t('commands.role.reaction.list.description'),
+      }),
     ].join('\n'),
   };
   await message.reply({ content: '', embeds: [embed] });
@@ -203,7 +215,7 @@ async function handleReactionAdd(message: any, args: string[]) {
   const guildId = message.guildId!;
 
   if (args.length < 3) {
-    await message.reply(t('role.reaction.add.usage'));
+    await message.reply(t('commands.role.reaction.add.usage'));
     return;
   }
 
@@ -214,7 +226,7 @@ async function handleReactionAdd(message: any, args: string[]) {
   // Parse role ID from mention or raw ID
   const roleId = parseRoleId(roleInput);
   if (!roleId) {
-    await message.reply(t('role.reaction.add.invalidRole'));
+    await message.reply(t('commands.role.reaction.add.invalidRole'));
     return;
   }
 
@@ -224,7 +236,7 @@ async function handleReactionAdd(message: any, args: string[]) {
     try {
       emoji = await message.channel.resolveEmoji(emoji);
     } catch {
-      await message.reply(t('role.reaction.add.invalidEmoji'));
+      await message.reply(t('commands.role.reaction.add.invalidEmoji'));
       return;
     }
   }
@@ -259,7 +271,7 @@ async function handleReactionAdd(message: any, args: string[]) {
       await message.channel.reactToMessage(channelId, messageId, emoji);
     }
 
-    const base = t('role.reaction.add.success', {
+    const base = t('commands.role.reaction.add.success', {
       emoji: displayEmoji(emoji),
       roleId,
       msg: msgLabel,
@@ -268,7 +280,7 @@ async function handleReactionAdd(message: any, args: string[]) {
     await message.reply(reply);
   } catch (error) {
     const errMessage = error instanceof Error ? error.message : 'Unknown error';
-    await message.reply(t('role.reaction.add.error', { error: errMessage }));
+    await message.reply(t('commands.role.reaction.add.error', { error: errMessage }));
   }
 }
 
@@ -276,7 +288,7 @@ async function handleReactionRemove(message: any, args: string[]) {
   const guildId = message.guildId!;
 
   if (args.length < 2) {
-    await message.reply(t('role.reaction.remove.usage'));
+    await message.reply(t('commands.role.reaction.remove.usage'));
     return;
   }
 
@@ -303,7 +315,7 @@ async function handleReactionRemove(message: any, args: string[]) {
     // Fallback: try the raw emoji too
     const fallbackRemoved = await reactionRoleService.removeBinding(guildId, messageId, emoji);
     if (!fallbackRemoved) {
-      await message.reply(t('role.reaction.remove.notFound', { emoji: displayEmoji(emoji) }));
+      await message.reply(t('commands.role.reaction.remove.notFound', { emoji: displayEmoji(emoji) }));
       return;
     }
   }
@@ -316,7 +328,7 @@ async function handleReactionRemove(message: any, args: string[]) {
   const msgLabel = messageLink(message.platform, guildId, channelId, messageId);
 
   await message.reply(
-    t('role.reaction.remove.success', { emoji: displayEmoji(emoji), msg: msgLabel })
+    t('commands.role.reaction.remove.success', { emoji: displayEmoji(emoji), msg: msgLabel })
   );
 }
 
@@ -324,7 +336,7 @@ async function handleReactionClear(message: any, args: string[]) {
   const guildId = message.guildId!;
 
   if (args.length < 1) {
-    await message.reply(t('role.reaction.clear.usage'));
+    await message.reply(t('commands.role.reaction.clear.usage'));
     return;
   }
 
@@ -339,7 +351,7 @@ async function handleReactionClear(message: any, args: string[]) {
   const bindings = await reactionRoleService.listBindings(guildId, messageId);
 
   if (bindings.length === 0) {
-    await message.reply(t('role.reaction.clear.notFound'));
+    await message.reply(t('commands.role.reaction.clear.notFound'));
     return;
   }
 
@@ -358,7 +370,7 @@ async function handleReactionClear(message: any, args: string[]) {
 
   const msgLabel = messageLink(message.platform, guildId, channelId, messageId);
 
-  await message.reply(t('role.reaction.clear.success', { count: String(count), msg: msgLabel }));
+  await message.reply(t('commands.role.reaction.clear.success', { count: String(count), msg: msgLabel }));
 }
 
 async function handleReactionList(message: any, args: string[]) {
@@ -392,7 +404,7 @@ async function handleReactionList(message: any, args: string[]) {
   const bindings = await reactionRoleService.listBindings(guildId, messageId);
 
   if (bindings.length === 0) {
-    await message.reply(t('role.reaction.list.empty'));
+    await message.reply(t('commands.role.reaction.list.empty'));
     return;
   }
 
@@ -424,7 +436,7 @@ async function handleReactionList(message: any, args: string[]) {
 
     if (preview) {
       lines.push(
-        t('role.reaction.list.entryWithPreview', {
+        t('commands.role.reaction.list.entryWithPreview', {
           index: i + 1,
           emoji: displayEmoji(b.emoji),
           roleId: b.roleId,
@@ -434,7 +446,7 @@ async function handleReactionList(message: any, args: string[]) {
       );
     } else {
       lines.push(
-        t('role.reaction.list.entry', {
+        t('commands.role.reaction.list.entry', {
           index: i + 1,
           emoji: displayEmoji(b.emoji),
           roleId: b.roleId,
@@ -447,14 +459,14 @@ async function handleReactionList(message: any, args: string[]) {
   const description = lines.join('\n').trimEnd();
 
   const embed: ReplyEmbed = {
-    title: t('role.reaction.list.title'),
+    title: t('commands.role.reaction.list.title'),
     description,
     color: 0x5865f2,
   };
 
   if (totalPages > 1) {
     embed.footer = {
-      text: t('role.reaction.list.footer', {
+      text: t('commands.role.reaction.list.footer', {
         total: bindings.length,
         page,
         totalPages,

@@ -118,7 +118,7 @@ export const TasksCommand: BotCommand = {
   async execute(message, args) {
     // Guild-only check
     if (!message.guildId) {
-      await message.reply(t('tasks.guildOnly'));
+      await message.reply(t('commands.tasks.guildOnly'));
       return;
     }
 
@@ -167,7 +167,7 @@ export const TasksCommand: BotCommand = {
         await handleHistory(message, args.slice(1));
         break;
       default:
-        await message.reply(t('tasks.unknownSubcommand', { sub: subcommand }));
+        await message.reply(t('commands.tasks.unknownSubcommand', { sub: subcommand }));
     }
   },
 };
@@ -186,38 +186,38 @@ async function showHelp(message: Parameters<BotCommand['execute']>[0]): Promise<
     .join('\n');
 
   const embed: ReplyEmbed = {
-    title: t('tasks.help.title'),
+    title: t('commands.tasks.help.title'),
     color: 0x5865f2,
     description: [
-      t('tasks.help.descSchedule'),
+      t('commands.tasks.help.descSchedule'),
       '',
-      t('tasks.help.subcommands'),
-      t('tasks.help.list'),
-      t('tasks.help.show'),
-      t('tasks.help.create'),
-      t('tasks.help.rename'),
-      t('tasks.help.reschedule'),
-      t('tasks.help.retool'),
-      t('tasks.help.edit'),
-      t('tasks.help.pause'),
-      t('tasks.help.resume'),
-      t('tasks.help.delete'),
-      t('tasks.help.run'),
-      t('tasks.help.history'),
+      t('commands.tasks.help.subcommands'),
+      t('commands.tasks.help.list'),
+      t('commands.tasks.help.show'),
+      t('commands.tasks.help.create'),
+      t('commands.tasks.help.rename'),
+      t('commands.tasks.help.reschedule'),
+      t('commands.tasks.help.retool'),
+      t('commands.tasks.help.edit'),
+      t('commands.tasks.help.pause'),
+      t('commands.tasks.help.resume'),
+      t('commands.tasks.help.delete'),
+      t('commands.tasks.help.run'),
+      t('commands.tasks.help.history'),
       '',
-      t('tasks.help.whenTitle'),
-      t('tasks.help.whenExamples'),
-      t('tasks.help.whenAt'),
-      t('tasks.help.whenCron'),
+      t('commands.tasks.help.whenTitle'),
+      t('commands.tasks.help.whenExamples'),
+      t('commands.tasks.help.whenAt'),
+      t('commands.tasks.help.whenCron'),
       '',
-      t('tasks.help.availableActions'),
+      t('commands.tasks.help.availableActions'),
       actionsList,
       '',
-      t('tasks.help.tipsTitle'),
-      t('tasks.help.tipScheduled'),
-      t('tasks.help.tipManual'),
-      t('tasks.help.tipDraft'),
-      t('tasks.help.tipEdit'),
+      t('commands.tasks.help.tipsTitle'),
+      t('commands.tasks.help.tipScheduled'),
+      t('commands.tasks.help.tipManual'),
+      t('commands.tasks.help.tipDraft'),
+      t('commands.tasks.help.tipEdit'),
     ].join('\n'),
   };
 
@@ -230,7 +230,7 @@ async function handleList(message: Parameters<BotCommand['execute']>[0]): Promis
   const tasks = await taskService.list(message.guildId);
 
   if (tasks.length === 0) {
-    await message.reply(t('tasks.list.empty'));
+    await message.reply(t('commands.tasks.list.empty'));
     return;
   }
 
@@ -243,21 +243,21 @@ async function handleList(message: Parameters<BotCommand['execute']>[0]): Promis
       task.lastRunResult === 'success' ? '✅' : task.lastRunResult === 'failure' ? '❌' : '';
     const icons = result ? `${status} ${result}` : status;
     const lastRun = task.lastRunAt
-      ? `${t('tasks.list.lastRun')} <t:${Math.floor(new Date(task.lastRunAt).getTime() / 1000)}:R>`
-      : t('tasks.list.neverRun');
-    const schedule = task.cron ? cronToHuman(task.cron) : isDraft ? '' : t('tasks.list.manual');
+      ? `${t('commands.tasks.list.lastRun')} <t:${Math.floor(new Date(task.lastRunAt).getTime() / 1000)}:R>`
+      : t('commands.tasks.list.neverRun');
+    const schedule = task.cron ? cronToHuman(task.cron) : isDraft ? '' : t('commands.tasks.list.manual');
     const schedulePrefix = schedule ? ` — ${schedule}` : '';
     const actionLabel = isDraft
-      ? `${t('tasks.list.need')} ${missing.join(', ')}`
+      ? `${t('commands.tasks.list.need')} ${missing.join(', ')}`
       : `\`${task.action}\``;
     return `**${i + 1}.** **${task.name}**${schedulePrefix} → ${actionLabel} ${lastRun} ${icons}`;
   });
 
   const embed: ReplyEmbed = {
-    title: t('tasks.list.title'),
+    title: t('commands.tasks.list.title'),
     color: 0x5865f2,
     description: lines.join('\n'),
-    footer: { text: t('tasks.list.footer', { count: tasks.length }) },
+    footer: { text: t('commands.tasks.list.footer', { count: tasks.length }) },
   };
 
   await message.reply({ content: '', embeds: [embed] });
@@ -270,14 +270,14 @@ async function handleShow(
   if (!message.guildId) return;
 
   if (args.length < 1) {
-    await message.reply(t('tasks.show.usage'));
+    await message.reply(t('commands.tasks.show.usage'));
     return;
   }
 
   try {
     const task = await taskService.get(message.guildId, args[0]!);
     if (!task) {
-      await message.reply(t('tasks.show.notFound', { name: args[0]! }));
+      await message.reply(t('commands.tasks.show.notFound', { name: args[0]! }));
       return;
     }
 
@@ -286,35 +286,35 @@ async function handleShow(
     const isDraft = missing.length > 0;
     const statusIcon = isDraft ? '📝' : isManual ? '🖐️' : task.enabled ? '▶️' : '⏸️';
     const statusLabel = isDraft
-      ? t('tasks.show.statusDraft')
+      ? t('commands.tasks.show.statusDraft')
       : isManual
-        ? t('tasks.show.statusManual')
+        ? t('commands.tasks.show.statusManual')
         : task.enabled
-          ? t('tasks.show.statusActive')
-          : t('tasks.show.statusPaused');
+          ? t('commands.tasks.show.statusActive')
+          : t('commands.tasks.show.statusPaused');
     const schedule = task.cron ? `${cronToHuman(task.cron)} · \`${task.cron}\`` : null;
     const channelId = task.config?.channel as string | undefined;
 
     const infoLines: string[] = [
-      `**${t('tasks.show.labelStatus')}:** ${statusIcon} ${statusLabel}`,
+      `**${t('commands.tasks.show.labelStatus')}:** ${statusIcon} ${statusLabel}`,
     ];
 
     if (task.lastRunAt) {
       const ts = Math.floor(new Date(task.lastRunAt).getTime() / 1000);
       const icon =
         task.lastRunResult === 'success' ? '✅' : task.lastRunResult === 'failure' ? '❌' : '⏳';
-      infoLines.push(`**${t('tasks.show.labelLastRun')}:** ${icon} <t:${ts}:R>`);
+      infoLines.push(`**${t('commands.tasks.show.labelLastRun')}:** ${icon} <t:${ts}:R>`);
     }
 
-    infoLines.push(`**${t('tasks.show.labelAction')}:** \`${task.action}\``);
+    infoLines.push(`**${t('commands.tasks.show.labelAction')}:** \`${task.action}\``);
     if (schedule) {
-      infoLines.push(`**${t('tasks.show.labelSchedule')}:** ${schedule}`);
+      infoLines.push(`**${t('commands.tasks.show.labelSchedule')}:** ${schedule}`);
     }
 
     const configLines: string[] = [];
 
     if (channelId) {
-      configLines.push(`**${t('tasks.show.labelChannel')}:** <#${channelId}>`);
+      configLines.push(`**${t('commands.tasks.show.labelChannel')}:** <#${channelId}>`);
     }
 
     for (const [key, value] of Object.entries(task.config ?? {})) {
@@ -324,11 +324,11 @@ async function handleShow(
     }
 
     const fields: { name: string; value: string; inline?: boolean }[] = [
-      { name: t('tasks.show.fieldDetails'), value: infoLines.join('\n') },
+      { name: t('commands.tasks.show.fieldDetails'), value: infoLines.join('\n') },
     ];
 
     if (configLines.length > 0) {
-      fields.push({ name: t('tasks.show.fieldConfig'), value: configLines.join('\n') });
+      fields.push({ name: t('commands.tasks.show.fieldConfig'), value: configLines.join('\n') });
     }
 
     // Show which config keys are available for this action
@@ -337,39 +337,39 @@ async function handleShow(
       const lines: string[] = [];
       for (const field of configFields) {
         const badge = field.required
-          ? t('tasks.show.configRequired')
-          : t('tasks.show.configOptional');
+          ? t('commands.tasks.show.configRequired')
+          : t('commands.tasks.show.configOptional');
         const defaultHint = field.default
-          ? ` ${t('tasks.show.configDefault', { default: field.default })}`
+          ? ` ${t('commands.tasks.show.configDefault', { default: field.default })}`
           : '';
         lines.push(`• \`${field.key}\` — ${badge}\n  ${field.description}${defaultHint}`);
       }
       if (lines.length > 0) {
-        fields.push({ name: t('tasks.show.fieldAvailableConfig'), value: lines.join('\n') });
+        fields.push({ name: t('commands.tasks.show.fieldAvailableConfig'), value: lines.join('\n') });
       }
     }
 
     const embed: ReplyEmbed = {
-      title: t('tasks.show.title', { name: task.name ?? '' }),
+      title: t('commands.tasks.show.title', { name: task.name ?? '' }),
       color: 0x5865f2,
       fields,
       footer: {
-        text: t('tasks.show.footer', {
+        text: t('commands.tasks.show.footer', {
           timestamp: Math.floor(new Date(task.createdAt).getTime() / 1000),
         }),
       },
     };
 
     if (isDraft) {
-      embed.description = t('tasks.show.missingDesc', { fields: missing.join(', ') });
+      embed.description = t('commands.tasks.show.missingDesc', { fields: missing.join(', ') });
     }
 
     await message.reply({ content: '', embeds: [embed] });
   } catch (error) {
     await message.reply(
       error instanceof Error
-        ? t('tasks.show.error', { message: error.message })
-        : t('tasks.show.errorGeneric')
+        ? t('commands.tasks.show.error', { message: error.message })
+        : t('commands.tasks.show.errorGeneric')
     );
   }
 }
@@ -391,17 +391,17 @@ async function handleCreate(
       });
 
       const embed: ReplyEmbed = {
-        title: t('tasks.create.draftTitle'),
+        title: t('commands.tasks.create.draftTitle'),
         color: 0x5865f2,
-        description: t('tasks.create.draftDesc', { name: task.name ?? '' }),
+        description: t('commands.tasks.create.draftDesc', { name: task.name ?? '' }),
       };
 
       await message.reply({ content: '', embeds: [embed] });
     } catch (error) {
       await message.reply(
         error instanceof Error
-          ? t('tasks.create.errorGeneric', { message: error.message })
-          : t('tasks.create.errorGeneric')
+          ? t('commands.tasks.create.errorGeneric', { message: error.message })
+          : t('commands.tasks.create.errorGeneric')
       );
     }
     return;
@@ -409,7 +409,7 @@ async function handleCreate(
 
   // ── One-shot mode: name + action + optional when + optional config ───
   if (args.length < 2) {
-    await message.reply(t('tasks.create.tooFewArgs'));
+    await message.reply(t('commands.tasks.create.tooFewArgs'));
     return;
   }
 
@@ -421,7 +421,7 @@ async function handleCreate(
   const actionNames = new Set(available.map((a) => a.name));
   if (!actionNames.has(action)) {
     await message.reply(
-      t('tasks.create.unknownAction', { action, available: [...actionNames].join(', ') })
+      t('commands.tasks.create.unknownAction', { action, available: [...actionNames].join(', ') })
     );
     return;
   }
@@ -495,10 +495,10 @@ async function handleCreate(
 
     if (missing.length > 0) {
       const suffix = cronExpression
-        ? t('tasks.create.suffixResume', { name })
-        : t('tasks.create.suffixRun', { name });
+        ? t('commands.tasks.create.suffixResume', { name })
+        : t('commands.tasks.create.suffixRun', { name });
       await message.reply(
-        t('tasks.create.draftResult', { name, fields: missing.join(', '), suffix })
+        t('commands.tasks.create.draftResult', { name, fields: missing.join(', '), suffix })
       );
       return;
     }
@@ -512,19 +512,19 @@ async function handleCreate(
 
     const isManual = taskService.isManual(task);
     const scheduleField = isManual
-      ? { name: t('tasks.create.fieldType'), value: t('tasks.create.typeManual'), inline: true }
-      : { name: t('tasks.create.fieldSchedule'), value: cronExpression ?? '(none)', inline: true };
+      ? { name: t('commands.tasks.create.fieldType'), value: t('commands.tasks.create.typeManual'), inline: true }
+      : { name: t('commands.tasks.create.fieldSchedule'), value: cronExpression ?? '(none)', inline: true };
 
     const embed: ReplyEmbed = {
-      title: t('tasks.create.title'),
+      title: t('commands.tasks.create.title'),
       color: 0x57f287,
       fields: [
         {
-          name: t('tasks.create.fieldName'),
-          value: task.name ?? t('tasks.create.unnamed'),
+          name: t('commands.tasks.create.fieldName'),
+          value: task.name ?? t('commands.tasks.create.unnamed'),
           inline: true,
         },
-        { name: t('tasks.create.fieldAction'), value: `\`${task.action}\``, inline: true },
+        { name: t('commands.tasks.create.fieldAction'), value: `\`${task.action}\``, inline: true },
         scheduleField,
       ],
     };
@@ -533,8 +533,8 @@ async function handleCreate(
   } catch (error) {
     await message.reply(
       error instanceof Error
-        ? t('tasks.create.errorGeneric', { message: error.message })
-        : t('tasks.create.errorGeneric')
+        ? t('commands.tasks.create.errorGeneric', { message: error.message })
+        : t('commands.tasks.create.errorGeneric')
     );
   }
 }
@@ -546,18 +546,18 @@ async function handleRename(
   if (!message.guildId) return;
 
   if (args.length < 2) {
-    await message.reply(t('tasks.rename.usage'));
+    await message.reply(t('commands.tasks.rename.usage'));
     return;
   }
 
   try {
     const task = await taskService.rename(message.guildId, args[0]!, args[1]!);
-    await message.reply(t('tasks.rename.success', { oldName: args[0]!, newName: task.name ?? '' }));
+    await message.reply(t('commands.tasks.rename.success', { oldName: args[0]!, newName: task.name ?? '' }));
   } catch (error) {
     await message.reply(
       error instanceof Error
-        ? t('tasks.rename.errorGeneric', { message: error.message })
-        : t('tasks.rename.errorGeneric')
+        ? t('commands.tasks.rename.errorGeneric', { message: error.message })
+        : t('commands.tasks.rename.errorGeneric')
     );
   }
 }
@@ -569,7 +569,7 @@ async function handleReschedule(
   if (!message.guildId) return;
 
   if (args.length < 2) {
-    await message.reply(t('tasks.reschedule.usage'));
+    await message.reply(t('commands.tasks.reschedule.usage'));
     return;
   }
 
@@ -582,12 +582,12 @@ async function handleReschedule(
       const task = await taskService.edit(message.guildId, name, {
         cronExpression: null,
       });
-      await message.reply(t('tasks.reschedule.cleared', { name: task.name ?? '' }));
+      await message.reply(t('commands.tasks.reschedule.cleared', { name: task.name ?? '' }));
     } catch (error) {
       await message.reply(
         error instanceof Error
-          ? t('tasks.reschedule.errorClear', { message: error.message })
-          : t('tasks.reschedule.errorClear')
+          ? t('commands.tasks.reschedule.errorClear', { message: error.message })
+          : t('commands.tasks.reschedule.errorClear')
       );
     }
     return;
@@ -602,13 +602,13 @@ async function handleReschedule(
 
     const humanSchedule = cronToHuman(cronExpression);
     await message.reply(
-      t('tasks.reschedule.success', { name: task.name ?? '', schedule: humanSchedule })
+      t('commands.tasks.reschedule.success', { name: task.name ?? '', schedule: humanSchedule })
     );
   } catch (error) {
     await message.reply(
       error instanceof Error
-        ? t('tasks.reschedule.errorGeneric', { message: error.message })
-        : t('tasks.reschedule.errorGeneric')
+        ? t('commands.tasks.reschedule.errorGeneric', { message: error.message })
+        : t('commands.tasks.reschedule.errorGeneric')
     );
   }
 }
@@ -620,18 +620,18 @@ async function handleRetool(
   if (!message.guildId) return;
 
   if (args.length < 2) {
-    await message.reply(t('tasks.retool.usage'));
+    await message.reply(t('commands.tasks.retool.usage'));
     return;
   }
 
   try {
     const task = await taskService.retool(message.guildId, args[0]!, args[1]!.toLowerCase());
-    await message.reply(t('tasks.retool.success', { name: task.name ?? '', action: task.action }));
+    await message.reply(t('commands.tasks.retool.success', { name: task.name ?? '', action: task.action }));
   } catch (error) {
     await message.reply(
       error instanceof Error
-        ? t('tasks.retool.errorGeneric', { message: error.message })
-        : t('tasks.retool.errorGeneric')
+        ? t('commands.tasks.retool.errorGeneric', { message: error.message })
+        : t('commands.tasks.retool.errorGeneric')
     );
   }
 }
@@ -643,7 +643,7 @@ async function handleEdit(
   if (!message.guildId) return;
 
   if (args.length < 2) {
-    await message.reply(t('tasks.edit.usage'));
+    await message.reply(t('commands.tasks.edit.usage'));
     return;
   }
 
@@ -652,7 +652,7 @@ async function handleEdit(
   const colonIndex = rest.indexOf(':');
 
   if (colonIndex === -1) {
-    await message.reply(t('tasks.edit.formatError'));
+    await message.reply(t('commands.tasks.edit.formatError'));
     return;
   }
 
@@ -686,19 +686,19 @@ async function handleEdit(
     // Check if task is now complete
     const task = await taskService.get(message.guildId, name);
     const action = updates.clearKeys
-      ? t('tasks.edit.actionCleared')
-      : t('tasks.edit.actionChanged');
-    let response = t('tasks.edit.success', { name, key, action });
+      ? t('commands.tasks.edit.actionCleared')
+      : t('commands.tasks.edit.actionChanged');
+    let response = t('commands.tasks.edit.success', { name, key, action });
     if (task) {
       const missing = taskService.getMissingFields(task);
       if (missing.length === 0 && !task.enabled) {
         if (taskService.isManual(task)) {
-          response += t('tasks.edit.allFieldsManual', { name });
+          response += t('commands.tasks.edit.allFieldsManual', { name });
         } else if (task.action) {
-          response += t('tasks.edit.allFieldsScheduled', { name });
+          response += t('commands.tasks.edit.allFieldsScheduled', { name });
         }
       } else if (missing.length > 0) {
-        response += t('tasks.edit.stillMissing', { fields: missing.join(', ') });
+        response += t('commands.tasks.edit.stillMissing', { fields: missing.join(', ') });
       }
     }
 
@@ -706,8 +706,8 @@ async function handleEdit(
   } catch (error) {
     await message.reply(
       error instanceof Error
-        ? t('tasks.edit.errorGeneric', { message: error.message })
-        : t('tasks.edit.errorGeneric')
+        ? t('commands.tasks.edit.errorGeneric', { message: error.message })
+        : t('commands.tasks.edit.errorGeneric')
     );
   }
 }
@@ -719,7 +719,7 @@ async function handlePause(
   if (!message.guildId) return;
 
   if (args.length < 1) {
-    await message.reply(t('tasks.pause.usage'));
+    await message.reply(t('commands.tasks.pause.usage'));
     return;
   }
 
@@ -727,15 +727,15 @@ async function handlePause(
     const wasRunning = await taskService.pause(message.guildId, args[0]!);
     const name = args[0]!;
     if (wasRunning) {
-      await message.reply(t('tasks.pause.success', { name }));
+      await message.reply(t('commands.tasks.pause.success', { name }));
     } else {
-      await message.reply(t('tasks.pause.already', { name }));
+      await message.reply(t('commands.tasks.pause.already', { name }));
     }
   } catch (error) {
     await message.reply(
       error instanceof Error
-        ? t('tasks.pause.errorGeneric', { message: error.message })
-        : t('tasks.pause.errorGeneric')
+        ? t('commands.tasks.pause.errorGeneric', { message: error.message })
+        : t('commands.tasks.pause.errorGeneric')
     );
   }
 }
@@ -747,7 +747,7 @@ async function handleResume(
   if (!message.guildId) return;
 
   if (args.length < 1) {
-    await message.reply(t('tasks.resume.usage'));
+    await message.reply(t('commands.tasks.resume.usage'));
     return;
   }
 
@@ -755,15 +755,15 @@ async function handleResume(
     const wasPaused = await taskService.resume(message.guildId, args[0]!);
     const name = args[0]!;
     if (wasPaused) {
-      await message.reply(t('tasks.resume.success', { name }));
+      await message.reply(t('commands.tasks.resume.success', { name }));
     } else {
-      await message.reply(t('tasks.resume.already', { name }));
+      await message.reply(t('commands.tasks.resume.already', { name }));
     }
   } catch (error) {
     await message.reply(
       error instanceof Error
-        ? t('tasks.resume.errorGeneric', { message: error.message })
-        : t('tasks.resume.errorGeneric')
+        ? t('commands.tasks.resume.errorGeneric', { message: error.message })
+        : t('commands.tasks.resume.errorGeneric')
     );
   }
 }
@@ -775,18 +775,18 @@ async function handleDelete(
   if (!message.guildId) return;
 
   if (args.length < 1) {
-    await message.reply(t('tasks.delete.usage'));
+    await message.reply(t('commands.tasks.delete.usage'));
     return;
   }
 
   try {
     await taskService.remove(message.guildId, args[0]!);
-    await message.reply(t('tasks.delete.success', { name: args[0]! }));
+    await message.reply(t('commands.tasks.delete.success', { name: args[0]! }));
   } catch (error) {
     await message.reply(
       error instanceof Error
-        ? t('tasks.delete.errorGeneric', { message: error.message })
-        : t('tasks.delete.errorGeneric')
+        ? t('commands.tasks.delete.errorGeneric', { message: error.message })
+        : t('commands.tasks.delete.errorGeneric')
     );
   }
 }
@@ -798,7 +798,7 @@ async function handleRun(
   if (!message.guildId) return;
 
   if (args.length < 1) {
-    await message.reply(t('tasks.run.usage'));
+    await message.reply(t('commands.tasks.run.usage'));
     return;
   }
 
@@ -813,8 +813,8 @@ async function handleRun(
   } catch (error) {
     const msg =
       error instanceof Error
-        ? t('tasks.run.errorGeneric', { message: error.message })
-        : t('tasks.run.errorGeneric');
+        ? t('commands.tasks.run.errorGeneric', { message: error.message })
+        : t('commands.tasks.run.errorGeneric');
     await (message.followUp ? message.followUp(msg) : message.reply(msg));
   }
 }
@@ -826,7 +826,7 @@ async function handleHistory(
   if (!message.guildId) return;
 
   if (args.length < 1) {
-    await message.reply(t('tasks.history.usage'));
+    await message.reply(t('commands.tasks.history.usage'));
     return;
   }
 
@@ -835,7 +835,7 @@ async function handleHistory(
     const runs = await taskService.history(message.guildId, n);
 
     if (runs.length === 0) {
-      await message.reply(t('tasks.history.empty', { name: n }));
+      await message.reply(t('commands.tasks.history.empty', { name: n }));
       return;
     }
 
@@ -845,23 +845,23 @@ async function handleHistory(
       const error = run.errorMessage ? ` — ${run.errorMessage}` : '';
       const timestamp = run.startedAt
         ? `<t:${Math.floor(new Date(run.startedAt).getTime() / 1000)}:R>`
-        : t('tasks.history.unknown');
+        : t('commands.tasks.history.unknown');
       return `${icon} ${timestamp}${duration}${error}`;
     });
 
     const embed: ReplyEmbed = {
-      title: t('tasks.history.title', { name: n }),
+      title: t('commands.tasks.history.title', { name: n }),
       color: 0x5865f2,
       description: lines.join('\n'),
-      footer: { text: t('tasks.history.footer', { count: runs.length }) },
+      footer: { text: t('commands.tasks.history.footer', { count: runs.length }) },
     };
 
     await message.reply({ content: '', embeds: [embed] });
   } catch (error) {
     await message.reply(
       error instanceof Error
-        ? t('tasks.history.errorGeneric', { message: error.message })
-        : t('tasks.history.errorGeneric')
+        ? t('commands.tasks.history.errorGeneric', { message: error.message })
+        : t('commands.tasks.history.errorGeneric')
     );
   }
 }
