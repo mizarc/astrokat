@@ -489,8 +489,14 @@
       "remove": {
         "description": "Remove an emoji-to-role binding from a message.",
         "usage": "❌ Usage: `!role reaction remove <message-id> <emoji>`\nExample: `!role reaction remove 123456789 🎉`",
-        "notFound": "⚠️ No binding found for {emoji} on that message.",
+        "notFound": "❌ No binding found for {emoji} on that message.",
         "success": "✅ Removed binding for **{emoji}** on {msg}."
+      },
+      "clear": {
+        "description": "Remove all bindings from a message.",
+        "usage": "❌ Usage: `!role reaction clear <message-id>`\nExample: `!role reaction clear 123456789`",
+        "notFound": "❌ No bindings found on that message.",
+        "success": "✅ Cleared **{count}** binding(s) on {msg}."
       },
       "list": {
         "description": "Show bindings, optionally filtered by message or page.",

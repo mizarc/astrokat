@@ -106,6 +106,18 @@ export const RoleCommand: BotCommand = {
           ],
         },
         {
+          name: 'clear',
+          description: 'Remove all bindings from a message.',
+          parameters: [
+            {
+              name: 'message_id',
+              description: 'The ID of the message to clear bindings from.',
+              type: 'string',
+              required: true,
+            },
+          ],
+        },
+        {
           name: 'list',
           description: 'List reaction role bindings — pass a message ID or page number.',
           parameters: [
@@ -157,6 +169,8 @@ export const RoleCommand: BotCommand = {
           return handleReactionAdd(message, args.slice(2));
         case 'remove':
           return handleReactionRemove(message, args.slice(2));
+        case 'clear':
+          return handleReactionClear(message, args.slice(2));
         case 'list':
           return handleReactionList(message, args.slice(2));
         default:
@@ -178,6 +192,7 @@ async function showHelp(message: any): Promise<void> {
       '',
       `\`!role reaction add <message-id> <emoji> <role>\` — ${t('role.reaction.add.description')}`,
       `\`!role reaction remove <message-id> <emoji>\` — ${t('role.reaction.remove.description')}`,
+      `\`!role reaction clear <message-id>\` — ${t('role.reaction.clear.description')}`,
       `\`!role reaction list [message-id|page]\` — ${t('role.reaction.list.description')}`,
     ].join('\n'),
   };
@@ -303,6 +318,47 @@ async function handleReactionRemove(message: any, args: string[]) {
   await message.reply(
     t('role.reaction.remove.success', { emoji: displayEmoji(emoji), msg: msgLabel })
   );
+}
+
+async function handleReactionClear(message: any, args: string[]) {
+  const guildId = message.guildId!;
+
+  if (args.length < 1) {
+    await message.reply(t('role.reaction.clear.usage'));
+    return;
+  }
+
+  const messageId = args[0]!;
+
+  let channelId: string | null = null;
+  if (message.channel?.fetchMessage) {
+    const msg = await message.channel.fetchMessage(messageId);
+    if (msg) channelId = msg.channelId;
+  }
+
+  const bindings = await reactionRoleService.listBindings(guildId, messageId);
+
+  if (bindings.length === 0) {
+    await message.reply(t('role.reaction.clear.notFound'));
+    return;
+  }
+
+  // Remove the bot's reactions from the message
+  if (message.channel?.removeReactionFromMessage && channelId) {
+    for (const b of bindings) {
+      try {
+        await message.channel.removeReactionFromMessage(channelId, messageId, b.emoji);
+      } catch {
+        // Skip if the reaction isn't there
+      }
+    }
+  }
+
+  const count = await reactionRoleService.removeBindingsByMessage(guildId, messageId);
+
+  const msgLabel = messageLink(message.platform, guildId, channelId, messageId);
+
+  await message.reply(t('role.reaction.clear.success', { count: String(count), msg: msgLabel }));
 }
 
 async function handleReactionList(message: any, args: string[]) {
