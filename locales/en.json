@@ -482,21 +482,22 @@
         "description": "Bind an emoji to a role on a message.",
         "usage": "❌ Usage: `!role reaction add <message-id> <emoji> <role>`\nExample: `!role reaction add 123456789 🎉 @Member`",
         "invalidRole": "❌ Invalid role. Please mention a role (e.g. @Role) or provide a role ID.",
-        "success": "✅ Bound **{emoji}** to <@&{roleId}> on message `{messageId}`.",
+        "invalidEmoji": "❌ That emoji isn't available to me. Please use a standard Unicode emoji or a custom emoji that I can access.",
+        "success": "✅ Bound **{emoji}** to <@&{roleId}> on {msg}.",
         "error": "❌ Failed to add binding: {error}"
       },
       "remove": {
         "description": "Remove an emoji-to-role binding from a message.",
         "usage": "❌ Usage: `!role reaction remove <message-id> <emoji>`\nExample: `!role reaction remove 123456789 🎉`",
         "notFound": "⚠️ No binding found for {emoji} on that message.",
-        "success": "✅ Removed binding for **{emoji}** on message `{messageId}`."
+        "success": "✅ Removed binding for **{emoji}** on {msg}."
       },
       "list": {
         "description": "Show bindings, optionally filtered by message or page.",
         "title": "📋 Reaction Role Bindings",
         "empty": "📋 No reaction role bindings configured for this server.",
-        "entry": "{index}. {emoji} → <@&{roleId}> — `{messageId}`",
-        "entryWithPreview": "{index}. {emoji} → <@&{roleId}> — `{messageId}`\n> {preview}",
+        "entry": "{index}. {emoji} → <@&{roleId}> — {msg}",
+        "entryWithPreview": "{index}. {emoji} → <@&{roleId}> — {msg}\n> {preview}",
         "footer": "Page {page}/{totalPages} ({total} total) — use `!role reaction list [message_id] and/or [page]` to filter"
       }
     }

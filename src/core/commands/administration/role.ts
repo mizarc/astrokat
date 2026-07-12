@@ -1,6 +1,7 @@
 import { t } from '../../i18n.js';
 import type { BotCommand, ReplyEmbed } from '../../types.js';
 import { reactionRoleService } from '../../services/reactionrole/reactionRoleService.js';
+import { getUnicodeFromShortcode } from '@fluxerjs/util';
 
 /**
  * Parse a role mention or ID from a string.
@@ -11,6 +12,44 @@ function parseRoleId(input: string): string | null {
   if (mentionMatch && mentionMatch[1]) return mentionMatch[1];
   if (/^\d+$/.test(input)) return input;
   return null;
+}
+
+/**
+ * Render an emoji for display.
+ * Converts `:shortcode:` to unicode, and `<:name:id>` / `name:id` to `<:name:id>`
+ * so custom emojis render on any platform.
+ */
+function displayEmoji(emoji: string): string {
+  // Resolve :shortcode: to unicode
+  const shortcodeMatch = emoji.match(/^:(\w+):$/);
+  if (shortcodeMatch) {
+    const unicode = getUnicodeFromShortcode(shortcodeMatch[1]!);
+    if (unicode) return unicode;
+  }
+  // Strip Discord <a:name:id> animated prefix if present
+  const cleaned = emoji.replace(/^<a?:/, '<:');
+  // Already in <:name:id> format
+  if (/^<:\w+:\d+>$/.test(cleaned)) return cleaned;
+  // Strip stray colons, then wrap in <:name:id> if it's name:id
+  const stripped = cleaned.replace(/^:+|:+$/g, '');
+  const nameId = stripped.match(/^(\w+):(\d+)$/);
+  if (nameId) return `<:${nameId[1]!}:${nameId[2]!}>`;
+  return stripped;
+}
+
+/**
+ * Build a clickable message link for the given platform.
+ */
+function messageLink(
+  platform: string,
+  guildId: string,
+  channelId: string | null,
+  messageId: string
+): string {
+  if (!channelId) return `\`${messageId}\``;
+  const base =
+    platform === 'fluxer' ? 'https://web.fluxer.app/channels' : 'https://discord.com/channels';
+  return `${base}/${guildId}/${channelId}/${messageId}`;
 }
 
 export const RoleCommand: BotCommand = {
@@ -154,7 +193,7 @@ async function handleReactionAdd(message: any, args: string[]) {
   }
 
   const messageId = args[0]!;
-  const emoji = args[1]!;
+  let emoji = args[1]!;
   const roleInput = args[2]!;
 
   // Parse role ID from mention or raw ID
@@ -164,15 +203,32 @@ async function handleReactionAdd(message: any, args: string[]) {
     return;
   }
 
-  // Try to fetch a message preview (best-effort)
-  let preview: string | null = null;
-  if (message.channel?.fetchMessage) {
-    const msg = await message.channel.fetchMessage(messageId);
-    if (msg?.content) {
-      preview = msg.content.slice(0, 30).replace(/\n/g, ' ');
-      if (msg.content.length > 30) preview += '…';
+  // Normalise emoji to the platform's canonical format for storage
+  // This also validates the emoji is usable in this guild
+  if (message.channel?.resolveEmoji) {
+    try {
+      emoji = await message.channel.resolveEmoji(emoji);
+    } catch {
+      await message.reply(t('role.reaction.add.invalidEmoji'));
+      return;
     }
   }
+
+  // Try to fetch a message preview (best-effort)
+  let preview: string | null = null;
+  let channelId: string | null = null;
+  if (message.channel?.fetchMessage) {
+    const msg = await message.channel.fetchMessage(messageId);
+    if (msg) {
+      channelId = msg.channelId;
+      if (msg.content) {
+        preview = msg.content.slice(0, 50).replace(/\n/g, ' ');
+        if (msg.content.length > 50) preview += '…';
+      }
+    }
+  }
+
+  const msgLabel = messageLink(message.platform, guildId, channelId, messageId);
 
   try {
     const binding = await reactionRoleService.addBinding({
@@ -183,10 +239,15 @@ async function handleReactionAdd(message: any, args: string[]) {
       platform: message.platform as string,
     });
 
+    // Auto-react to the target message (best-effort)
+    if (message.channel?.reactToMessage && channelId) {
+      await message.channel.reactToMessage(channelId, messageId, emoji);
+    }
+
     const base = t('role.reaction.add.success', {
-      emoji,
+      emoji: displayEmoji(emoji),
       roleId,
-      messageId: binding.messageId,
+      msg: msgLabel,
     });
     const reply = preview ? `${base}\n> ${preview}` : base;
     await message.reply(reply);
@@ -207,14 +268,41 @@ async function handleReactionRemove(message: any, args: string[]) {
   const messageId = args[0]!;
   const emoji = args[1]!;
 
-  const removed = await reactionRoleService.removeBinding(guildId, messageId, emoji);
-
-  if (!removed) {
-    await message.reply(t('role.reaction.remove.notFound'));
-    return;
+  let channelId: string | null = null;
+  let resolved = emoji;
+  if (message.channel?.fetchMessage) {
+    const msg = await message.channel.fetchMessage(messageId);
+    if (msg) channelId = msg.channelId;
+  }
+  if (message.channel?.resolveEmoji) {
+    try {
+      resolved = await message.channel.resolveEmoji(emoji);
+    } catch {
+      // Use raw input if resolution fails
+    }
   }
 
-  await message.reply(t('role.reaction.remove.success', { emoji, messageId }));
+  const removed = await reactionRoleService.removeBinding(guildId, messageId, resolved);
+
+  if (!removed) {
+    // Fallback: try the raw emoji too
+    const fallbackRemoved = await reactionRoleService.removeBinding(guildId, messageId, emoji);
+    if (!fallbackRemoved) {
+      await message.reply(t('role.reaction.remove.notFound', { emoji: displayEmoji(emoji) }));
+      return;
+    }
+  }
+
+  // Remove the bot's reaction from the message (best-effort)
+  if (message.channel?.removeReactionFromMessage && channelId) {
+    await message.channel.removeReactionFromMessage(channelId, messageId, resolved);
+  }
+
+  const msgLabel = messageLink(message.platform, guildId, channelId, messageId);
+
+  await message.reply(
+    t('role.reaction.remove.success', { emoji: displayEmoji(emoji), msg: msgLabel })
+  );
 }
 
 async function handleReactionList(message: any, args: string[]) {
@@ -264,21 +352,27 @@ async function handleReactionList(message: any, args: string[]) {
 
     // Best-effort fetch of message preview
     let preview: string | null = null;
+    let channelId: string | null = null;
     if (message.channel?.fetchMessage) {
       const msg = await message.channel.fetchMessage(b.messageId);
-      if (msg?.content) {
-        preview = msg.content.slice(0, 30).replace(/\n/g, ' ');
-        if (msg.content.length > 30) preview += '…';
+      if (msg) {
+        channelId = msg.channelId;
+        if (msg.content) {
+          preview = msg.content.slice(0, 50).replace(/\n/g, ' ');
+          if (msg.content.length > 50) preview += '…';
+        }
       }
     }
+
+    const msgLabel = messageLink(message.platform, guildId, channelId, b.messageId);
 
     if (preview) {
       lines.push(
         t('role.reaction.list.entryWithPreview', {
           index: i + 1,
-          emoji: b.emoji,
+          emoji: displayEmoji(b.emoji),
           roleId: b.roleId,
-          messageId: b.messageId,
+          msg: msgLabel,
           preview,
         })
       );
@@ -286,9 +380,9 @@ async function handleReactionList(message: any, args: string[]) {
       lines.push(
         t('role.reaction.list.entry', {
           index: i + 1,
-          emoji: b.emoji,
+          emoji: displayEmoji(b.emoji),
           roleId: b.roleId,
-          messageId: b.messageId,
+          msg: msgLabel,
         })
       );
     }

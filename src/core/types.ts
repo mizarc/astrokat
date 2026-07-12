@@ -42,6 +42,15 @@ export interface UnifiedChannel {
   fetchMessage?: (
     messageId: string
   ) => Promise<{ id: string; content: string; channelId: string } | null>;
+  reactToMessage?: (channelId: string, messageId: string, emoji: string) => Promise<void>;
+  /** Remove the bot's reaction from a message (best-effort). */
+  removeReactionFromMessage?: (
+    channelId: string,
+    messageId: string,
+    emoji: string
+  ) => Promise<void>;
+  /** Normalise an emoji string to the platform's canonical storage format. */
+  resolveEmoji?: (emoji: string) => Promise<string>;
   bulkDelete?: (messageIds: string[]) => Promise<void>;
   canManageMessages?: () => Promise<boolean>;
   userCanManageMessages?: () => Promise<boolean>;

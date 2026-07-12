@@ -6,12 +6,63 @@ import type {
 import { SqliteReactionRoleStore } from './reactionRoleStoreSqlite.js';
 import { PostgresReactionRoleStore } from './reactionRoleStorePostgres.js';
 import { guildConfigService } from '../guildconfig/guildConfigService.js';
-
+import { getUnicodeFromShortcode } from '@fluxerjs/util';
 /** Default max reaction role bindings per message. Override with `REACTION_ROLE_PER_MESSAGE_LIMIT`. */
 const DEFAULT_PER_MESSAGE_LIMIT = Number(process.env.REACTION_ROLE_PER_MESSAGE_LIMIT) || 20;
 
 /** Default max reaction role bindings across all messages in a guild. Override with `REACTION_ROLE_PER_GUILD_LIMIT`. */
 const DEFAULT_PER_GUILD_LIMIT = Number(process.env.REACTION_ROLE_PER_GUILD_LIMIT) || 50;
+
+/**
+ * Try to match an input emoji against stored emoji strings with fallbacks
+ * for legacy `:name:` / `name:id` / `:name:id` format mismatches.
+ */
+function emojiMatch(stored: string, input: string): boolean {
+  if (stored === input) return true;
+
+  const storedClean = stored.replace(/^:+|:+$/g, '');
+  const inputClean = input.replace(/^:+|:+$/g, '');
+
+  if (storedClean === inputClean) return true;
+  if (storedClean === input) return true;
+  if (stored === inputClean) return true;
+
+  // ":name:" or bare "name" — try resolving shortcode to unicode
+  const inputName = input.match(/^:(\w+):$/)?.[1] ?? (/^\w+$/.test(input) ? input : null);
+  if (inputName) {
+    // Resolve ":thumbsup:" → "👍" for comparison against stored unicode
+    const unicode = getUnicodeFromShortcode(inputName);
+    if (unicode && (stored === unicode || storedClean === unicode)) return true;
+    // Check against stored "name:id" prefix
+    if (storedClean.startsWith(`${inputName}:`)) return true;
+  }
+
+  // stored "name:id" matched by bare input name
+  const storedNameId = storedClean.match(/^(\w+):\d+$/);
+  if (storedNameId && storedNameId[1] === inputClean) return true;
+
+  return false;
+}
+
+/**
+ * Find a binding with fallback for legacy emoji format mismatches.
+ * Does an exact DB match first, then iterates message bindings with fuzzy matching.
+ */
+async function findBinding(
+  store: ReactionRoleStore,
+  guildId: string,
+  messageId: string,
+  emoji: string
+): Promise<ReactionRoleBinding | null> {
+  const exact = await store.getByMessageAndEmoji(guildId, messageId, emoji);
+  if (exact) return exact;
+
+  const all = await store.getByMessage(guildId, messageId);
+  for (const b of all) {
+    if (emojiMatch(b.emoji, emoji)) return b;
+  }
+  return null;
+}
 
 /**
  * Service layer for reaction roles.
@@ -94,7 +145,7 @@ class ReactionRoleService {
    * Returns true if a binding was removed, false if none existed.
    */
   async removeBinding(guildId: string, messageId: string, emoji: string): Promise<boolean> {
-    const existing = await this.persistence.getByMessageAndEmoji(guildId, messageId, emoji);
+    const existing = await findBinding(this.persistence, guildId, messageId, emoji);
     if (!existing) return false;
 
     await this.persistence.delete(existing.id);
@@ -145,14 +196,13 @@ class ReactionRoleService {
     emoji: string,
     member: { roles: { add: (roleId: string) => Promise<void> } }
   ): Promise<string | null> {
-    const binding = await this.persistence.getByMessageAndEmoji(guildId, messageId, emoji);
+    const binding = await findBinding(this.persistence, guildId, messageId, emoji);
     if (!binding) return null;
 
     try {
       await member.roles.add(binding.roleId);
       return binding.roleId;
-    } catch (error) {
-      console.error(`[REACTION_ROLE] Failed to assign role ${binding.roleId} to user:`, error);
+    } catch {
       return null;
     }
   }
@@ -167,14 +217,13 @@ class ReactionRoleService {
     emoji: string,
     member: { roles: { remove: (roleId: string) => Promise<void> } }
   ): Promise<string | null> {
-    const binding = await this.persistence.getByMessageAndEmoji(guildId, messageId, emoji);
+    const binding = await findBinding(this.persistence, guildId, messageId, emoji);
     if (!binding) return null;
 
     try {
       await member.roles.remove(binding.roleId);
       return binding.roleId;
-    } catch (error) {
-      console.error(`[REACTION_ROLE] Failed to remove role ${binding.roleId} from user:`, error);
+    } catch {
       return null;
     }
   }
@@ -200,11 +249,5 @@ export { ReactionRoleService };
 const store = process.env.DATABASE_URL
   ? new PostgresReactionRoleStore()
   : new SqliteReactionRoleStore();
-
-console.log(
-  '[REACTION_ROLE] Using',
-  process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite',
-  'backend.'
-);
 
 export const reactionRoleService = new ReactionRoleService(store);

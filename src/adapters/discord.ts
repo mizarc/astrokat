@@ -124,13 +124,53 @@ export function startDiscordBot() {
             return null;
           }
         }
-        if (!ch || typeof ch.messages?.fetch !== 'function') return null;
+        if (ch && typeof ch.messages?.fetch === 'function') {
+          try {
+            const msg = await ch.messages.fetch(messageId);
+            if (msg) return { id: msg.id, content: msg.content ?? '', channelId: ch.id };
+          } catch {
+            // Not in current channel
+          }
+        }
+        // Search other text channels in the guild
+        if (interaction.guild) {
+          for (const [, channel] of interaction.guild.channels.cache) {
+            if (channel.id === interaction.channelId) continue;
+            if ('messages' in channel && typeof (channel as any).messages?.fetch === 'function') {
+              try {
+                const msg = await (channel as any).messages.fetch(messageId);
+                if (msg) return { id: msg.id, content: msg.content ?? '', channelId: channel.id };
+              } catch {
+                continue;
+              }
+            }
+          }
+        }
+        return null;
+      },
+      resolveEmoji: async (emoji: string) => emoji,
+      reactToMessage: async (channelId: string, messageId: string, emoji: string) => {
         try {
-          const msg = await ch.messages.fetch(messageId);
-          if (!msg) return null;
-          return { id: msg.id, content: msg.content ?? '', channelId: ch.id };
+          const ch = interaction.guild
+            ? await interaction.guild.channels.fetch(channelId)
+            : await client.channels.fetch(channelId);
+          if (!ch || typeof (ch as any).messages?.fetch !== 'function') return;
+          const msg = await (ch as any).messages.fetch(messageId);
+          if (msg) await msg.react(emoji);
         } catch {
-          return null;
+          // Best-effort
+        }
+      },
+      removeReactionFromMessage: async (channelId: string, messageId: string, emoji: string) => {
+        try {
+          const ch = interaction.guild
+            ? await interaction.guild.channels.fetch(channelId)
+            : await client.channels.fetch(channelId);
+          if (!ch || typeof (ch as any).messages?.fetch !== 'function') return;
+          const msg = await (ch as any).messages.fetch(messageId);
+          if (msg) await msg.removeReaction(emoji);
+        } catch {
+          // Best-effort
         }
       },
       fetchMessages: async (limit: number) => {
@@ -279,10 +319,51 @@ export function startDiscordBot() {
         try {
           const ch: any = message.channel;
           const msg = await ch.messages.fetch(messageId);
-          if (!msg) return null;
-          return { id: msg.id, content: msg.content ?? '', channelId: ch.id };
+          if (msg) return { id: msg.id, content: msg.content ?? '', channelId: ch.id };
         } catch {
-          return null;
+          // Not in current channel — try other guild channels
+        }
+        // Search other text channels in the guild
+        if (message.guild) {
+          for (const [, channel] of message.guild.channels.cache) {
+            if (channel.id === message.channelId) continue;
+            if ('messages' in channel && typeof (channel as any).messages?.fetch === 'function') {
+              try {
+                const msg = await (channel as any).messages.fetch(messageId);
+                if (msg) return { id: msg.id, content: msg.content ?? '', channelId: channel.id };
+              } catch {
+                continue;
+              }
+            }
+          }
+        }
+        return null;
+      },
+      resolveEmoji: async (emoji: string) => emoji,
+      reactToMessage: async (channelId: string, messageId: string, emoji: string) => {
+        try {
+          const guild = client.guilds.cache.get(message.guildId!);
+          const ch = guild
+            ? await guild.channels.fetch(channelId)
+            : await client.channels.fetch(channelId);
+          if (!ch || typeof (ch as any).messages?.fetch !== 'function') return;
+          const msg = await (ch as any).messages.fetch(messageId);
+          if (msg) await msg.react(emoji);
+        } catch {
+          // Best-effort
+        }
+      },
+      removeReactionFromMessage: async (channelId: string, messageId: string, emoji: string) => {
+        try {
+          const guild = client.guilds.cache.get(message.guildId!);
+          const ch = guild
+            ? await guild.channels.fetch(channelId)
+            : await client.channels.fetch(channelId);
+          if (!ch || typeof (ch as any).messages?.fetch !== 'function') return;
+          const msg = await (ch as any).messages.fetch(messageId);
+          if (msg) await msg.removeReaction(emoji);
+        } catch {
+          // Best-effort
         }
       },
       fetchMessages: async (limit: number) => {
@@ -385,8 +466,8 @@ export function startDiscordBot() {
           },
         },
       });
-    } catch (error) {
-      console.error('[REACTION_ROLE] Error handling reaction add:', error);
+    } catch {
+      // Ignored
     }
   });
 
@@ -420,8 +501,8 @@ export function startDiscordBot() {
           },
         },
       });
-    } catch (error) {
-      console.error('[REACTION_ROLE] Error handling reaction remove:', error);
+    } catch {
+      // Ignored
     }
   });
 
@@ -434,14 +515,9 @@ export function startDiscordBot() {
     const messageId = message.id;
 
     try {
-      const removed = await reactionRoleService.removeBindingsByMessage(guildId, messageId);
-      if (removed > 0) {
-        console.log(
-          `[REACTION_ROLE] Cleaned up ${removed} binding(s) for deleted message ${messageId}`
-        );
-      }
-    } catch (error) {
-      console.error('[REACTION_ROLE] Error cleaning up deleted message:', error);
+      await reactionRoleService.removeBindingsByMessage(guildId, messageId);
+    } catch {
+      // Ignored
     }
   });
 
@@ -456,15 +532,10 @@ export function startDiscordBot() {
  * already have the reaction, catching any missed assignments.
  */
 async function reconcileReactionRoles(client: Client): Promise<void> {
-  console.log('[REACTION_ROLE] Reconciling existing reactions...');
-
   try {
     const bindings = await reactionRoleService.getAllBindings('discord');
 
-    if (bindings.length === 0) {
-      console.log('[REACTION_ROLE] No bindings to reconcile.');
-      return;
-    }
+    if (bindings.length === 0) return;
 
     const byGuild = new Map<string, typeof bindings>();
     for (const b of bindings) {
@@ -473,9 +544,6 @@ async function reconcileReactionRoles(client: Client): Promise<void> {
       }
       byGuild.get(b.guildId)!.push(b);
     }
-
-    let assigned = 0;
-    let failed = 0;
 
     for (const [guildId, guildBindings] of byGuild) {
       try {
@@ -491,50 +559,32 @@ async function reconcileReactionRoles(client: Client): Promise<void> {
 
         // Ensure channels are loaded so we can search for the bound messages
         await guild.channels.fetch();
-        console.log(
-          `[REACTION_ROLE] Guild ${guildId}: ${guild.channels.cache.size} channels cached, ${byMessage.size} messages to check`
-        );
 
         for (const [messageId, messageBindings] of byMessage) {
           let cleanedUp = false;
           try {
             let message: any = null;
-            let channelsChecked = 0;
             for (const [, channel] of guild.channels.cache) {
               if ('messages' in channel && typeof (channel as any).messages?.fetch === 'function') {
-                channelsChecked++;
                 try {
                   message = await (channel as any).messages.fetch(messageId);
                   if (message) {
-                    console.log(
-                      `[REACTION_ROLE] Found message ${messageId} in channel ${channel.id}`
-                    );
                     break;
                   }
                 } catch (err: any) {
                   if (err.code === RESTJSONErrorCodes.UnknownMessage) {
-                    console.log(
-                      `[REACTION_ROLE] Message ${messageId} returned UnknownMessage in channel ${channel.id}`
-                    );
                     if (!cleanedUp) {
                       await reactionRoleService.removeBindingsByMessage(guildId, messageId);
                       cleanedUp = true;
                     }
                   } else {
-                    console.log(
-                      `[REACTION_ROLE] Fetch error for message ${messageId} in channel ${channel.id}: code=${err.code} status=${err.statusCode}`
-                    );
+                    // Fetch error — skip channel
                   }
                 }
               }
             }
 
-            if (!message) {
-              console.log(
-                `[REACTION_ROLE] Message ${messageId} not found after checking ${channelsChecked} text channels, cleanedUp=${cleanedUp} — skipping (may be in an inaccessible channel)`
-              );
-              continue;
-            }
+            if (!message) continue;
 
             for (const binding of messageBindings) {
               const emojiStr = binding.emoji;
@@ -558,34 +608,23 @@ async function reconcileReactionRoles(client: Client): Promise<void> {
                     const role = guild.roles.cache.get(binding.roleId);
                     if (role) {
                       await member.roles.add(role);
-                      assigned++;
                     }
                   }
                 } catch {
-                  failed++;
+                  // Ignored
                 }
               }
             }
-          } catch (err) {
-            console.log(
-              `[REACTION_ROLE] Unexpected error processing message bindings:`,
-              err instanceof Error ? err.message : err
-            );
+          } catch {
+            // Ignored
           }
         }
-      } catch (err) {
-        console.log(
-          `[REACTION_ROLE] Could not fetch guild ${guildId}:`,
-          err instanceof Error ? err.message : err
-        );
+      } catch {
+        // Ignored
       }
     }
-
-    console.log(
-      `[REACTION_ROLE] Reconciliation complete: ${assigned} roles assigned, ${failed} failures.`
-    );
-  } catch (error) {
-    console.error('[REACTION_ROLE] Reconciliation failed:', error);
+  } catch {
+    // Ignored
   }
 }
 
