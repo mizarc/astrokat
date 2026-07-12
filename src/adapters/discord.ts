@@ -1,6 +1,5 @@
 import { t } from '../core/i18n.js';
 import { Client, GatewayIntentBits, type Message, Events } from 'discord.js';
-import { RESTJSONErrorCodes } from 'discord-api-types/rest/v10';
 import type { UnifiedMessage, UnifiedAuthor, UnifiedChannel } from '../core/types.js';
 import { handleIncomingMessage, awardMessageXp } from '../core/router.js';
 import { deployCommands } from '../core/deploy.js';
@@ -24,9 +23,6 @@ export function startDiscordBot() {
   client.once(Events.ClientReady, async () => {
     // Auto-deploy slash commands on startup (unless unchanged)
     deployCommands();
-
-    // Reconcile existing reactions on startup
-    reconcileReactionRoles(client);
 
     reminderService.on('reminderDue', async ({ reminder }) => {
       if (reminder.platform !== 'discord') return;
@@ -524,108 +520,6 @@ export function startDiscordBot() {
   client.login(process.env.DISCORD_TOKEN);
 
   return client;
-}
-
-/**
- * Reconcile existing reactions on startup.
- * Scans all reaction role bindings and assigns roles to users who
- * already have the reaction, catching any missed assignments.
- */
-async function reconcileReactionRoles(client: Client): Promise<void> {
-  try {
-    const bindings = await reactionRoleService.getAllBindings('discord');
-
-    if (bindings.length === 0) return;
-
-    const byGuild = new Map<string, typeof bindings>();
-    for (const b of bindings) {
-      if (!byGuild.has(b.guildId)) {
-        byGuild.set(b.guildId, []);
-      }
-      byGuild.get(b.guildId)!.push(b);
-    }
-
-    for (const [guildId, guildBindings] of byGuild) {
-      try {
-        const guild = await client.guilds.fetch(guildId);
-
-        const byMessage = new Map<string, typeof guildBindings>();
-        for (const b of guildBindings) {
-          if (!byMessage.has(b.messageId)) {
-            byMessage.set(b.messageId, []);
-          }
-          byMessage.get(b.messageId)!.push(b);
-        }
-
-        // Ensure channels are loaded so we can search for the bound messages
-        await guild.channels.fetch();
-
-        for (const [messageId, messageBindings] of byMessage) {
-          let cleanedUp = false;
-          try {
-            let message: any = null;
-            for (const [, channel] of guild.channels.cache) {
-              if ('messages' in channel && typeof (channel as any).messages?.fetch === 'function') {
-                try {
-                  message = await (channel as any).messages.fetch(messageId);
-                  if (message) {
-                    break;
-                  }
-                } catch (err: any) {
-                  if (err.code === RESTJSONErrorCodes.UnknownMessage) {
-                    if (!cleanedUp) {
-                      await reactionRoleService.removeBindingsByMessage(guildId, messageId);
-                      cleanedUp = true;
-                    }
-                  } else {
-                    // Fetch error — skip channel
-                  }
-                }
-              }
-            }
-
-            if (!message) continue;
-
-            for (const binding of messageBindings) {
-              const emojiStr = binding.emoji;
-
-              const reaction = message.reactions.cache.find((r: any) => {
-                const rEmoji = r.emoji.id ? `<:${r.emoji.name}:${r.emoji.id}>` : r.emoji.name;
-                return rEmoji === emojiStr;
-              });
-
-              if (!reaction) continue;
-
-              const users = await reaction.users.fetch();
-
-              for (const [, user] of users) {
-                if (user.bot) continue;
-
-                try {
-                  const member = await guild.members.fetch(user.id);
-
-                  if (!member.roles.cache.has(binding.roleId)) {
-                    const role = guild.roles.cache.get(binding.roleId);
-                    if (role) {
-                      await member.roles.add(role);
-                    }
-                  }
-                } catch {
-                  // Ignored
-                }
-              }
-            }
-          } catch {
-            // Ignored
-          }
-        }
-      } catch {
-        // Ignored
-      }
-    }
-  } catch {
-    // Ignored
-  }
 }
 
 /**
