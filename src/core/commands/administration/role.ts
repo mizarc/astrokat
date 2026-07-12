@@ -241,18 +241,11 @@ async function handleReactionAdd(message: any, args: string[]) {
     }
   }
 
-  // Try to fetch a message preview (best-effort)
-  let preview: string | null = null;
+  // Resolve channel ID for the message link and auto-react
   let channelId: string | null = null;
   if (message.channel?.fetchMessage) {
     const msg = await message.channel.fetchMessage(messageId);
-    if (msg) {
-      channelId = msg.channelId;
-      if (msg.content) {
-        preview = msg.content.slice(0, 50).replace(/\n/g, ' ');
-        if (msg.content.length > 50) preview += '…';
-      }
-    }
+    if (msg) channelId = msg.channelId;
   }
 
   const msgLabel = messageLink(message.platform, guildId, channelId, messageId);
@@ -271,13 +264,13 @@ async function handleReactionAdd(message: any, args: string[]) {
       await message.channel.reactToMessage(channelId, messageId, emoji);
     }
 
-    const base = t('commands.role.reaction.add.success', {
-      emoji: displayEmoji(emoji),
-      roleId,
-      msg: msgLabel,
-    });
-    const reply = preview ? `${base}\n> ${preview}` : base;
-    await message.reply(reply);
+    await message.reply(
+      t('commands.role.reaction.add.success', {
+        emoji: displayEmoji(emoji),
+        roleId,
+        msg: msgLabel,
+      })
+    );
   } catch (error) {
     const errMessage = error instanceof Error ? error.message : 'Unknown error';
     await message.reply(t('commands.role.reaction.add.error', { error: errMessage }));
@@ -315,7 +308,9 @@ async function handleReactionRemove(message: any, args: string[]) {
     // Fallback: try the raw emoji too
     const fallbackRemoved = await reactionRoleService.removeBinding(guildId, messageId, emoji);
     if (!fallbackRemoved) {
-      await message.reply(t('commands.role.reaction.remove.notFound', { emoji: displayEmoji(emoji) }));
+      await message.reply(
+        t('commands.role.reaction.remove.notFound', { emoji: displayEmoji(emoji) })
+      );
       return;
     }
   }
@@ -370,7 +365,9 @@ async function handleReactionClear(message: any, args: string[]) {
 
   const msgLabel = messageLink(message.platform, guildId, channelId, messageId);
 
-  await message.reply(t('commands.role.reaction.clear.success', { count: String(count), msg: msgLabel }));
+  await message.reply(
+    t('commands.role.reaction.clear.success', { count: String(count), msg: msgLabel })
+  );
 }
 
 async function handleReactionList(message: any, args: string[]) {
