@@ -118,7 +118,7 @@ export interface UnifiedMessage {
 
   /**
    * The bot's own user ID on this platform.
-   * Used for mention-based command invocation (e.g. `@Astrokat help`)
+   * Used for mention-based command invocation (e.g. `<@id> help`)
    * to distinguish commands even when other bots share the same prefix.
    */
   botUserId?: string;

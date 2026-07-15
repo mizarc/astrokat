@@ -341,12 +341,12 @@
         "helpDescription": "View or change the command prefix.",
         "noPermission": "❌ You need the **Manage Server** permission to change the prefix.",
         "unknownAction": "❌ Unknown action `{action}`. Use `!settings prefix` to view the current prefix, or `!settings prefix set <prefix>` to change it.",
-        "currentCustom": "⚙️ This server's command prefix is `{prefix}`.\nUse `!settings prefix set <new-prefix>` to change it or `!settings prefix reset` to revert to `!`.\nIf another bot conflicts, mention me instead: `@Astrokat settings prefix set <prefix>`.",
-        "currentDefault": "⚙️ This server is using the default prefix `{prefix}`.\nUse `!settings prefix set <prefix>` to set a custom one.\nIf another bot conflicts, mention me instead: `@Astrokat settings prefix set <prefix>`.",
-        "setUsage": "❌ Usage: `!settings prefix set <prefix>`\nExample: `!settings prefix set ?`\nTip: If another bot conflicts, mention me instead: `@Astrokat settings prefix set ?`.",
+        "currentCustom": "⚙️ The current command prefix is `{prefix}`. Use `!settings prefix set <new-prefix>` to change it or `!settings prefix reset` to revert to `!`.\n\nIf another bot conflicts with that prefix, mention me instead:\n{botMention} settings prefix set <prefix>",
+        "currentDefault": "⚙️ The default prefix `{prefix}` is currently being used. Use `!settings prefix set <prefix>` to set a custom one.\n\nIf another bot conflicts with that prefix, mention me instead:\n{botMention} settings prefix set <prefix>",
+        "setUsage": "❌ Usage: `!settings prefix set <prefix>`\nExample: `!settings prefix set ?`\n\nIf another bot conflicts, mention me instead:\n{botMention} settings prefix set ?",
         "tooLong": "❌ Prefix must be 5 characters or fewer.",
         "noSpaces": "❌ Prefix cannot contain spaces.",
-        "setSuccess": "✅ Command prefix changed to `{prefix}`. From now on, use `{prefix}` instead of `!` to invoke commands.\nForgot your prefix? Just mention me: `@Astrokat settings prefix` to check, or `@Astrokat settings prefix reset` to restore `!`.",
+        "setSuccess": "✅ Command prefix changed to `{prefix}`. From now on, use `{prefix}` instead of `!` to invoke commands.\n\nForgot your prefix? Just mention me:\n{botMention} settings prefix — Check the current prefix.\n{botMention} settings prefix reset — Restores prefix to the default `!`.",
         "resetSuccess": "✅ Prefix reset to `!`. All commands now use the default prefix."
       }
     },
