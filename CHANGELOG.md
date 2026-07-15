@@ -9,7 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### General
+
+- Mentioning the bot (`@Bot ping`) works as an alternative to the text prefix. This avoids conflicts when another bot shares the same prefix, and doubles as a recovery mechanism if the custom prefix is forgotten.
+
 #### Commands
+
+- **Administration:** `!settings` — Parent command for guild-level bot settings. Subcommands:
+  - `prefix` — View or change the command prefix.
+    - `set <prefix>` — Change the prefix to a custom value (max 5 characters, no spaces).
+    - `reset` — Revert to the default prefix.
+    - _(no args)_ — Show the current active prefix.
+  - The default prefix is configurable globally via `DEFAULT_PREFIX` env var (default `!`). Each guild can still override per-server.
 
 - **Administration:** `!role reaction` — Reaction role management (requires **Manage Roles**). Subcommands:
   - `add <message-id> <emoji> <role>` — Bind an emoji to a role on a message. Users who react with the emoji gain the role; removing the reaction loses it. The bot auto-reacts to confirm. Limited to 20 per message and 50 per server by default (configurable).
@@ -35,6 +46,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`announce`** — Post a message or embed to a channel. Configurable message text.
 - **`purge`** — Bulk-delete recent messages in a channel. Configurable count (default 50, max 100).
+
+#### Environment
+
+- **`DEFAULT_PREFIX`** — New optional env var to set the global default command prefix (defaults to `!` when unset).
 
 ### Fixed
 

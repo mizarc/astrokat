@@ -1,4 +1,11 @@
 /** Guild-level configuration persisted in the database. */
+
+/**
+ * The default command prefix used when a guild has not set a custom one.
+ * Configurable via `DEFAULT_PREFIX` environment variable; falls back to `!`.
+ */
+export const defaultPrefix = process.env.DEFAULT_PREFIX ?? '!';
+
 export interface GuildConfig {
   /** Identifies which guild this config belongs to. */
   guildId: string;
@@ -31,6 +38,12 @@ export interface GuildConfig {
    * `null` means use the default (50).
    */
   reactionRolePerGuildLimit: number | null;
+
+  /**
+   * Custom command prefix for this guild.
+   * `null` means use the default (`!`).
+   */
+  prefix: string | null;
 }
 
 /**

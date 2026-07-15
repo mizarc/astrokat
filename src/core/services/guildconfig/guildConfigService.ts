@@ -8,22 +8,33 @@ import { PostgresGuildConfigStore } from './guildConfigStorePostgres.js';
  * Wraps a `GuildConfigStore` implementation, keeping commands
  * agnostic to the storage backend (SQLite vs PostgreSQL).
  *
- * The backend is auto-selected at module load time:
+ * The store is lazily created on the first `get()` or `set()` call:
  * - `DATABASE_URL` set -> PostgreSQL
  * - Otherwise -> SQLite
+ *
+ * This avoids opening the database at module load time, which would
+ * crash in environments where the `data/` directory doesn't exist
+ * (e.g. CI runners with a fresh checkout).
  */
 class GuildConfigService {
-  private readonly persistence: GuildConfigStore;
+  private _persistence: GuildConfigStore | null = null;
 
-  /**
-   * @param store - The storage backend to use.
-   */
-  constructor(store: GuildConfigStore) {
-    this.persistence = store;
+  private get persistence(): GuildConfigStore {
+    if (!this._persistence) {
+      this._persistence = process.env.DATABASE_URL
+        ? new PostgresGuildConfigStore()
+        : new SqliteGuildConfigStore();
+      console.log(
+        '[GUILD-CONFIG] Using',
+        process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite',
+        'backend.'
+      );
+    }
+    return this._persistence;
   }
 
   /**
-   * Delegates to {@link GuildConfigStore#get}.
+   * Retrieves the full configuration for a guild.
    *
    * @param guildId - Identifies which guild to look up.
    */
@@ -32,7 +43,7 @@ class GuildConfigService {
   }
 
   /**
-   * Delegates to {@link GuildConfigStore#set}.
+   * Persists configuration changes for a guild.
    *
    * @param guildId - Identifies which guild to update.
    * @param config  - Partial config with the fields to update.
@@ -42,14 +53,5 @@ class GuildConfigService {
   }
 }
 
-// Backend auto-selection
-// No DATABASE_URL -> SQLite
-// DATABASE_URL set -> PostgreSQL
-const store = process.env.DATABASE_URL
-  ? new PostgresGuildConfigStore()
-  : new SqliteGuildConfigStore();
-
-console.log('[GUILD-CONFIG] Using', process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite', 'backend.');
-
 /** Application-wide singleton. Import this rather than constructing a new instance. */
-export const guildConfigService = new GuildConfigService(store);
+export const guildConfigService = new GuildConfigService();

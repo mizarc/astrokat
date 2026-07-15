@@ -115,6 +115,13 @@ export interface UnifiedMessage {
    * Only available if the caller is the bot owner (checked by the command).
    */
   setPresence?: (status: 'online' | 'idle' | 'dnd' | 'invisible') => Promise<void>;
+
+  /**
+   * The bot's own user ID on this platform.
+   * Used for mention-based command invocation (e.g. `<@id> help`)
+   * to distinguish commands even when other bots share the same prefix.
+   */
+  botUserId?: string;
 }
 
 /** Supported command parameter types (maps to Discord API option types). */

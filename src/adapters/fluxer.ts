@@ -211,6 +211,7 @@ export function startFluxerBot() {
       client: client,
       ...((message as any).guildId ? { guildId: (message as any).guildId } : {}),
       platform: 'fluxer',
+      botUserId: (client as any).user?.id,
       deferReply: async () => {
         // Fluxer doesn't require interaction deferral — no-op
       },

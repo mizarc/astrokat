@@ -217,6 +217,7 @@ export function startDiscordBot() {
       client: client,
       ...(interaction.guildId ? { guildId: interaction.guildId } : {}),
       platform: 'discord',
+      botUserId: client.user!.id,
       interaction: interaction,
       deferReply: async () => {
         if (!interaction.deferred && !interaction.replied) {
@@ -395,6 +396,7 @@ export function startDiscordBot() {
       client: client,
       guildId: message.guildId,
       platform: 'discord',
+      botUserId: client.user!.id,
       fetchUser: async (userId) => {
         try {
           const user = await client.users.fetch(userId);

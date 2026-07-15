@@ -330,6 +330,26 @@
       "sourceEnv": "default",
       "footer": "Use !ratelimit user <n> or !ratelimit guild <n> to change"
     },
+    "settings": {
+      "guildOnly": "❌ This command can only be used in a server.",
+      "help": {
+        "title": "⚙️ Server Settings",
+        "footer": "Use `!settings <subcommand>` to run a command."
+      },
+      "unknownSubcommand": "❌ Unknown subcommand `{sub}`. Available: `prefix`.",
+      "prefix": {
+        "helpDescription": "View or change the command prefix.",
+        "noPermission": "❌ You need the **Manage Server** permission to change the prefix.",
+        "unknownAction": "❌ Unknown action `{action}`. Use `!settings prefix` to view the current prefix, or `!settings prefix set <prefix>` to change it.",
+        "currentCustom": "⚙️ The current command prefix is `{prefix}`. Use `!settings prefix set <new-prefix>` to change it or `!settings prefix reset` to revert to `{defaultPrefix}`.\n\nIf another bot conflicts with that prefix, mention me instead:\n{botMention} settings prefix set <prefix>",
+        "currentDefault": "⚙️ The default prefix `{prefix}` is currently being used. Use `!settings prefix set <prefix>` to set a custom one.\n\nIf another bot conflicts with that prefix, mention me instead:\n{botMention} settings prefix set <prefix>",
+        "setUsage": "❌ Usage: `!settings prefix set <prefix>`\nExample: `!settings prefix set ?`\n\nIf another bot conflicts, mention me instead:\n{botMention} settings prefix set ?",
+        "tooLong": "❌ Prefix must be 5 characters or fewer.",
+        "noSpaces": "❌ Prefix cannot contain spaces.",
+        "setSuccess": "✅ Command prefix changed to `{prefix}`. Use `{prefix}` instead of `{defaultPrefix}` from now on.\n\nForgot your prefix? Mention me:\n{botMention} settings prefix — check current prefix\n{botMention} settings prefix reset — restore prefix to the default `{defaultPrefix}`",
+        "resetSuccess": "✅ Prefix reset to `{defaultPrefix}`. All commands now use the default prefix."
+      }
+    },
     "tasks": {
       "guildOnly": "❌ This command can only be used in a server.",
       "unknownSubcommand": "❌ Unknown subcommand `{sub}`. Available: list, show, create, rename, reschedule, retool, edit, pause, resume, delete, run, history.",
