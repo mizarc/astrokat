@@ -1,5 +1,6 @@
 import { t } from '../../../../i18n.js';
 import { guildConfigService } from '../../../../services/guildconfig/guildConfigService.js';
+import { defaultPrefix } from '../../../../services/guildconfig/guildConfigStore.js';
 
 const localeKey = 'commands.settings.prefix';
 
@@ -33,10 +34,10 @@ export async function handlePrefix(message: any, guildId: string, args: string[]
 
 async function showCurrentPrefix(message: any, guildId: string, botMention: string): Promise<void> {
   const config = await guildConfigService.get(guildId);
-  const prefix = config.prefix ?? '!';
+  const prefix = config.prefix ?? defaultPrefix;
 
   if (config.prefix) {
-    await message.reply(t(`${localeKey}.currentCustom`, { prefix, botMention }));
+    await message.reply(t(`${localeKey}.currentCustom`, { prefix, botMention, defaultPrefix }));
   } else {
     await message.reply(t(`${localeKey}.currentDefault`, { prefix, botMention }));
   }
@@ -67,10 +68,10 @@ async function setPrefix(
   }
 
   await guildConfigService.set(guildId, { prefix: raw });
-  await message.reply(t(`${localeKey}.setSuccess`, { prefix: raw, botMention }));
+  await message.reply(t(`${localeKey}.setSuccess`, { prefix: raw, botMention, defaultPrefix }));
 }
 
 async function resetPrefix(message: any, guildId: string, botMention: string): Promise<void> {
   await guildConfigService.set(guildId, { prefix: null });
-  await message.reply(t(`${localeKey}.resetSuccess`, { botMention }));
+  await message.reply(t(`${localeKey}.resetSuccess`, { botMention, defaultPrefix }));
 }

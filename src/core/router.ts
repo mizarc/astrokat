@@ -6,6 +6,7 @@ import { dirname, join, extname } from 'path';
 import { xpService } from './services/xp/xpService.js';
 import { rateLimiter } from './services/ratelimit/rateLimiter.js';
 import { guildConfigService } from './services/guildconfig/guildConfigService.js';
+import { defaultPrefix } from './services/guildconfig/guildConfigStore.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -133,7 +134,7 @@ export async function handleIncomingMessage(
     }
 
     // If not a mention invocation, check the prefix
-    const prefix = guildConfig?.prefix ?? '!';
+    const prefix = guildConfig?.prefix ?? defaultPrefix;
     if (content === message.content) {
       if (!content.startsWith(prefix)) return;
       content = content.slice(prefix.length).trim();

@@ -2,6 +2,7 @@ import { t } from '../../i18n.js';
 import type { BotCommand, ReplyEmbed } from '../../types.js';
 import { getCommands } from '../../router.js';
 import { guildConfigService } from '../../services/guildconfig/guildConfigService.js';
+import { defaultPrefix } from '../../services/guildconfig/guildConfigStore.js';
 
 const CATEGORY_ORDER = [
   'administration',
@@ -36,7 +37,7 @@ export const HelpCommand: BotCommand = {
     }
 
     const guildConfig = message.guildId ? await guildConfigService.get(message.guildId) : null;
-    const prefix = guildConfig?.prefix ?? '!';
+    const prefix = guildConfig?.prefix ?? defaultPrefix;
 
     const categories = new Map<string, BotCommand[]>();
 
