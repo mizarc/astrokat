@@ -49,6 +49,7 @@ export class PostgresGuildConfigStore implements GuildConfigStore {
         levelUpMessages: true,
         reactionRolePerMessageLimit: null,
         reactionRolePerGuildLimit: null,
+        prefix: null,
       };
     }
 
@@ -60,6 +61,7 @@ export class PostgresGuildConfigStore implements GuildConfigStore {
       levelUpMessages: r.level_up_messages,
       reactionRolePerMessageLimit: r.reaction_role_per_message_limit ?? null,
       reactionRolePerGuildLimit: r.reaction_role_per_guild_limit ?? null,
+      prefix: r.prefix ?? null,
     };
   }
 
@@ -105,16 +107,20 @@ export class PostgresGuildConfigStore implements GuildConfigStore {
           ? existing.rows[0].reaction_role_per_guild_limit
           : null;
 
+    const prefix =
+      config.prefix !== undefined ? config.prefix : hasExisting ? existing.rows[0].prefix : null;
+
     await this.pool.query(
       `INSERT INTO guild_config
-         (guild_id, rate_limit_user_max, rate_limit_guild_max, level_up_messages, reaction_role_per_message_limit, reaction_role_per_guild_limit)
-       VALUES ($1, $2, $3, $4, $5, $6)
+         (guild_id, rate_limit_user_max, rate_limit_guild_max, level_up_messages, reaction_role_per_message_limit, reaction_role_per_guild_limit, prefix)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (guild_id) DO UPDATE SET
          rate_limit_user_max = EXCLUDED.rate_limit_user_max,
          rate_limit_guild_max = EXCLUDED.rate_limit_guild_max,
          level_up_messages = EXCLUDED.level_up_messages,
          reaction_role_per_message_limit = EXCLUDED.reaction_role_per_message_limit,
-         reaction_role_per_guild_limit = EXCLUDED.reaction_role_per_guild_limit`,
+         reaction_role_per_guild_limit = EXCLUDED.reaction_role_per_guild_limit,
+         prefix = EXCLUDED.prefix`,
       [
         guildId,
         rateLimitUserMax,
@@ -122,6 +128,7 @@ export class PostgresGuildConfigStore implements GuildConfigStore {
         levelUpMessages,
         reactionRolePerMessageLimit,
         reactionRolePerGuildLimit,
+        prefix,
       ]
     );
   }
@@ -155,6 +162,10 @@ export class PostgresGuildConfigStore implements GuildConfigStore {
     await this.pool.query(`
       ALTER TABLE guild_config
         ADD COLUMN IF NOT EXISTS reaction_role_per_guild_limit INTEGER
+    `);
+    await this.pool.query(`
+      ALTER TABLE guild_config
+        ADD COLUMN IF NOT EXISTS prefix TEXT
     `);
   }
 }

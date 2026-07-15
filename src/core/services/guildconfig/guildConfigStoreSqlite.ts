@@ -41,6 +41,7 @@ export class SqliteGuildConfigStore implements GuildConfigStore {
         levelUpMessages: true,
         reactionRolePerMessageLimit: null,
         reactionRolePerGuildLimit: null,
+        prefix: null,
       };
     }
 
@@ -57,6 +58,7 @@ export class SqliteGuildConfigStore implements GuildConfigStore {
         row.reaction_role_per_guild_limit != null
           ? Number(row.reaction_role_per_guild_limit)
           : null,
+      prefix: row.prefix != null ? String(row.prefix) : null,
     };
   }
 
@@ -100,17 +102,25 @@ export class SqliteGuildConfigStore implements GuildConfigStore {
           ? Number(existing.reaction_role_per_guild_limit)
           : null;
 
+    const prefix =
+      config.prefix !== undefined
+        ? config.prefix
+        : existing?.prefix != null
+          ? String(existing.prefix)
+          : null;
+
     this.db
       .prepare(
         `INSERT INTO guild_config
-           (guild_id, rate_limit_user_max, rate_limit_guild_max, level_up_messages, reaction_role_per_message_limit, reaction_role_per_guild_limit)
-         VALUES (?, ?, ?, ?, ?, ?)
+           (guild_id, rate_limit_user_max, rate_limit_guild_max, level_up_messages, reaction_role_per_message_limit, reaction_role_per_guild_limit, prefix)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(guild_id) DO UPDATE SET
            rate_limit_user_max = EXCLUDED.rate_limit_user_max,
            rate_limit_guild_max = EXCLUDED.rate_limit_guild_max,
            level_up_messages = EXCLUDED.level_up_messages,
            reaction_role_per_message_limit = EXCLUDED.reaction_role_per_message_limit,
-           reaction_role_per_guild_limit = EXCLUDED.reaction_role_per_guild_limit`
+           reaction_role_per_guild_limit = EXCLUDED.reaction_role_per_guild_limit,
+           prefix = EXCLUDED.prefix`
       )
       .run(
         guildId,
@@ -118,7 +128,8 @@ export class SqliteGuildConfigStore implements GuildConfigStore {
         rateLimitGuildMax,
         levelUpMessages ? 1 : 0,
         reactionRolePerMessageLimit,
-        reactionRolePerGuildLimit
+        reactionRolePerGuildLimit,
+        prefix
       );
   }
 
@@ -131,7 +142,8 @@ export class SqliteGuildConfigStore implements GuildConfigStore {
         rate_limit_guild_max INTEGER,
         level_up_messages INTEGER NOT NULL DEFAULT 0,
         reaction_role_per_message_limit INTEGER,
-        reaction_role_per_guild_limit INTEGER
+        reaction_role_per_guild_limit INTEGER,
+        prefix TEXT
       )
     `);
 
@@ -143,6 +155,11 @@ export class SqliteGuildConfigStore implements GuildConfigStore {
     }
     try {
       this.db.exec('ALTER TABLE guild_config ADD COLUMN reaction_role_per_guild_limit INTEGER');
+    } catch {
+      /* column already exists */
+    }
+    try {
+      this.db.exec('ALTER TABLE guild_config ADD COLUMN prefix TEXT');
     } catch {
       /* column already exists */
     }

@@ -31,6 +31,12 @@ export interface GuildConfig {
    * `null` means use the default (50).
    */
   reactionRolePerGuildLimit: number | null;
+
+  /**
+   * Custom command prefix for this guild.
+   * `null` means use the default (`!`).
+   */
+  prefix: string | null;
 }
 
 /**

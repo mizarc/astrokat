@@ -11,6 +11,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const commandsDir = join(__dirname, 'commands');
 
+/** Escape regex special characters in a string. */
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 async function loadCommands(): Promise<Map<string, BotCommand>> {
   const commands = new Map<string, BotCommand>();
 
@@ -113,12 +118,30 @@ export async function handleIncomingMessage(
       }
     }
   } else {
-    // Legacy Command: Strip the prefix and parse the command.
-    const PREFIX = '!';
-    if (!message.content.startsWith(PREFIX)) return;
-    const content = message.content.slice(1).trim().split(/ +/);
-    commandName = content.shift() || '';
-    args = content.length ? content : [];
+    // Legacy Command: Parse the message.
+    // First, check for mention-based invocation (@Bot command args).
+    // This avoids conflicts with other bots sharing the same prefix.
+    let content = message.content;
+    const guildConfig = message.guildId ? await guildConfigService.get(message.guildId) : null;
+
+    if (message.botUserId) {
+      const mentionPattern = new RegExp(`^<@!?${escapeRegex(message.botUserId)}>\\s*(.*)$`);
+      const mentionMatch = content.match(mentionPattern);
+      if (mentionMatch) {
+        content = mentionMatch[1]!.trim();
+      }
+    }
+
+    // If not a mention invocation, check the prefix
+    const prefix = guildConfig?.prefix ?? '!';
+    if (content === message.content) {
+      if (!content.startsWith(prefix)) return;
+      content = content.slice(prefix.length).trim();
+    }
+
+    const parts = content.split(/ +/);
+    commandName = parts.shift() || '';
+    args = parts.length ? parts : [];
   }
 
   if (!commandName) return;
