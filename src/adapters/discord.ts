@@ -5,6 +5,7 @@ import { handleIncomingMessage, awardMessageXp } from '../core/router.js';
 import { deployCommands } from '../core/deploy.js';
 import { reminderService } from '../core/services/reminders/reminderService.js';
 import { reactionRoleService } from '../core/services/reactionrole/reactionRoleService.js';
+import { joinRoleService } from '../core/services/joinrole/joinRoleService.js';
 import type { GuildAggregator, GuildStats, ActionDispatcher } from '../core/types.js';
 
 /** Tracks the bot's presence status so setStatus and setPresence compose cleanly. */
@@ -17,7 +18,20 @@ export function startDiscordBot() {
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.MessageContent,
       GatewayIntentBits.GuildMessageReactions,
+      GatewayIntentBits.GuildMembers,
     ],
+  });
+
+  // Register the role assigner for join-role service
+  joinRoleService.setRoleAssigner(async (guildId, userId, roleId) => {
+    try {
+      const guild = await client.guilds.fetch(guildId);
+      const member = await guild.members.fetch(userId);
+      await member.roles.add(roleId);
+      return true;
+    } catch {
+      return false;
+    }
   });
 
   client.once(Events.ClientReady, async () => {
@@ -516,6 +530,47 @@ export function startDiscordBot() {
       await reactionRoleService.removeBindingsByMessage(guildId, messageId);
     } catch {
       // Ignored
+    }
+  });
+
+  // Clean up pending assignments when a member leaves
+  client.on(Events.GuildMemberRemove, async (member) => {
+    if (member.user.bot) return;
+
+    try {
+      await joinRoleService.handleMemberLeave(member.guild.id, member.id);
+    } catch (error) {
+      console.error('[JOINROLE] Error cleaning up pending assignments on member leave:', error);
+    }
+  });
+
+  // Assign join roles on member join
+  client.on(Events.GuildMemberAdd, async (member) => {
+    if (member.user.bot) return;
+
+    try {
+      const result = await joinRoleService.handleMemberJoin(
+        member.guild.id,
+        member.id,
+        'discord',
+        Math.floor(member.user.createdAt.getTime() / 1000),
+        member.joinedAt
+          ? Math.floor(member.joinedAt.getTime() / 1000)
+          : Math.floor(Date.now() / 1000)
+      );
+
+      if (result.assigned.length > 0) {
+        console.log(
+          `[JOINROLE] Assigned ${result.assigned.length} role(s) to ${member.user.tag} in ${member.guild.id}`
+        );
+      }
+      if (result.pending.length > 0) {
+        console.log(
+          `[JOINROLE] Created ${result.pending.length} pending assignment(s) for ${member.user.tag} in ${member.guild.id}`
+        );
+      }
+    } catch (error) {
+      console.error('[JOINROLE] Error handling member join:', error);
     }
   });
 
