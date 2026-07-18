@@ -534,7 +534,10 @@
           "usage": "❌ Usage: `!role join add <role> [member_age_minutes] [account_age_minutes]`\nExample: `!role join add @Member 60` — assigns @Member after 1 hour in the server.\nExample: `!role join add @Member 60 1440` — after 1 hour + account must be 1 day old.\nExample: `!role join add @Member` — assigns @Member immediately on join.",
           "invalidRole": "❌ Invalid role. Please mention a role (e.g. @Role) or provide a role ID.",
           "invalidAge": "❌ Invalid age value. Please provide a positive number of minutes.",
-          "alreadyBound": "❌ That role is already configured as a join role in this server.",
+          "alreadyBound": "❌ That role is already configured as a join role in this community.",
+          "maxBindings": "❌ This community already has {max} join roles, the maximum allowed.",
+          "maxMemberAge": "Member age cannot exceed {max} minutes (7 days).",
+          "maxAccountAge": "Account age cannot exceed {max} minutes (30 days).",
           "success": "✅ <@&{roleId}> will now be assigned when members join.\nAccount age condition: **{accountAge}**\nMember age condition: **{memberAge}**",
           "error": "❌ Failed to add join role: {error}",
           "errorGeneric": "Failed to create join-role binding."

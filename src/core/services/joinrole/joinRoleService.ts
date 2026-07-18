@@ -15,6 +15,15 @@ const WORKER_BATCH_LIMIT = 100;
 /** Max concurrent role assignment API calls per guild (avoids hammering rate limits). */
 const MAX_CONCURRENT_PER_GUILD = 5;
 
+/** Max join-role bindings per guild. */
+const MAX_BINDINGS_PER_GUILD = 10;
+
+/** Max member age delay — 7 days (in minutes). */
+const MAX_MEMBER_AGE_MINUTES = 10_080;
+
+/** Max account age delay — 30 days (in minutes). */
+const MAX_ACCOUNT_AGE_MINUTES = 43_200;
+
 /**
  * Callback registered by an adapter to assign a role to a user in a guild.
  * Returns true if the role was successfully assigned.
@@ -52,8 +61,8 @@ class JoinRoleService {
   private guildsWithJoinRoles: Set<string> = new Set();
 
   /**
-   * Tracks how many role assignment API calls are currently in-flight per 
-   * guild. Used to cap concurrency and avoid hitting Discord's per-route 
+   * Tracks how many role assignment API calls are currently in-flight per
+   * guild. Used to cap concurrency and avoid hitting Discord's per-route
    * rate limits during join bursts.
    */
   private guildActiveCount: Map<string, number> = new Map();
@@ -86,6 +95,26 @@ class JoinRoleService {
 
     if (existing) {
       throw new Error(t('commands.role.join.add.alreadyBound', { roleId: binding.roleId }));
+    }
+
+    // Enforce per-guild binding limit
+    const current = await this.joinRoleStore.getByGuild(binding.guildId);
+    if (current.length >= MAX_BINDINGS_PER_GUILD) {
+      throw new Error(t('commands.role.join.add.maxBindings', { max: MAX_BINDINGS_PER_GUILD }));
+    }
+
+    // Enforce age limit caps
+    if (
+      binding.minMemberAgeMinutes !== null &&
+      binding.minMemberAgeMinutes > MAX_MEMBER_AGE_MINUTES
+    ) {
+      throw new Error(t('commands.role.join.add.maxMemberAge', { max: MAX_MEMBER_AGE_MINUTES }));
+    }
+    if (
+      binding.minAccountAgeMinutes !== null &&
+      binding.minAccountAgeMinutes > MAX_ACCOUNT_AGE_MINUTES
+    ) {
+      throw new Error(t('commands.role.join.add.maxAccountAge', { max: MAX_ACCOUNT_AGE_MINUTES }));
     }
 
     const id = await this.joinRoleStore.create(binding);
