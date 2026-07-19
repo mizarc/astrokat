@@ -28,6 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `clear <message-id>` — Remove all bindings from a message and clean up the bot's reactions.
   - `list [message-id] [page]` — Show all reaction role bindings with pagination and message previews.
 
+- **Administration:** `!role join` — Join role management (requires **Manage Roles**). Subcommands:
+  - `add <role> [member_age] [account_age]` — Assign a role when members join, with optional age-gated delays in minutes (member age max 7 days, account age max 30 days).
+  - `remove <role>` — Remove a join-role binding.
+  - `list` — List all configured join roles for this server.
+  - `pending` — Show pending delayed role assignments.
+
 - **Automation:** `!task` — Task automation system for creating and managing scheduled or manual triggers. Subcommands:
   - `create <name> [action] [when]` — Create a task with plain English schedules (`daily`, `hourly`, `daily at 9am`) or raw cron. Inline config supported (`channel:#general message:Hello!`), or use draft mode.
   - `list` — View all tasks with status and last run time.
@@ -53,6 +59,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Join Roles**: Fluxer account age check now correctly derives the account
+  creation date from the user's snowflake ID instead of always passing
+  (Fluxer's user objects lack a `createdAt` property).
 - **Utility**: Neofetch bot version now reads from `package.json` instead of
   being hardcoded, keeping it in sync with the actual release version.
 
