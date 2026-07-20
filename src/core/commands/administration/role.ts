@@ -48,8 +48,8 @@ function messageLink(
   messageId: string
 ): string {
   if (!channelId) return `\`${messageId}\``;
-  const base =
-    platform === 'fluxer' ? 'https://web.fluxer.app/channels' : 'https://discord.com/channels';
+  const fluxerWebUrl = process.env.FLUXER_WEB_URL ?? 'https://web.fluxer.app';
+  const base = platform === 'fluxer' ? `${fluxerWebUrl}/channels` : 'https://discord.com/channels';
   return `${base}/${guildId}/${channelId}/${messageId}`;
 }
 
@@ -623,10 +623,10 @@ async function handleJoinAdd(message: any, args: string[]) {
         roleId,
         accountAge: binding.minAccountAgeMinutes
           ? formatDuration(binding.minAccountAgeMinutes)
-          : t('commands.role.join.noCondition'),
+          : t('commands.role.noCondition'),
         memberAge: binding.minMemberAgeMinutes
           ? formatDuration(binding.minMemberAgeMinutes)
-          : t('commands.role.join.noCondition'),
+          : t('commands.role.noCondition'),
       })
     );
   } catch (error) {
@@ -726,9 +726,9 @@ async function handleJoinPending(message: any) {
   const lines: string[] = [];
   for (let i = 0; i < Math.min(pending.length, 20); i++) {
     const p = pending[i]!;
-    const remaining = Math.max(0, p.availableAt - now);
+    const remaining = Math.max(0, p.dueAt - now);
     const formatted =
-      remaining < 60 ? t('commands.role.join.pending.lessThanMinute') : `<t:${p.availableAt}:R>`;
+      remaining < 60 ? t('commands.role.join.pending.lessThanMinute') : `<t:${p.dueAt}:R>`;
 
     lines.push(
       t('commands.role.join.pending.entry', {
