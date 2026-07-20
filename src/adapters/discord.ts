@@ -6,6 +6,7 @@ import { deployCommands } from '../core/deploy.js';
 import { reminderService } from '../core/services/reminders/reminderService.js';
 import { reactionRoleService } from '../core/services/reactionrole/reactionRoleService.js';
 import { joinRoleService } from '../core/services/joinrole/joinRoleService.js';
+import { levelRoleService } from '../core/services/levelrole/levelRoleService.js';
 import type { GuildAggregator, GuildStats, ActionDispatcher } from '../core/types.js';
 
 /** Tracks the bot's presence status so setStatus and setPresence compose cleanly. */
@@ -20,6 +21,18 @@ export function startDiscordBot() {
       GatewayIntentBits.GuildMessageReactions,
       GatewayIntentBits.GuildMembers,
     ],
+  });
+
+  // Register the role assigner for level-role service
+  levelRoleService.setRoleAssigner(async (guildId, userId, roleId) => {
+    try {
+      const guild = await client.guilds.fetch(guildId);
+      const member = await guild.members.fetch(userId);
+      await member.roles.add(roleId);
+      return true;
+    } catch {
+      return false;
+    }
   });
 
   // Register the role assigner for join-role service
@@ -232,6 +245,9 @@ export function startDiscordBot() {
       ...(interaction.guildId ? { guildId: interaction.guildId } : {}),
       platform: 'discord',
       botUserId: client.user!.id,
+      ...(interaction.guildId && (interaction as any).member?.roles
+        ? { memberRoles: [...(interaction as any).member.roles.cache.keys()] as string[] }
+        : {}),
       interaction: interaction,
       deferReply: async () => {
         if (!interaction.deferred && !interaction.replied) {
@@ -411,6 +427,9 @@ export function startDiscordBot() {
       guildId: message.guildId,
       platform: 'discord',
       botUserId: client.user!.id,
+      ...(message.member?.roles.cache
+        ? { memberRoles: [...message.member.roles.cache.keys()] as string[] }
+        : {}),
       fetchUser: async (userId) => {
         try {
           const user = await client.users.fetch(userId);

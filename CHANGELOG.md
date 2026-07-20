@@ -23,16 +23,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - The default prefix is configurable globally via `DEFAULT_PREFIX` env var (default `!`). Each guild can still override per-server.
 
 - **Administration:** `!role reaction` — Reaction role management (requires **Manage Roles**). Subcommands:
-  - `add <message-id> <emoji> <role>` — Bind an emoji to a role on a message. Users who react with the emoji gain the role; removing the reaction loses it. The bot auto-reacts to confirm. Limited to 20 per message and 50 per server by default (configurable).
+  - `add <message-id> <emoji> <role>` — Bind an emoji to a role on a message. Users who react with the emoji gain the role; removing the reaction loses it. The bot auto-reacts to confirm. Limited to 20 per message and 50 by default per community.
   - `remove <message-id> <emoji>` — Remove an emoji-to-role binding.
   - `clear <message-id>` — Remove all bindings from a message and clean up the bot's reactions.
   - `list [message-id] [page]` — Show all reaction role bindings with pagination and message previews.
 
 - **Administration:** `!role join` — Join role management (requires **Manage Roles**). Subcommands:
-  - `add <role> [member_age] [account_age]` — Assign a role when members join, with optional age-gated delays in minutes (member age max 7 days, account age max 30 days).
+  - `add <role> [member_age] [account_age]` — Assign a role when members join, with optional age-gated delays in minutes (member age max 7 days, account age max 30 days). Limited to a default 10 bindings per community.
   - `remove <role>` — Remove a join-role binding.
   - `list` — List all configured join roles for this server.
   - `pending` — Show pending delayed role assignments.
+
+- **Administration:** `!role level` — Level role management (requires **Manage Roles**). Automatically assign roles when users reach a certain XP level. Subcommands:
+  - `add <level> <role>` — Bind a role to a level. Users who reach this level get the role. Anyone who has already passed that level will receive the role on their next message. Limited to a default 20 bindings per community.
+  - `remove <role>` — Remove a level-role binding.
+  - `list` — List all configured level roles ordered by level.
 
 - **Automation:** `!task` — Task automation system for creating and managing scheduled or manual triggers. Subcommands:
   - `create <name> [action] [when]` — Create a task with plain English schedules (`daily`, `hourly`, `daily at 9am`) or raw cron. Inline config supported (`channel:#general message:Hello!`), or use draft mode.

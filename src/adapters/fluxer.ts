@@ -6,6 +6,7 @@ import { handleIncomingMessage, awardMessageXp } from '../core/router.js';
 import { reminderService } from '../core/services/reminders/reminderService.js';
 import { reactionRoleService } from '../core/services/reactionrole/reactionRoleService.js';
 import { joinRoleService } from '../core/services/joinrole/joinRoleService.js';
+import { levelRoleService } from '../core/services/levelrole/levelRoleService.js';
 import type { GuildAggregator, GuildStats, ActionDispatcher } from '../core/types.js';
 
 /** Tracks the bot's presence status so setStatus and setPresence compose cleanly. */
@@ -214,6 +215,9 @@ export function startFluxerBot() {
       ...((message as any).guildId ? { guildId: (message as any).guildId } : {}),
       platform: 'fluxer',
       botUserId: (client as any).user?.id,
+      ...((message as any).member?.roles?.roleIds
+        ? { memberRoles: [...(message as any).member.roles.roleIds] as string[] }
+        : {}),
       deferReply: async () => {
         // Fluxer doesn't require interaction deferral — no-op
       },
@@ -304,6 +308,19 @@ export function startFluxerBot() {
 
     // Award XP for every message in a guild
     await awardMessageXp(unified);
+  });
+
+  // Register level role assigner
+  levelRoleService.setRoleAssigner(async (guildId, userId, roleId) => {
+    try {
+      const guild = await client.guilds.resolve(guildId);
+      if (!guild) return false;
+      const member = await guild.fetchMember(userId);
+      await member.roles.add(roleId);
+      return true;
+    } catch {
+      return false;
+    }
   });
 
   // Register join role assigner
