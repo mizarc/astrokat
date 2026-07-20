@@ -2,6 +2,7 @@ import { t } from '../../i18n.js';
 import type { BotCommand, ReplyEmbed } from '../../types.js';
 import { reactionRoleService } from '../../services/reactionrole/reactionRoleService.js';
 import { joinRoleService } from '../../services/joinrole/joinRoleService.js';
+import { levelRoleService } from '../../services/levelrole/levelRoleService.js';
 import { getUnicodeFromShortcode } from '@fluxerjs/util';
 
 /**
@@ -209,6 +210,47 @@ export const RoleCommand: BotCommand = {
         },
       ],
     },
+    {
+      name: 'level',
+      description: 'Manage level roles — roles assigned automatically on level-up.',
+      subcommands: [
+        {
+          name: 'add',
+          description: 'Bind a role to a level. Users who reach this level get the role.',
+          parameters: [
+            {
+              name: 'level',
+              description: 'The level required to earn this role (1-500).',
+              type: 'integer',
+              required: true,
+              minValue: 1,
+            },
+            {
+              name: 'role',
+              description: 'The role to assign on reaching this level.',
+              type: 'role',
+              required: true,
+            },
+          ],
+        },
+        {
+          name: 'remove',
+          description: 'Remove a level-role binding.',
+          parameters: [
+            {
+              name: 'role',
+              description: 'The role to unbind from level assignments.',
+              type: 'role',
+              required: true,
+            },
+          ],
+        },
+        {
+          name: 'list',
+          description: 'List all configured level roles for this server.',
+        },
+      ],
+    },
   ],
   async execute(message, args) {
     const guildId = message.guildId;
@@ -267,6 +309,21 @@ export const RoleCommand: BotCommand = {
       return;
     }
 
+    if (sub === 'level') {
+      const action = args[1]?.toLowerCase();
+      switch (action) {
+        case 'add':
+          return handleLevelAdd(message, args.slice(2));
+        case 'remove':
+          return handleLevelRemove(message, args.slice(2));
+        case 'list':
+          return handleLevelList(message);
+        default:
+          await showHelp(message);
+      }
+      return;
+    }
+
     await showHelp(message);
   },
 };
@@ -312,6 +369,21 @@ async function showHelp(message: any): Promise<void> {
       t('commands.role.help.entry', {
         usage: '`!role join pending`',
         description: t('commands.role.join.pending.description'),
+      }),
+      '',
+      t('commands.role.help.levelRoles'),
+      '',
+      t('commands.role.help.entry', {
+        usage: '`!role level add <level> <role>`',
+        description: t('commands.role.level.add.description'),
+      }),
+      t('commands.role.help.entry', {
+        usage: '`!role level remove <role>`',
+        description: t('commands.role.level.remove.description'),
+      }),
+      t('commands.role.help.entry', {
+        usage: '`!role level list`',
+        description: t('commands.role.level.list.description'),
       }),
     ].join('\n'),
   };
@@ -749,6 +821,106 @@ async function handleJoinPending(message: any) {
         count: pending.length,
         shown: Math.min(pending.length, 20),
       }),
+    },
+  };
+
+  await message.reply({ content: '', embeds: [embed] });
+}
+
+async function handleLevelAdd(message: any, args: string[]) {
+  const guildId = message.guildId!;
+
+  if (args.length < 2) {
+    await message.reply(t('commands.role.level.add.usage'));
+    return;
+  }
+
+  const level = parseInt(args[0]!, 10);
+  if (isNaN(level) || level < 1) {
+    await message.reply(t('commands.role.level.add.invalidLevel'));
+    return;
+  }
+
+  const roleInput = args[1]!;
+  const roleId = parseRoleId(roleInput);
+  if (!roleId) {
+    await message.reply(t('commands.role.level.add.invalidRole'));
+    return;
+  }
+
+  try {
+    const binding = await levelRoleService.addBinding({
+      guildId,
+      roleId,
+      level,
+      platform: message.platform as string,
+    });
+
+    await message.reply(
+      t('commands.role.level.add.success', {
+        level: binding.level,
+        roleId,
+      })
+    );
+  } catch (error) {
+    const errMessage = error instanceof Error ? error.message : 'Unknown error';
+    await message.reply(t('commands.role.level.add.error', { error: errMessage }));
+  }
+}
+
+async function handleLevelRemove(message: any, args: string[]) {
+  const guildId = message.guildId!;
+
+  if (args.length < 1) {
+    await message.reply(t('commands.role.level.remove.usage'));
+    return;
+  }
+
+  const roleInput = args[0]!;
+  const roleId = parseRoleId(roleInput);
+  if (!roleId) {
+    await message.reply(t('commands.role.level.remove.invalidRole'));
+    return;
+  }
+
+  const removed = await levelRoleService.removeBinding(guildId, roleId);
+
+  if (!removed) {
+    await message.reply(t('commands.role.level.remove.notFound', { roleId }));
+    return;
+  }
+
+  await message.reply(t('commands.role.level.remove.success', { roleId }));
+}
+
+async function handleLevelList(message: any) {
+  const guildId = message.guildId!;
+
+  const bindings = await levelRoleService.listBindings(guildId);
+
+  if (bindings.length === 0) {
+    await message.reply(t('commands.role.level.list.empty'));
+    return;
+  }
+
+  const lines: string[] = [];
+  for (let i = 0; i < bindings.length; i++) {
+    const b = bindings[i]!;
+    lines.push(
+      t('commands.role.level.list.entry', {
+        index: i + 1,
+        level: b.level,
+        roleId: b.roleId,
+      })
+    );
+  }
+
+  const embed: ReplyEmbed = {
+    title: t('commands.role.level.list.title'),
+    description: lines.join('\n'),
+    color: 0x5865f2,
+    footer: {
+      text: t('commands.role.level.list.footer', { count: bindings.length }),
     },
   };
 

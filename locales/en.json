@@ -496,6 +496,7 @@
         "title": "📋 Role Management",
         "reactionRoles": "**Reaction Roles**",
         "joinRoles": "**Join Roles**",
+        "levelRoles": "**Level Roles**",
         "entry": "`{usage}` — {description}"
       },
       "reaction": {
@@ -566,6 +567,34 @@
           "entry": "{index}. <@{userId}> → <@&{roleId}> — {remaining}",
           "lessThanMinute": "<1 minute",
           "footer": "Showing {shown}/{count} · pending assignments are polled every 30s"
+        }
+      },
+      "level": {
+        "add": {
+          "description": "Bind a role to a level. Users who reach this level get the role.",
+          "usage": "❌ Usage: `!role level add <level> <role>`\nExample: `!role level add 5 @Member`.",
+          "invalidRole": "❌ Invalid role. Please mention a role (e.g. @Role) or provide a role ID.",
+          "invalidLevel": "❌ Invalid level. Please provide a positive number.",
+          "levelAlreadyBound": "❌ Level {level} is already bound to <@&{roleId}>.",
+          "roleAlreadyBound": "❌ <@&{roleId}> is already bound to level {level}.",
+          "maxBindings": "❌ This community already has {max} level roles, the maximum allowed.",
+          "success": "✅ Level **{level}** → <@&{roleId}> set! Users who reach level {level} will get this role.",
+          "error": "❌ Failed to add level role: {error}",
+          "errorGeneric": "Failed to create level-role binding."
+        },
+        "remove": {
+          "description": "Remove a level-role binding.",
+          "usage": "❌ Usage: `!role level remove <role>`\nExample: `!role level remove @Member`",
+          "invalidRole": "❌ Invalid role. Please mention a role (e.g. @Role) or provide a role ID.",
+          "notFound": "❌ No level-role binding found for <@&{roleId}>.",
+          "success": "✅ Removed level-role binding for <@&{roleId}>."
+        },
+        "list": {
+          "description": "List all level-role bindings.",
+          "title": "📋 Level Role Bindings",
+          "empty": "📋 No level roles configured for this server.\nUse `!role level add <level> <role>` to add one.",
+          "entry": "{index}. Level **{level}** → <@&{roleId}>",
+          "footer": "{count} binding(s)"
         }
       }
     }

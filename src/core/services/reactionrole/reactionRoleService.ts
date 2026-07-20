@@ -27,10 +27,10 @@ function emojiMatch(stored: string, input: string): boolean {
   if (storedClean === input) return true;
   if (stored === inputClean) return true;
 
-  // ":name:" or bare "name" — try resolving shortcode to unicode
+  // try resolving shortcode ":name:" or bare "name" to unicode 
   const inputName = input.match(/^:(\w+):$/)?.[1] ?? (/^\w+$/.test(input) ? input : null);
   if (inputName) {
-    // Resolve ":thumbsup:" → "👍" for comparison against stored unicode
+    // Resolve ":thumbsup:" -> "👍" for comparison against stored unicode
     const unicode = getUnicodeFromShortcode(inputName);
     if (unicode && (stored === unicode || storedClean === unicode)) return true;
     // Check against stored "name:id" prefix
@@ -69,7 +69,6 @@ async function findBinding(
  *
  * Manages bindings between (message + emoji) pairs and roles,
  * and handles role assignment/removal when reactions are added or removed.
- * Platform-agnostic — the adapter feeds events in, the service does the rest.
  *
  * Rate limits are enforced via per-message and per-guild caps.
  * Guilds can override the defaults through `guildConfigService`.

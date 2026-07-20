@@ -3,7 +3,8 @@ import type { BotCommand, UnifiedMessage } from './types.js';
 import { readdirSync, statSync } from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { dirname, join, extname } from 'path';
-import { xpService } from './services/xp/xpService.js';
+import { xpService, levelFromXp } from './services/xp/xpService.js';
+import { levelRoleService } from './services/levelrole/levelRoleService.js';
 import { rateLimiter } from './services/ratelimit/rateLimiter.js';
 import { guildConfigService } from './services/guildconfig/guildConfigService.js';
 import { defaultPrefix } from './services/guildconfig/guildConfigStore.js';
@@ -193,6 +194,19 @@ export async function awardMessageXp(message: UnifiedMessage): Promise<void> {
     message.platform,
     message.content
   );
+
+  // Assigns a role if the user qualifies and doesn't already have it.
+  if (message.guildId && result.awarded) {
+    const newLevel =
+      result.levelUp?.newLevel ??
+      levelFromXp((await xpService.getEntry(message.guildId, message.author.id))?.xp ?? 0);
+    await levelRoleService.checkAndAssign(
+      message.guildId,
+      message.author.id,
+      newLevel,
+      message.memberRoles
+    );
+  }
 
   if (result.levelUp && result.xpNotifications) {
     const guildConfig = await guildConfigService.get(message.guildId);

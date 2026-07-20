@@ -122,6 +122,14 @@ export interface UnifiedMessage {
    * to distinguish commands even when other bots share the same prefix.
    */
   botUserId?: string;
+
+  /**
+   * The user's current role IDs in this guild.
+   * Used by the level-role system to avoid an API call when the user 
+   * already has the role. Only populated in guild contexts where roles are
+   * available on the message object.
+   */
+  memberRoles?: string[];
 }
 
 /** Supported command parameter types (maps to Discord API option types). */
