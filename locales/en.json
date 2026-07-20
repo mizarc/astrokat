@@ -363,7 +363,8 @@
         "alreadyDisabled": "❌ `{command}` is already disabled.",
         "alreadyEnabled": "✅ `{command}` is already enabled.",
         "disabled": "❌ `{command}` has been disabled. Use `!settings commands enable {command}` to re-enable it.",
-        "enabled": "✅ `{command}` has been enabled."
+        "enabled": "✅ `{command}` has been enabled.",
+        "cannotDisable": "❌ The **settings** command cannot be disabled. Otherwise you'd have no way to re-enable it!"
       },
       "features": {
         "helpDescription": "Enable or disable data-storing features (XP, rep).",

@@ -26,6 +26,12 @@ export async function handleCommands(message: any, guildId: string, args: string
       return;
     }
 
+    // The settings command cannot be disabled (otherwise you'd lock yourself out)
+    if (commandName === 'settings' && action === 'disable') {
+      await message.reply(t('commands.settings.commands.cannotDisable'));
+      return;
+    }
+
     const alreadyDisabled = await guildDisabledCommandService.isDisabled(guildId, commandName);
 
     if (action === 'disable') {
@@ -64,6 +70,7 @@ async function listCommands(message: any, guildId: string): Promise<void> {
 
   const lines: string[] = [];
   for (const [name, cmd] of allCommands) {
+    if (name === 'settings') continue; // settings can't be disabled, don't show it
     const status = disabledSet.has(name)
       ? t('commands.settings.commands.statusDisabled')
       : t('commands.settings.commands.statusEnabled');
