@@ -43,7 +43,12 @@ function toFluxerEmbeds(embeds: ReplyEmbed[]): EmbedBuilder[] {
 }
 
 export function startFluxerBot() {
-  const client = new Client({ intents: 0 });
+  const client = new Client({
+    intents: 0,
+    rest: {
+      api: process.env.FLUXER_API_URL ?? 'https://api.fluxer.app',
+    },
+  });
   const messageCache = new Map<string, any>();
 
   client.on(Events.MessageCreate, async (message) => {
