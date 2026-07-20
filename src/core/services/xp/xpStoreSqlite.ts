@@ -32,9 +32,9 @@ export class SqliteXPStore implements XPStore {
   }
 
   async getEntry(guildId: string, userId: string): Promise<XPEntry | null> {
-    const row = this.db.prepare(
-      'SELECT * FROM xp WHERE guild_id = ? AND user_id = ?',
-    ).get(guildId, userId) as Record<string, unknown> | undefined;
+    const row = this.db
+      .prepare('SELECT * FROM xp WHERE guild_id = ? AND user_id = ?')
+      .get(guildId, userId) as Record<string, unknown> | undefined;
 
     if (!row) return null;
 
@@ -42,7 +42,9 @@ export class SqliteXPStore implements XPStore {
   }
 
   async upsertEntry(entry: XPEntry): Promise<void> {
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       INSERT INTO xp (guild_id, user_id, platform, xp, level, last_action_at, updated_at, xp_notifications)
       VALUES (@guildId, @userId, @platform, @xp, @level, @lastActionAt, @updatedAt, @xpNotifications)
       ON CONFLICT(guild_id, user_id) DO UPDATE SET
@@ -51,43 +53,49 @@ export class SqliteXPStore implements XPStore {
         platform       = EXCLUDED.platform,
         last_action_at = EXCLUDED.last_action_at,
         updated_at     = EXCLUDED.updated_at
-    `).run({
-      guildId: entry.guildId,
-      userId: entry.userId,
-      platform: entry.platform,
-      xp: entry.xp,
-      level: entry.level,
-      lastActionAt: entry.lastActionAt,
-      updatedAt: entry.updatedAt,
-      xpNotifications: (entry.xpNotifications ?? false) ? 1 : 0,
-    });
+    `
+      )
+      .run({
+        guildId: entry.guildId,
+        userId: entry.userId,
+        platform: entry.platform,
+        xp: entry.xp,
+        level: entry.level,
+        lastActionAt: entry.lastActionAt,
+        updatedAt: entry.updatedAt,
+        xpNotifications: (entry.xpNotifications ?? false) ? 1 : 0,
+      });
   }
 
   async getLeaderboard(guildId: string, limit: number, offset: number): Promise<XPEntry[]> {
-    const rows = this.db.prepare(
-      'SELECT * FROM xp WHERE guild_id = ? ORDER BY xp DESC LIMIT ? OFFSET ?',
-    ).all(guildId, limit, offset) as Record<string, unknown>[];
+    const rows = this.db
+      .prepare('SELECT * FROM xp WHERE guild_id = ? ORDER BY xp DESC LIMIT ? OFFSET ?')
+      .all(guildId, limit, offset) as Record<string, unknown>[];
 
     return rows.map((row) => this.rowToEntry(row));
   }
 
   async getUserRank(guildId: string, userId: string): Promise<number | null> {
-    const row = this.db.prepare(`
+    const row = this.db
+      .prepare(
+        `
       SELECT rank FROM (
         SELECT user_id, RANK() OVER (ORDER BY xp DESC) AS rank
         FROM xp
         WHERE guild_id = ?
       ) ranked
       WHERE user_id = ?
-    `).get(guildId, userId) as { rank: number } | undefined;
+    `
+      )
+      .get(guildId, userId) as { rank: number } | undefined;
 
     return row?.rank ?? null;
   }
 
   async getMemberCount(guildId: string): Promise<number> {
-    const row = this.db.prepare(
-      'SELECT COUNT(*) AS count FROM xp WHERE guild_id = ?',
-    ).get(guildId) as { count: number };
+    const row = this.db
+      .prepare('SELECT COUNT(*) AS count FROM xp WHERE guild_id = ?')
+      .get(guildId) as { count: number };
 
     return row.count;
   }
@@ -106,46 +114,57 @@ export class SqliteXPStore implements XPStore {
   }
 
   async setXpNotifications(guildId: string, userId: string, enabled: boolean): Promise<void> {
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       UPDATE xp SET xp_notifications = ? WHERE guild_id = ? AND user_id = ?
-    `).run(enabled ? 1 : 0, guildId, userId);
+    `
+      )
+      .run(enabled ? 1 : 0, guildId, userId);
   }
 
-  // ── Keyword bonuses ────────────────────────────────────────────────────
-
   async getKeywordBonus(guildId: string, keyword: string): Promise<number | null> {
-    const row = this.db.prepare(
-      'SELECT xp_amount FROM keyword_bonuses WHERE guild_id = ? AND keyword = ?',
-    ).get(guildId, keyword.toLowerCase()) as { xp_amount: number } | undefined;
+    const row = this.db
+      .prepare('SELECT xp_amount FROM keyword_bonuses WHERE guild_id = ? AND keyword = ?')
+      .get(guildId, keyword.toLowerCase()) as { xp_amount: number } | undefined;
 
     return row?.xp_amount ?? null;
   }
 
   async setKeywordBonus(guildId: string, keyword: string, xpAmount: number): Promise<void> {
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       INSERT INTO keyword_bonuses (guild_id, keyword, xp_amount)
       VALUES (?, ?, ?)
       ON CONFLICT(guild_id, keyword) DO UPDATE SET
         xp_amount = EXCLUDED.xp_amount
-    `).run(guildId, keyword.toLowerCase(), xpAmount);
+    `
+      )
+      .run(guildId, keyword.toLowerCase(), xpAmount);
   }
 
   async removeKeywordBonus(guildId: string, keyword: string): Promise<void> {
-    this.db.prepare(
-      'DELETE FROM keyword_bonuses WHERE guild_id = ? AND keyword = ?',
-    ).run(guildId, keyword.toLowerCase());
+    this.db
+      .prepare('DELETE FROM keyword_bonuses WHERE guild_id = ? AND keyword = ?')
+      .run(guildId, keyword.toLowerCase());
   }
 
   async listKeywordBonuses(guildId: string): Promise<KeywordBonus[]> {
-    const rows = this.db.prepare(
-      'SELECT * FROM keyword_bonuses WHERE guild_id = ? ORDER BY keyword',
-    ).all(guildId) as Record<string, unknown>[];
+    const rows = this.db
+      .prepare('SELECT * FROM keyword_bonuses WHERE guild_id = ? ORDER BY keyword')
+      .all(guildId) as Record<string, unknown>[];
 
     return rows.map((row) => ({
       guildId: row.guild_id as string,
       keyword: row.keyword as string,
       xpAmount: row.xp_amount as number,
     }));
+  }
+
+  async deleteAllByGuild(guildId: string): Promise<void> {
+    this.db.prepare('DELETE FROM xp WHERE guild_id = ?').run(guildId);
+    this.db.prepare('DELETE FROM keyword_bonuses WHERE guild_id = ?').run(guildId);
   }
 
   private ensureTable(): void {

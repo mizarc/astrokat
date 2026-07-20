@@ -79,6 +79,10 @@ export class PostgresJoinRoleStore implements JoinRoleStore {
     ]);
   }
 
+  async deleteByGuild(guildId: string): Promise<void> {
+    await this.pool.query('DELETE FROM join_roles WHERE guild_id = $1', [guildId]);
+  }
+
   async getAllBindings(): Promise<JoinRoleBinding[]> {
     const result = await this.pool.query(
       'SELECT * FROM join_roles ORDER BY guild_id, created_at ASC'

@@ -27,7 +27,7 @@ function emojiMatch(stored: string, input: string): boolean {
   if (storedClean === input) return true;
   if (stored === inputClean) return true;
 
-  // try resolving shortcode ":name:" or bare "name" to unicode 
+  // try resolving shortcode ":name:" or bare "name" to unicode
   const inputName = input.match(/^:(\w+):$/)?.[1] ?? (/^\w+$/.test(input) ? input : null);
   if (inputName) {
     // Resolve ":thumbsup:" -> "👍" for comparison against stored unicode
@@ -240,6 +240,11 @@ class ReactionRoleService {
    */
   async getGuildIds(): Promise<string[]> {
     return this.persistence.getAllGuildIds();
+  }
+
+  /** Delete all reaction role bindings for a guild. */
+  async clearAllByGuild(guildId: string): Promise<void> {
+    await this.persistence.deleteByGuild(guildId);
   }
 }
 

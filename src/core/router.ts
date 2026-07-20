@@ -7,6 +7,8 @@ import { xpService, levelFromXp } from './services/xp/xpService.js';
 import { levelRoleService } from './services/levelrole/levelRoleService.js';
 import { rateLimiter } from './services/ratelimit/rateLimiter.js';
 import { guildConfigService } from './services/guildconfig/guildConfigService.js';
+import { guildFeatureService } from './services/guildconfig/guildFeatureService.js';
+import { guildDisabledCommandService } from './services/guildconfig/guildDisabledCommandService.js';
 import { defaultPrefix } from './services/guildconfig/guildConfigStore.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -173,6 +175,16 @@ export async function handleIncomingMessage(
       }
     }
 
+    // Check if this command is disabled in the guild
+    // The settings and help commands are always allowed (otherwise disabling would be permanent)
+    if (message.guildId && commandName !== 'settings') {
+      const disabled = await guildDisabledCommandService.isDisabled(message.guildId, commandName);
+      if (disabled) {
+        await message.reply(t('system.commandDisabled', { command: commandName }));
+        return;
+      }
+    }
+
     await command.execute(message, args);
   } else {
     // Only reply if it was a text command (don't clutter Discord slash UI)
@@ -187,6 +199,10 @@ export async function handleIncomingMessage(
  */
 export async function awardMessageXp(message: UnifiedMessage): Promise<void> {
   if (!message.guildId) return;
+
+  // Respect the guild's XP toggle
+  const xpEnabled = await guildFeatureService.isEnabled(message.guildId, 'xp');
+  if (!xpEnabled) return;
 
   const result = await xpService.awardXp(
     message.guildId,

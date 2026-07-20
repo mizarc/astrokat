@@ -1,6 +1,9 @@
 import { t } from '../../../i18n.js';
 import type { BotCommand, ReplyEmbed } from '../../../types.js';
 import { handlePrefix } from './subcommands/prefix.js';
+import { handleCommands } from './subcommands/commands.js';
+import { handleFeatures } from './subcommands/features.js';
+import { handleClear } from './subcommands/clear.js';
 
 export const SettingsCommand: BotCommand = {
   name: 'settings',
@@ -25,6 +28,54 @@ export const SettingsCommand: BotCommand = {
         },
       ],
     },
+    {
+      name: 'commands',
+      description: 'List or toggle individual command availability.',
+      parameters: [
+        {
+          name: 'action',
+          description: 'list, disable <command>, or enable <command>',
+          type: 'string',
+          required: false,
+        },
+        {
+          name: 'command',
+          description: 'The command name to enable or disable',
+          type: 'string',
+          required: false,
+        },
+      ],
+    },
+    {
+      name: 'features',
+      description: 'Enable or disable data-storing features (XP, rep).',
+      parameters: [
+        {
+          name: 'feature',
+          description: 'Feature name (xp, rep)',
+          type: 'string',
+          required: false,
+        },
+        {
+          name: 'state',
+          description: 'on or off',
+          type: 'string',
+          required: false,
+        },
+      ],
+    },
+    {
+      name: 'clear',
+      description: 'Clear stored data for this server (xp, rep, roles, or everything).',
+      parameters: [
+        {
+          name: 'target',
+          description: 'What to clear: xp, rep, roles, all',
+          type: 'string',
+          required: false,
+        },
+      ],
+    },
   ],
   async execute(message, args) {
     const guildId = message.guildId;
@@ -41,6 +92,9 @@ export const SettingsCommand: BotCommand = {
         color: 0x5865f2,
         description: [
           `\`!settings prefix\` — ${t('commands.settings.prefix.helpDescription')}`,
+          `\`!settings commands\` — ${t('commands.settings.commands.helpDescription')}`,
+          `\`!settings features\` — ${t('commands.settings.features.helpDescription')}`,
+          `\`!settings clear\` — ${t('commands.settings.clear.helpDescription')}`,
         ].join('\n'),
         footer: { text: t('commands.settings.help.footer') },
       };
@@ -48,9 +102,28 @@ export const SettingsCommand: BotCommand = {
       return;
     }
 
+    // Check Manage Guild permission for mutating subcommands (view-only ones are fine)
+    const needsPermission = ['commands', 'features', 'clear'].includes(subcommand);
+    if (needsPermission && message.channel?.userCanManageGuild) {
+      const allowed = await message.channel.userCanManageGuild();
+      if (!allowed) {
+        await message.reply(t('commands.settings.noPermission'));
+        return;
+      }
+    }
+
     switch (subcommand) {
       case 'prefix':
         await handlePrefix(message, guildId, args.slice(1));
+        break;
+      case 'commands':
+        await handleCommands(message, guildId, args.slice(1));
+        break;
+      case 'features':
+        await handleFeatures(message, guildId, args.slice(1));
+        break;
+      case 'clear':
+        await handleClear(message, guildId, args.slice(1));
         break;
       default:
         await message.reply(t('commands.settings.unknownSubcommand', { sub: subcommand }));

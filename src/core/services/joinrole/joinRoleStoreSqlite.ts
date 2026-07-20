@@ -81,6 +81,10 @@ export class SqliteJoinRoleStore implements JoinRoleStore {
       .run(guildId, roleId);
   }
 
+  async deleteByGuild(guildId: string): Promise<void> {
+    this.db.prepare('DELETE FROM join_roles WHERE guild_id = ?').run(guildId);
+  }
+
   async getAllBindings(): Promise<JoinRoleBinding[]> {
     const rows = this.db
       .prepare('SELECT * FROM join_roles ORDER BY guild_id, created_at ASC')

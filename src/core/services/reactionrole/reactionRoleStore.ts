@@ -53,6 +53,9 @@ export interface ReactionRoleStore {
   /** Delete a binding by guild + message + emoji. */
   deleteByMessageAndEmoji(guildId: string, messageId: string, emoji: string): Promise<void>;
 
+  /** Delete all bindings for a guild. */
+  deleteByGuild(guildId: string): Promise<void>;
+
   /** Get all bindings across all guilds (for startup reconciliation). Optionally filter by platform. */
   getAllBindings(platform?: string): Promise<ReactionRoleBinding[]>;
 

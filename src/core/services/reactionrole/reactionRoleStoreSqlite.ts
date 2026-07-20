@@ -105,6 +105,10 @@ export class SqliteReactionRoleStore implements ReactionRoleStore {
       .run(guildId, messageId, emoji);
   }
 
+  async deleteByGuild(guildId: string): Promise<void> {
+    this.db.prepare('DELETE FROM reaction_roles WHERE guild_id = ?').run(guildId);
+  }
+
   async getAllBindings(platform?: string): Promise<ReactionRoleBinding[]> {
     let rows: Record<string, unknown>[];
     if (platform) {

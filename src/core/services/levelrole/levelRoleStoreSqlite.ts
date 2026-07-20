@@ -103,6 +103,10 @@ export class SqliteLevelRoleStore implements LevelRoleStore {
       .run(guildId, roleId);
   }
 
+  async deleteByGuild(guildId: string): Promise<void> {
+    this.db.prepare('DELETE FROM level_roles WHERE guild_id = ?').run(guildId);
+  }
+
   async getAllBindings(): Promise<LevelRoleBinding[]> {
     const rows = this.db
       .prepare('SELECT * FROM level_roles ORDER BY guild_id, level ASC')
