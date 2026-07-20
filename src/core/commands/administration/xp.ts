@@ -7,25 +7,67 @@ export const XpCommand: BotCommand = {
   name: 'xp',
   description: 'XP and leveling system management.',
   category: 'administration',
-  parameters: [
+  subcommands: [
     {
-      name: 'subcommand',
-      description: 'Subcommand: set, add, globalnotify, bonus',
-      type: 'string',
-      required: true,
-    },
-    { name: 'target', description: 'User mention/ID or on/off', type: 'string', required: false },
-    {
-      name: 'value',
-      description: 'XP amount, keyword, or on/off',
-      type: 'string',
-      required: false,
+      name: 'set',
+      description: "Set a user's XP to an exact amount.",
+      parameters: [
+        { name: 'user', description: 'The user to set XP for.', type: 'user', required: true },
+        { name: 'amount', description: 'The XP amount to set.', type: 'integer', required: true },
+      ],
     },
     {
-      name: 'keyword_amount',
-      description: 'XP amount for keyword bonus',
-      type: 'integer',
-      required: false,
+      name: 'add',
+      description: 'Add XP to a user.',
+      parameters: [
+        { name: 'user', description: 'The user to add XP to.', type: 'user', required: true },
+        {
+          name: 'amount',
+          description: 'The amount of XP to add.',
+          type: 'integer',
+          required: true,
+        },
+      ],
+    },
+    {
+      name: 'globalnotify',
+      description: 'Enable or disable server-wide level-up announcements.',
+      parameters: [{ name: 'state', description: 'on or off', type: 'string', required: false }],
+    },
+    {
+      name: 'bonus',
+      description: 'Manage keyword XP bonuses.',
+      subcommands: [
+        {
+          name: 'list',
+          description: 'Show all keyword bonuses.',
+        },
+        {
+          name: 'add',
+          description: 'Add a keyword XP bonus.',
+          parameters: [
+            {
+              name: 'keyword',
+              description: 'The keyword to trigger on.',
+              type: 'string',
+              required: true,
+            },
+            { name: 'amount', description: 'Bonus XP amount.', type: 'integer', required: true },
+          ],
+        },
+        {
+          name: 'remove',
+          description: 'Remove a keyword XP bonus.',
+          parameters: [
+            {
+              name: 'keyword',
+              description: 'The keyword to remove.',
+              type: 'string',
+              required: true,
+            },
+          ],
+        },
+      ],
     },
   ],
   async execute(message, args) {

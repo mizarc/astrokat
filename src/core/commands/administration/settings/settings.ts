@@ -31,36 +31,68 @@ export const SettingsCommand: BotCommand = {
     {
       name: 'commands',
       description: 'List or toggle individual command availability.',
-      parameters: [
+      subcommands: [
         {
-          name: 'action',
-          description: 'list, disable <command>, or enable <command>',
-          type: 'string',
-          required: false,
+          name: 'list',
+          description: 'Show all commands with their enabled/disabled status.',
         },
         {
-          name: 'command',
-          description: 'The command name to enable or disable',
-          type: 'string',
-          required: false,
+          name: 'enable',
+          description: 'Enable a previously disabled command.',
+          parameters: [
+            {
+              name: 'name',
+              description: 'The command name to enable.',
+              type: 'string',
+              required: true,
+            },
+          ],
+        },
+        {
+          name: 'disable',
+          description: 'Disable a command in this server.',
+          parameters: [
+            {
+              name: 'name',
+              description: 'The command name to disable.',
+              type: 'string',
+              required: true,
+            },
+          ],
         },
       ],
     },
     {
       name: 'features',
       description: 'Enable or disable data-storing features (XP, rep).',
-      parameters: [
+      subcommands: [
         {
-          name: 'feature',
-          description: 'Feature name (xp, rep)',
-          type: 'string',
-          required: false,
+          name: 'list',
+          description: 'Show all features and their current status.',
         },
         {
-          name: 'state',
-          description: 'on or off',
-          type: 'string',
-          required: false,
+          name: 'enable',
+          description: 'Enable a feature (xp, rep).',
+          parameters: [
+            {
+              name: 'name',
+              description: 'Feature name: xp or rep.',
+              type: 'string',
+              required: true,
+            },
+          ],
+        },
+        {
+          name: 'disable',
+          description: 'Disable a feature (xp, rep).',
+          parameters: [
+            {
+              name: 'name',
+              description: 'Feature name: xp or rep.',
+              type: 'string',
+              required: true,
+            },
+          ],
         },
       ],
     },

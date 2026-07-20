@@ -96,6 +96,31 @@ rateLimiter.setGuildConfigProvider(async (guildId) => {
 });
 
 /**
+ * Flatten slash command interaction options into a flat args array.
+ */
+function flattenInteractionOptions(data: readonly any[]): string[] {
+  // Check for subcommand group (type 2) with nested subcommand (type 1)
+  const group = data.find((opt) => opt.type === 2);
+  if (group && group.options) {
+    const sub = group.options.find((opt: any) => opt.type === 1);
+    if (sub) {
+      const vals =
+        sub.options?.map((o: any) => o.value?.toString() || '').filter((v: any) => v) ?? [];
+      return [group.name, sub.name, ...vals];
+    }
+  }
+  // Check for flat subcommand (type 1)
+  const sub = data.find((opt) => opt.type === 1);
+  if (sub) {
+    const vals =
+      sub.options?.map((o: any) => o.value?.toString() || '').filter((v: any) => v) ?? [];
+    return [sub.name, ...vals];
+  }
+  // No subcommands — raw args
+  return data.map((opt) => opt.value?.toString() || '').filter((v) => v);
+}
+
+/**
  * The Router: Now handles both text-based parsing and pre-parsed slash commands.
  */
 export async function handleIncomingMessage(
@@ -110,16 +135,7 @@ export async function handleIncomingMessage(
     commandName = message.interaction?.commandName.toLowerCase() || '';
     if (message.interaction?.options) {
       const data = message.interaction.options.data;
-      // Detect subcommand (type 1 = SUB_COMMAND) and prepend its name to args
-      const subCommand = data.find((opt) => opt.type === 1);
-      if (subCommand) {
-        args = [
-          subCommand.name,
-          ...(subCommand.options?.map((o) => o.value?.toString() || '').filter((v) => v) ?? []),
-        ];
-      } else {
-        args = data.map((opt) => opt.value?.toString() || '').filter((v) => v);
-      }
+      args = flattenInteractionOptions(data);
     }
   } else {
     // Legacy Command: Parse the message.
