@@ -69,6 +69,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`FLUXER_API_URL`** — New optional env var for pointing the Fluxer adapter at a self-hosted Fluxer API instance. Defaults to `https://api.fluxer.app`.
 - **`FLUXER_WEB_URL`** — New optional env var for custom Fluxer web URL used in clickable message links. Defaults to `https://web.fluxer.app`.
 
+### Changed
+
+- **Automation** category removed. `!remindme` moved to **Utility**, `!task` moved to **Administration**. The command categories are now: Administration, Knowledge, Moderation, Social, Operation, and Utility.
+
 ### Fixed
 
 - **Join Roles**: Fluxer account age check now correctly derives the account
