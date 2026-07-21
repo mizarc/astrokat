@@ -17,6 +17,7 @@
  *   pending_role_assignments -> role_join_queue
  *   reaction_roles -> role_reactions
  *   rep_daily_allowance -> rep_history
+ *   rep_target_lockout -> rep_target_lockouts
  */
 
 const SCHEMA_VERSION = 1;
@@ -72,6 +73,7 @@ function migrateV1Sqlite(db: any): void {
     ['pending_role_assignments', 'role_join_queue'],
     ['reaction_roles', 'role_reactions'],
     ['rep_daily_allowance', 'rep_history'],
+    ['rep_target_lockout', 'rep_target_lockouts'],
   ];
 
   for (const [oldName, newName] of renames) {
@@ -168,6 +170,7 @@ async function migrateV1Postgres(pool: any): Promise<void> {
     ['pending_role_assignments', 'role_join_queue'],
     ['reaction_roles', 'role_reactions'],
     ['rep_daily_allowance', 'rep_history'],
+    ['rep_target_lockout', 'rep_target_lockouts'],
   ];
 
   for (const [oldName, newName] of renames) {

@@ -129,7 +129,7 @@ export class SqliteRepStore implements RepStore {
     this.db
       .prepare(
         `
-      INSERT INTO rep_target_lockout (guild_id, giver_id, receiver_id, given_at)
+      INSERT INTO rep_target_lockouts (guild_id, giver_id, receiver_id, given_at)
       VALUES (@guildId, @giverId, @receiverId, @givenAt)
       ON CONFLICT(guild_id, giver_id, receiver_id) DO UPDATE SET
         given_at = EXCLUDED.given_at
@@ -147,7 +147,7 @@ export class SqliteRepStore implements RepStore {
     const row = this.db
       .prepare(
         `SELECT 1
-         FROM rep_target_lockout
+         FROM rep_target_lockouts
          WHERE guild_id = ? AND giver_id = ?
            AND receiver_id = ? AND given_at > ?
          LIMIT 1`
@@ -160,7 +160,7 @@ export class SqliteRepStore implements RepStore {
   async deleteAllByGuild(guildId: string): Promise<void> {
     this.db.prepare('DELETE FROM rep WHERE guild_id = ?').run(guildId);
     this.db.prepare('DELETE FROM rep_history WHERE guild_id = ?').run(guildId);
-    this.db.prepare('DELETE FROM rep_target_lockout WHERE guild_id = ?').run(guildId);
+    this.db.prepare('DELETE FROM rep_target_lockouts WHERE guild_id = ?').run(guildId);
   }
 
   private rowToEntry(row: Record<string, unknown>): RepEntry {
@@ -208,7 +208,7 @@ export class SqliteRepStore implements RepStore {
 
     // Target lockout table: tracks last rep time per giver→receiver pair
     this.db.exec(`
-      CREATE TABLE IF NOT EXISTS rep_target_lockout (
+      CREATE TABLE IF NOT EXISTS rep_target_lockouts (
         guild_id    TEXT NOT NULL,
         giver_id    TEXT NOT NULL,
         receiver_id TEXT NOT NULL,
