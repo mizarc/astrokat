@@ -6,9 +6,14 @@ import { reminderService } from '../../services/reminders/reminderService.js';
 export const RemindmeCommand: BotCommand = {
   name: 'remindme',
   description: 'Sets a reminder for a specified time.',
-  category: 'automation',
+  category: 'utility',
   parameters: [
-    { name: 'time', description: 'When to remind you (e.g. "in 5 minutes", "tomorrow at 3pm")', type: 'string', required: true },
+    {
+      name: 'time',
+      description: 'When to remind you (e.g. "in 5 minutes", "tomorrow at 3pm")',
+      type: 'string',
+      required: true,
+    },
     { name: 'message', description: 'What to remind you about', type: 'string', required: false },
   ],
   async execute(message, args) {
@@ -65,7 +70,7 @@ export const RemindmeCommand: BotCommand = {
       message.platform,
       reminderMessage,
       targetTimestamp,
-      message.id,
+      message.id
     );
 
     await message.reply(t('commands.remindme.success', { time: reminder.dispatchTime }));
