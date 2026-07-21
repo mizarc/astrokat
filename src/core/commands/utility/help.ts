@@ -2,26 +2,25 @@ import { t } from '../../i18n.js';
 import type { BotCommand, ReplyEmbed } from '../../types.js';
 import { getCommands } from '../../router.js';
 import { guildConfigService } from '../../services/guildconfig/guildConfigService.js';
+import { guildDisabledCommandService } from '../../services/guildconfig/guildDisabledCommandService.js';
 import { defaultPrefix } from '../../services/guildconfig/guildConfigStore.js';
 
 const CATEGORY_ORDER = [
   'administration',
-  'automation',
-  'knowledge',
   'moderation',
+  'knowledge',
   'social',
-  'operation',
   'utility',
+  'operation',
 ] as const;
 
 const CATEGORY_LABELS: Record<string, string> = {
   administration: '🔐 Administration',
-  automation: '⚙️ Automation',
-  knowledge: '📚 Knowledge',
   moderation: '🛡️ Moderation',
+  knowledge: '📚 Knowledge',
   social: '🎮 Social',
-  operation: '🛠️ Operation',
   utility: '🔧 Utility',
+  operation: '🛠️ Operation',
 };
 
 export const HelpCommand: BotCommand = {
@@ -39,9 +38,15 @@ export const HelpCommand: BotCommand = {
     const guildConfig = message.guildId ? await guildConfigService.get(message.guildId) : null;
     const prefix = guildConfig?.prefix ?? defaultPrefix;
 
+    // Fetch which commands are disabled in this guild
+    const disabledCommands = message.guildId
+      ? new Set(await guildDisabledCommandService.getAll(message.guildId))
+      : new Set<string>();
+
     const categories = new Map<string, BotCommand[]>();
 
     for (const [, cmd] of allCommands) {
+      if (disabledCommands.has(cmd.name)) continue;
       const cat = cmd.category;
       if (!categories.has(cat)) categories.set(cat, []);
       categories.get(cat)!.push(cmd);

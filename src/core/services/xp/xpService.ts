@@ -22,7 +22,7 @@ const XP_VARIANCE = 10;
  *   level 5 -> 6:   500 XP  (cumulative 1500)
  */
 export function xpForLevel(level: number): number {
-  return (level - 1) * level / 2 * 100;
+  return (((level - 1) * level) / 2) * 100;
 }
 
 /**
@@ -31,7 +31,7 @@ export function xpForLevel(level: number): number {
  */
 export function levelFromXp(xp: number): number {
   // Inverse of triangular formula: level = floor((sqrt(1 + 8*xp/100) - 1) / 2) + 1
-  return Math.floor((Math.sqrt(1 + 8 * xp / 100) - 1) / 2) + 1;
+  return Math.floor((Math.sqrt(1 + (8 * xp) / 100) - 1) / 2) + 1;
 }
 
 export interface XPLevelUpEvent {
@@ -72,7 +72,7 @@ class XPService extends EventEmitter<XPServiceEvents> {
     guildId: string,
     userId: string,
     platform: 'discord' | 'fluxer',
-    messageContent?: string,
+    messageContent?: string
   ): Promise<{
     awarded: boolean;
     levelUp: { oldLevel: number; newLevel: number; earnedXp: number } | null;
@@ -85,8 +85,13 @@ class XPService extends EventEmitter<XPServiceEvents> {
     const existing = await this.persistence.getEntry(guildId, userId);
 
     // Cooldown check
-    if (existing && (now - existing.lastActionAt) < XP_COOLDOWN_MS) {
-      return { awarded: false, levelUp: null, xpNotifications: existing?.xpNotifications ?? false, keywordBonus: 0 };
+    if (existing && now - existing.lastActionAt < XP_COOLDOWN_MS) {
+      return {
+        awarded: false,
+        levelUp: null,
+        xpNotifications: existing?.xpNotifications ?? false,
+        keywordBonus: 0,
+      };
     }
 
     let earnedXp = XP_BASE + Math.floor(Math.random() * XP_VARIANCE);
@@ -136,10 +141,20 @@ class XPService extends EventEmitter<XPServiceEvents> {
         newLevel,
         xp: newXp,
       });
-      return { awarded: true, levelUp: levelUpInfo, xpNotifications: entry.xpNotifications ?? false, keywordBonus };
+      return {
+        awarded: true,
+        levelUp: levelUpInfo,
+        xpNotifications: entry.xpNotifications ?? false,
+        keywordBonus,
+      };
     }
 
-    return { awarded: true, levelUp: null, xpNotifications: entry.xpNotifications ?? false, keywordBonus };
+    return {
+      awarded: true,
+      levelUp: null,
+      xpNotifications: entry.xpNotifications ?? false,
+      keywordBonus,
+    };
   }
 
   /** Get a user's XP entry. */
@@ -151,7 +166,7 @@ class XPService extends EventEmitter<XPServiceEvents> {
   async getLeaderboard(
     guildId: string,
     limit: number = 10,
-    offset: number = 0,
+    offset: number = 0
   ): Promise<XPEntry[]> {
     return this.persistence.getLeaderboard(guildId, limit, offset);
   }
@@ -167,12 +182,17 @@ class XPService extends EventEmitter<XPServiceEvents> {
   }
 
   /** Get guild-level configuration. */
-  async getGuildConfig(guildId: string): Promise<import('../guildconfig/guildConfigStore.js').GuildConfig> {
+  async getGuildConfig(
+    guildId: string
+  ): Promise<import('../guildconfig/guildConfigStore.js').GuildConfig> {
     return this.guildConfigStore.get(guildId);
   }
 
   /** Update guild-level configuration. */
-  async setGuildConfig(guildId: string, config: Partial<import('../guildconfig/guildConfigStore.js').GuildConfig>): Promise<void> {
+  async setGuildConfig(
+    guildId: string,
+    config: Partial<import('../guildconfig/guildConfigStore.js').GuildConfig>
+  ): Promise<void> {
     return this.guildConfigStore.set(guildId, config);
   }
 
@@ -192,7 +212,7 @@ class XPService extends EventEmitter<XPServiceEvents> {
     guildId: string,
     userId: string,
     platform: 'discord' | 'fluxer',
-    xp: number,
+    xp: number
   ): Promise<{ xp: number; level: number; oldLevel: number }> {
     const existing = await this.persistence.getEntry(guildId, userId);
     const oldLevel = levelFromXp(existing?.xp ?? 0);
@@ -227,7 +247,7 @@ class XPService extends EventEmitter<XPServiceEvents> {
     guildId: string,
     userId: string,
     platform: 'discord' | 'fluxer',
-    amount: number,
+    amount: number
   ): Promise<{ xp: number; level: number; oldLevel: number }> {
     const existing = await this.persistence.getEntry(guildId, userId);
     const previousXp = existing?.xp ?? 0;
@@ -277,6 +297,11 @@ class XPService extends EventEmitter<XPServiceEvents> {
   async listKeywordBonuses(guildId: string): Promise<KeywordBonus[]> {
     return this.persistence.listKeywordBonuses(guildId);
   }
+
+  /** Delete all XP entries and keyword bonuses for a guild. */
+  async clearAllByGuild(guildId: string): Promise<void> {
+    await this.persistence.deleteAllByGuild(guildId);
+  }
 }
 
 export { XPService };
@@ -285,9 +310,7 @@ import { SqliteXPStore } from './xpStoreSqlite.js';
 import { PostgresXPStore } from './xpStorePostgres.js';
 import { guildConfigService } from '../guildconfig/guildConfigService.js';
 
-const store = process.env.DATABASE_URL
-  ? new PostgresXPStore()
-  : new SqliteXPStore();
+const store = process.env.DATABASE_URL ? new PostgresXPStore() : new SqliteXPStore();
 
 console.log('[XP] Using', process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite', 'backend.');
 

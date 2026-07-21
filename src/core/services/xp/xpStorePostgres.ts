@@ -26,10 +26,10 @@ export class PostgresXPStore implements XPStore {
   }
 
   async getEntry(guildId: string, userId: string): Promise<XPEntry | null> {
-    const result = await this.pool.query(
-      'SELECT * FROM xp WHERE guild_id = $1 AND user_id = $2',
-      [guildId, userId],
-    );
+    const result = await this.pool.query('SELECT * FROM xp WHERE guild_id = $1 AND user_id = $2', [
+      guildId,
+      userId,
+    ]);
 
     if (result.rows.length === 0) return null;
     return this.rowToEntry(result.rows[0]);
@@ -54,14 +54,14 @@ export class PostgresXPStore implements XPStore {
         entry.lastActionAt,
         entry.updatedAt,
         entry.xpNotifications ?? false,
-      ],
+      ]
     );
   }
 
   async getLeaderboard(guildId: string, limit: number, offset: number): Promise<XPEntry[]> {
     const result = await this.pool.query(
       'SELECT * FROM xp WHERE guild_id = $1 ORDER BY xp DESC LIMIT $2 OFFSET $3',
-      [guildId, limit, offset],
+      [guildId, limit, offset]
     );
 
     return result.rows.map((row) => this.rowToEntry(row));
@@ -75,17 +75,16 @@ export class PostgresXPStore implements XPStore {
         WHERE guild_id = $1
       ) ranked
       WHERE user_id = $2`,
-      [guildId, userId],
+      [guildId, userId]
     );
 
     return result.rows[0]?.rank ?? null;
   }
 
   async getMemberCount(guildId: string): Promise<number> {
-    const result = await this.pool.query(
-      'SELECT COUNT(*) AS count FROM xp WHERE guild_id = $1',
-      [guildId],
-    );
+    const result = await this.pool.query('SELECT COUNT(*) AS count FROM xp WHERE guild_id = $1', [
+      guildId,
+    ]);
 
     return parseInt(result.rows[0].count, 10);
   }
@@ -93,7 +92,7 @@ export class PostgresXPStore implements XPStore {
   async setXpNotifications(guildId: string, userId: string, enabled: boolean): Promise<void> {
     await this.pool.query(
       'UPDATE xp SET xp_notifications = $1 WHERE guild_id = $2 AND user_id = $3',
-      [enabled, guildId, userId],
+      [enabled, guildId, userId]
     );
   }
 
@@ -102,7 +101,7 @@ export class PostgresXPStore implements XPStore {
   async getKeywordBonus(guildId: string, keyword: string): Promise<number | null> {
     const result = await this.pool.query(
       'SELECT xp_amount FROM keyword_bonuses WHERE guild_id = $1 AND keyword = $2',
-      [guildId, keyword.toLowerCase()],
+      [guildId, keyword.toLowerCase()]
     );
 
     return result.rows[0]?.xp_amount ?? null;
@@ -114,21 +113,21 @@ export class PostgresXPStore implements XPStore {
        VALUES ($1, $2, $3)
        ON CONFLICT (guild_id, keyword) DO UPDATE SET
          xp_amount = EXCLUDED.xp_amount`,
-      [guildId, keyword.toLowerCase(), xpAmount],
+      [guildId, keyword.toLowerCase(), xpAmount]
     );
   }
 
   async removeKeywordBonus(guildId: string, keyword: string): Promise<void> {
-    await this.pool.query(
-      'DELETE FROM keyword_bonuses WHERE guild_id = $1 AND keyword = $2',
-      [guildId, keyword.toLowerCase()],
-    );
+    await this.pool.query('DELETE FROM keyword_bonuses WHERE guild_id = $1 AND keyword = $2', [
+      guildId,
+      keyword.toLowerCase(),
+    ]);
   }
 
   async listKeywordBonuses(guildId: string): Promise<KeywordBonus[]> {
     const result = await this.pool.query(
       'SELECT * FROM keyword_bonuses WHERE guild_id = $1 ORDER BY keyword',
-      [guildId],
+      [guildId]
     );
 
     return result.rows.map((row) => ({
@@ -136,6 +135,11 @@ export class PostgresXPStore implements XPStore {
       keyword: row.keyword as string,
       xpAmount: row.xp_amount as number,
     }));
+  }
+
+  async deleteAllByGuild(guildId: string): Promise<void> {
+    await this.pool.query('DELETE FROM xp WHERE guild_id = $1', [guildId]);
+    await this.pool.query('DELETE FROM keyword_bonuses WHERE guild_id = $1', [guildId]);
   }
 
   private rowToEntry(row: Record<string, unknown>): XPEntry {

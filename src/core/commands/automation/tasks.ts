@@ -7,7 +7,7 @@ import { parseCronExpression, cronToHuman } from '../../services/automation/cron
 export const TasksCommand: BotCommand = {
   name: 'task',
   description: 'Manage scheduled tasks for this server.',
-  category: 'automation',
+  category: 'administration',
   requiredPermissions: ['ManageGuild'],
 
   parameters: [
@@ -245,7 +245,11 @@ async function handleList(message: Parameters<BotCommand['execute']>[0]): Promis
     const lastRun = task.lastRunAt
       ? `${t('commands.tasks.list.lastRun')} <t:${Math.floor(new Date(task.lastRunAt).getTime() / 1000)}:R>`
       : t('commands.tasks.list.neverRun');
-    const schedule = task.cron ? cronToHuman(task.cron) : isDraft ? '' : t('commands.tasks.list.manual');
+    const schedule = task.cron
+      ? cronToHuman(task.cron)
+      : isDraft
+        ? ''
+        : t('commands.tasks.list.manual');
     const schedulePrefix = schedule ? ` — ${schedule}` : '';
     const actionLabel = isDraft
       ? `${t('commands.tasks.list.need')} ${missing.join(', ')}`
@@ -345,7 +349,10 @@ async function handleShow(
         lines.push(`• \`${field.key}\` — ${badge}\n  ${field.description}${defaultHint}`);
       }
       if (lines.length > 0) {
-        fields.push({ name: t('commands.tasks.show.fieldAvailableConfig'), value: lines.join('\n') });
+        fields.push({
+          name: t('commands.tasks.show.fieldAvailableConfig'),
+          value: lines.join('\n'),
+        });
       }
     }
 
@@ -512,8 +519,16 @@ async function handleCreate(
 
     const isManual = taskService.isManual(task);
     const scheduleField = isManual
-      ? { name: t('commands.tasks.create.fieldType'), value: t('commands.tasks.create.typeManual'), inline: true }
-      : { name: t('commands.tasks.create.fieldSchedule'), value: cronExpression ?? '(none)', inline: true };
+      ? {
+          name: t('commands.tasks.create.fieldType'),
+          value: t('commands.tasks.create.typeManual'),
+          inline: true,
+        }
+      : {
+          name: t('commands.tasks.create.fieldSchedule'),
+          value: cronExpression ?? '(none)',
+          inline: true,
+        };
 
     const embed: ReplyEmbed = {
       title: t('commands.tasks.create.title'),
@@ -552,7 +567,9 @@ async function handleRename(
 
   try {
     const task = await taskService.rename(message.guildId, args[0]!, args[1]!);
-    await message.reply(t('commands.tasks.rename.success', { oldName: args[0]!, newName: task.name ?? '' }));
+    await message.reply(
+      t('commands.tasks.rename.success', { oldName: args[0]!, newName: task.name ?? '' })
+    );
   } catch (error) {
     await message.reply(
       error instanceof Error
@@ -626,7 +643,9 @@ async function handleRetool(
 
   try {
     const task = await taskService.retool(message.guildId, args[0]!, args[1]!.toLowerCase());
-    await message.reply(t('commands.tasks.retool.success', { name: task.name ?? '', action: task.action }));
+    await message.reply(
+      t('commands.tasks.retool.success', { name: task.name ?? '', action: task.action })
+    );
   } catch (error) {
     await message.reply(
       error instanceof Error

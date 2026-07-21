@@ -7,18 +7,38 @@ export const RatelimitCommand: BotCommand = {
   name: 'ratelimit',
   description: 'View or configure per-guild rate limits.',
   category: 'administration',
-  parameters: [
+  subcommands: [
     {
-      name: 'action',
-      description: 'Subcommand: user, guild, reset, or leave empty to view',
-      type: 'string',
-      required: false,
+      name: 'view',
+      description: 'Show current effective rate limits for this server.',
     },
     {
-      name: 'value',
-      description: 'New limit value (required for user/guild)',
-      type: 'integer',
-      required: false,
+      name: 'user',
+      description: 'Set the per-user rate limit for this server.',
+      parameters: [
+        {
+          name: 'limit',
+          description: 'Max commands per user per minute.',
+          type: 'integer',
+          required: true,
+        },
+      ],
+    },
+    {
+      name: 'guild',
+      description: 'Set the per-guild rate limit for this server.',
+      parameters: [
+        {
+          name: 'limit',
+          description: 'Max commands per guild per minute.',
+          type: 'integer',
+          required: true,
+        },
+      ],
+    },
+    {
+      name: 'reset',
+      description: 'Reset all rate limit overrides to environment defaults.',
     },
   ],
   async execute(message, args) {
@@ -30,8 +50,8 @@ export const RatelimitCommand: BotCommand = {
 
     const action = args[0]?.toLowerCase();
 
-    // No args — show current effective limits
-    if (!action) {
+    // No args or 'view' — show current effective limits
+    if (!action || action === 'view') {
       return showCurrentLimits(message, guildId);
     }
 

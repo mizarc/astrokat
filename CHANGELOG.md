@@ -23,10 +23,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - The default prefix is configurable globally via `DEFAULT_PREFIX` env var (default `!`). Each guild can still override per-server.
 
 - **Administration:** `!role reaction` — Reaction role management (requires **Manage Roles**). Subcommands:
-  - `add <message-id> <emoji> <role>` — Bind an emoji to a role on a message. Users who react with the emoji gain the role; removing the reaction loses it. The bot auto-reacts to confirm. Limited to 20 per message and 50 per server by default (configurable).
+  - `add <message-id> <emoji> <role>` — Bind an emoji to a role on a message. Users who react with the emoji gain the role; removing the reaction loses it. The bot auto-reacts to confirm. Limited to 20 per message and 50 by default per community.
   - `remove <message-id> <emoji>` — Remove an emoji-to-role binding.
   - `clear <message-id>` — Remove all bindings from a message and clean up the bot's reactions.
   - `list [message-id] [page]` — Show all reaction role bindings with pagination and message previews.
+
+- **Administration:** `!role join` — Join role management (requires **Manage Roles**). Subcommands:
+  - `add <role> [member_age] [account_age]` — Assign a role when members join, with optional age-gated delays in minutes (member age max 7 days, account age max 30 days). Limited to a default 10 bindings per community.
+  - `remove <role>` — Remove a join-role binding.
+  - `list` — List all configured join roles for this server.
+  - `pending` — Show pending delayed role assignments.
+
+- **Administration:** `!role level` — Level role management (requires **Manage Roles**). Automatically assign roles when users reach a certain XP level. Subcommands:
+  - `add <level> <role>` — Bind a role to a level. Users who reach this level get the role. Anyone who has already passed that level will receive the role on their next message. Limited to a default 20 bindings per community.
+  - `remove <role>` — Remove a level-role binding.
+  - `list` — List all configured level roles ordered by level.
 
 - **Automation:** `!task` — Task automation system for creating and managing scheduled or manual triggers. Subcommands:
   - `create <name> [action] [when]` — Create a task with plain English schedules (`daily`, `hourly`, `daily at 9am`) or raw cron. Inline config supported (`channel:#general message:Hello!`), or use draft mode.
@@ -42,6 +53,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `run <name>` — Manually trigger any task immediately.
   - `history <name>` — View recent execution history.
 
+
+- **Administration:** `!settings commands` — Per-guild command toggling. View all commands with their status, disable (`!settings commands disable <name>`), or re-enable (`!settings commands enable <name>`). The settings command itself cannot be disabled. Disabled commands show an explanatory message instead of executing.
+- **Administration:** `!settings features` — Toggle data-storing features (XP/leveling and reputation) on or off without losing data. Use `!settings features enable|disable xp` or `!settings features enable|disable rep`. When a feature is disabled, existing data is preserved and can be re-enabled later.
+- **Administration:** `!settings clear` — Selective data clearing. Clear XP data, reputation data, all role bindings (reaction/join/level), or everything at once. Subcommands: `xp`, `rep`, `roles`, `all`.
+
 #### Actions
 
 - **`announce`** — Post a message or embed to a channel. Configurable message text.
@@ -50,9 +66,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Environment
 
 - **`DEFAULT_PREFIX`** — New optional env var to set the global default command prefix (defaults to `!` when unset).
+- **`FLUXER_API_URL`** — New optional env var for pointing the Fluxer adapter at a self-hosted Fluxer API instance. Defaults to `https://api.fluxer.app`.
+- **`FLUXER_WEB_URL`** — New optional env var for custom Fluxer web URL used in clickable message links. Defaults to `https://web.fluxer.app`.
+
+### Changed
+
+- **Automation** category removed. `!remindme` moved to **Utility**, `!task` moved to **Administration**. The command categories are now: Administration, Knowledge, Moderation, Social, Operation, and Utility.
 
 ### Fixed
 
+- **Join Roles**: Fluxer account age check now correctly derives the account
+  creation date from the user's snowflake ID instead of always passing
+  (Fluxer's user objects lack a `createdAt` property).
 - **Utility**: Neofetch bot version now reads from `package.json` instead of
   being hardcoded, keeping it in sync with the actual release version.
 

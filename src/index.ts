@@ -10,6 +10,8 @@ import {
   createFluxerActionDispatcher,
 } from './adapters/fluxer.js';
 import { reminderService } from './core/services/reminders/reminderService.js';
+import { joinRoleService } from './core/services/joinrole/joinRoleService.js';
+import { levelRoleService } from './core/services/levelrole/levelRoleService.js';
 import { getCommands } from './core/router.js';
 import { GuildSnapshotService } from './core/services/guildsnapshot/guildSnapshotService.js';
 import { SqliteGuildSnapshotStore } from './core/services/guildsnapshot/guildSnapshotStoreSqlite.js';
@@ -79,5 +81,13 @@ if (needFluxer) {
 
 // Start the cron engine after both clients are registered
 cronEngine.start();
+
+// Start the join-role background worker (polls for due pending assignments)
+joinRoleService.startWorker();
+
+// Initialize the level-role service (populates guild cache)
+levelRoleService.init().catch((err) => {
+  console.error('[LEVEL_ROLE] Failed to initialize:', err);
+});
 
 console.log(t('system.allAdaptersConnected'));

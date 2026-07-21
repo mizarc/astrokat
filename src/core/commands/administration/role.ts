@@ -1,6 +1,8 @@
 import { t } from '../../i18n.js';
 import type { BotCommand, ReplyEmbed } from '../../types.js';
 import { reactionRoleService } from '../../services/reactionrole/reactionRoleService.js';
+import { joinRoleService } from '../../services/joinrole/joinRoleService.js';
+import { levelRoleService } from '../../services/levelrole/levelRoleService.js';
 import { getUnicodeFromShortcode } from '@fluxerjs/util';
 
 /**
@@ -47,9 +49,24 @@ function messageLink(
   messageId: string
 ): string {
   if (!channelId) return `\`${messageId}\``;
-  const base =
-    platform === 'fluxer' ? 'https://web.fluxer.app/channels' : 'https://discord.com/channels';
+  const fluxerWebUrl = process.env.FLUXER_WEB_URL ?? 'https://web.fluxer.app';
+  const base = platform === 'fluxer' ? `${fluxerWebUrl}/channels` : 'https://discord.com/channels';
   return `${base}/${guildId}/${channelId}/${messageId}`;
+}
+
+/**
+ * Format a duration in minutes to a human-readable string.
+ * e.g. 1440 -> "1d", 90 -> "1h 30m", 5 -> "5m"
+ */
+function formatDuration(minutes: number): string {
+  const parts: string[] = [];
+  const days = Math.floor(minutes / 1440);
+  const hours = Math.floor((minutes % 1440) / 60);
+  const mins = minutes % 60;
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  if (mins > 0 || parts.length === 0) parts.push(`${mins}m`);
+  return parts.join(' ');
 }
 
 export const RoleCommand: BotCommand = {
@@ -138,6 +155,102 @@ export const RoleCommand: BotCommand = {
         },
       ],
     },
+    {
+      name: 'join',
+      description: 'Manage join roles — roles assigned automatically when members join.',
+      subcommands: [
+        {
+          name: 'add',
+          description:
+            'Add a role to be assigned when members join, with optional conditional delays.',
+          parameters: [
+            {
+              name: 'role',
+              description: 'The role to assign on member join.',
+              type: 'role',
+              required: true,
+            },
+            {
+              name: 'member_age',
+              description:
+                'Minimum member age in minutes (e.g. 60 for 1 hour). Role assigned after this delay.',
+              type: 'integer',
+              required: false,
+              minValue: 1,
+            },
+            {
+              name: 'account_age',
+              description:
+                'Minimum account age in minutes (e.g. 1440 for 1 day). Role assigned after this delay.',
+              type: 'integer',
+              required: false,
+              minValue: 1,
+            },
+          ],
+        },
+        {
+          name: 'remove',
+          description: 'Remove a join-role binding.',
+          parameters: [
+            {
+              name: 'role',
+              description: 'The role to unbind from join assignments.',
+              type: 'role',
+              required: true,
+            },
+          ],
+        },
+        {
+          name: 'list',
+          description: 'List all configured join roles for this server.',
+        },
+        {
+          name: 'pending',
+          description: 'Show pending delayed role assignments for this server.',
+        },
+      ],
+    },
+    {
+      name: 'level',
+      description: 'Manage level roles — roles assigned automatically on level-up.',
+      subcommands: [
+        {
+          name: 'add',
+          description: 'Bind a role to a level. Users who reach this level get the role.',
+          parameters: [
+            {
+              name: 'level',
+              description: 'The level required to earn this role (1-500).',
+              type: 'integer',
+              required: true,
+              minValue: 1,
+            },
+            {
+              name: 'role',
+              description: 'The role to assign on reaching this level.',
+              type: 'role',
+              required: true,
+            },
+          ],
+        },
+        {
+          name: 'remove',
+          description: 'Remove a level-role binding.',
+          parameters: [
+            {
+              name: 'role',
+              description: 'The role to unbind from level assignments.',
+              type: 'role',
+              required: true,
+            },
+          ],
+        },
+        {
+          name: 'list',
+          description: 'List all configured level roles for this server.',
+        },
+      ],
+    },
   ],
   async execute(message, args) {
     const guildId = message.guildId;
@@ -179,6 +292,38 @@ export const RoleCommand: BotCommand = {
       return;
     }
 
+    if (sub === 'join') {
+      const action = args[1]?.toLowerCase();
+      switch (action) {
+        case 'add':
+          return handleJoinAdd(message, args.slice(2));
+        case 'remove':
+          return handleJoinRemove(message, args.slice(2));
+        case 'list':
+          return handleJoinList(message);
+        case 'pending':
+          return handleJoinPending(message);
+        default:
+          await showHelp(message);
+      }
+      return;
+    }
+
+    if (sub === 'level') {
+      const action = args[1]?.toLowerCase();
+      switch (action) {
+        case 'add':
+          return handleLevelAdd(message, args.slice(2));
+        case 'remove':
+          return handleLevelRemove(message, args.slice(2));
+        case 'list':
+          return handleLevelList(message);
+        default:
+          await showHelp(message);
+      }
+      return;
+    }
+
     await showHelp(message);
   },
 };
@@ -205,6 +350,40 @@ async function showHelp(message: any): Promise<void> {
       t('commands.role.help.entry', {
         usage: '`!role reaction list [message-id|page]`',
         description: t('commands.role.reaction.list.description'),
+      }),
+      '',
+      t('commands.role.help.joinRoles'),
+      '',
+      t('commands.role.help.entry', {
+        usage: '`!role join add <role> [member_age] [account_age]`',
+        description: t('commands.role.join.add.description'),
+      }),
+      t('commands.role.help.entry', {
+        usage: '`!role join remove <role>`',
+        description: t('commands.role.join.remove.description'),
+      }),
+      t('commands.role.help.entry', {
+        usage: '`!role join list`',
+        description: t('commands.role.join.list.description'),
+      }),
+      t('commands.role.help.entry', {
+        usage: '`!role join pending`',
+        description: t('commands.role.join.pending.description'),
+      }),
+      '',
+      t('commands.role.help.levelRoles'),
+      '',
+      t('commands.role.help.entry', {
+        usage: '`!role level add <level> <role>`',
+        description: t('commands.role.level.add.description'),
+      }),
+      t('commands.role.help.entry', {
+        usage: '`!role level remove <role>`',
+        description: t('commands.role.level.remove.description'),
+      }),
+      t('commands.role.help.entry', {
+        usage: '`!role level list`',
+        description: t('commands.role.level.list.description'),
       }),
     ].join('\n'),
   };
@@ -470,6 +649,280 @@ async function handleReactionList(message: any, args: string[]) {
       }),
     };
   }
+
+  await message.reply({ content: '', embeds: [embed] });
+}
+
+async function handleJoinAdd(message: any, args: string[]) {
+  const guildId = message.guildId!;
+
+  if (args.length < 1) {
+    await message.reply(t('commands.role.join.add.usage'));
+    return;
+  }
+
+  const roleInput = args[0]!;
+  const roleId = parseRoleId(roleInput);
+  if (!roleId) {
+    await message.reply(t('commands.role.join.add.invalidRole'));
+    return;
+  }
+
+  const memberAge = args[1] ? parseInt(args[1], 10) : undefined;
+  const accountAge = args[2] ? parseInt(args[2], 10) : undefined;
+
+  // Validate age values if provided.
+  if (args[1] !== undefined && args[1] !== '' && (isNaN(memberAge!) || memberAge! < 0)) {
+    await message.reply(t('commands.role.join.add.invalidAge'));
+    return;
+  }
+  if (args[2] !== undefined && args[2] !== '' && (isNaN(accountAge!) || accountAge! < 0)) {
+    await message.reply(t('commands.role.join.add.invalidAge'));
+    return;
+  }
+
+  try {
+    const binding = await joinRoleService.addBinding({
+      guildId,
+      roleId,
+      platform: message.platform as string,
+      minAccountAgeMinutes: accountAge && accountAge > 0 ? accountAge : null,
+      minMemberAgeMinutes: memberAge && memberAge > 0 ? memberAge : null,
+    });
+
+    await message.reply(
+      t('commands.role.join.add.success', {
+        roleId,
+        accountAge: binding.minAccountAgeMinutes
+          ? formatDuration(binding.minAccountAgeMinutes)
+          : t('commands.role.noCondition'),
+        memberAge: binding.minMemberAgeMinutes
+          ? formatDuration(binding.minMemberAgeMinutes)
+          : t('commands.role.noCondition'),
+      })
+    );
+  } catch (error) {
+    const errMessage = error instanceof Error ? error.message : 'Unknown error';
+    await message.reply(t('commands.role.join.add.error', { error: errMessage }));
+  }
+}
+
+async function handleJoinRemove(message: any, args: string[]) {
+  const guildId = message.guildId!;
+
+  if (args.length < 1) {
+    await message.reply(t('commands.role.join.remove.usage'));
+    return;
+  }
+
+  const roleInput = args[0]!;
+  const roleId = parseRoleId(roleInput);
+  if (!roleId) {
+    await message.reply(t('commands.role.join.remove.invalidRole'));
+    return;
+  }
+
+  const removed = await joinRoleService.removeBinding(guildId, roleId);
+
+  if (!removed) {
+    await message.reply(t('commands.role.join.remove.notFound', { roleId }));
+    return;
+  }
+
+  await message.reply(t('commands.role.join.remove.success', { roleId }));
+}
+
+async function handleJoinList(message: any) {
+  const guildId = message.guildId!;
+
+  const bindings = await joinRoleService.listBindings(guildId);
+
+  if (bindings.length === 0) {
+    await message.reply(t('commands.role.join.list.empty'));
+    return;
+  }
+
+  const lines: string[] = [];
+  for (let i = 0; i < bindings.length; i++) {
+    const b = bindings[i]!;
+    const conditions: string[] = [];
+    if (b.minAccountAgeMinutes) {
+      conditions.push(
+        t('commands.role.join.list.conditionAccountAge', {
+          age: formatDuration(b.minAccountAgeMinutes),
+        })
+      );
+    }
+    if (b.minMemberAgeMinutes) {
+      conditions.push(
+        t('commands.role.join.list.conditionMemberAge', {
+          age: formatDuration(b.minMemberAgeMinutes),
+        })
+      );
+    }
+    const conditionStr =
+      conditions.length > 0 ? conditions.join(', ') : t('commands.role.join.list.immediate');
+
+    lines.push(
+      t('commands.role.join.list.entry', {
+        index: i + 1,
+        roleId: b.roleId,
+        conditions: conditionStr,
+      })
+    );
+  }
+
+  const embed: ReplyEmbed = {
+    title: t('commands.role.join.list.title'),
+    description: lines.join('\n'),
+    color: 0x5865f2,
+    footer: {
+      text: t('commands.role.join.list.footer', { count: bindings.length }),
+    },
+  };
+
+  await message.reply({ content: '', embeds: [embed] });
+}
+
+async function handleJoinPending(message: any) {
+  const guildId = message.guildId!;
+
+  const pending = await joinRoleService.getPendingForGuild(guildId);
+
+  if (pending.length === 0) {
+    await message.reply(t('commands.role.join.pending.empty'));
+    return;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const lines: string[] = [];
+  for (let i = 0; i < Math.min(pending.length, 20); i++) {
+    const p = pending[i]!;
+    const remaining = Math.max(0, p.dueAt - now);
+    const formatted =
+      remaining < 60 ? t('commands.role.join.pending.lessThanMinute') : `<t:${p.dueAt}:R>`;
+
+    lines.push(
+      t('commands.role.join.pending.entry', {
+        index: i + 1,
+        userId: p.userId,
+        roleId: p.roleId,
+        remaining: formatted,
+      })
+    );
+  }
+
+  const embed: ReplyEmbed = {
+    title: t('commands.role.join.pending.title'),
+    description: lines.join('\n'),
+    color: 0xfee75c,
+    footer: {
+      text: t('commands.role.join.pending.footer', {
+        count: pending.length,
+        shown: Math.min(pending.length, 20),
+      }),
+    },
+  };
+
+  await message.reply({ content: '', embeds: [embed] });
+}
+
+async function handleLevelAdd(message: any, args: string[]) {
+  const guildId = message.guildId!;
+
+  if (args.length < 2) {
+    await message.reply(t('commands.role.level.add.usage'));
+    return;
+  }
+
+  const level = parseInt(args[0]!, 10);
+  if (isNaN(level) || level < 1) {
+    await message.reply(t('commands.role.level.add.invalidLevel'));
+    return;
+  }
+
+  const roleInput = args[1]!;
+  const roleId = parseRoleId(roleInput);
+  if (!roleId) {
+    await message.reply(t('commands.role.level.add.invalidRole'));
+    return;
+  }
+
+  try {
+    const binding = await levelRoleService.addBinding({
+      guildId,
+      roleId,
+      level,
+      platform: message.platform as string,
+    });
+
+    await message.reply(
+      t('commands.role.level.add.success', {
+        level: binding.level,
+        roleId,
+      })
+    );
+  } catch (error) {
+    const errMessage = error instanceof Error ? error.message : 'Unknown error';
+    await message.reply(t('commands.role.level.add.error', { error: errMessage }));
+  }
+}
+
+async function handleLevelRemove(message: any, args: string[]) {
+  const guildId = message.guildId!;
+
+  if (args.length < 1) {
+    await message.reply(t('commands.role.level.remove.usage'));
+    return;
+  }
+
+  const roleInput = args[0]!;
+  const roleId = parseRoleId(roleInput);
+  if (!roleId) {
+    await message.reply(t('commands.role.level.remove.invalidRole'));
+    return;
+  }
+
+  const removed = await levelRoleService.removeBinding(guildId, roleId);
+
+  if (!removed) {
+    await message.reply(t('commands.role.level.remove.notFound', { roleId }));
+    return;
+  }
+
+  await message.reply(t('commands.role.level.remove.success', { roleId }));
+}
+
+async function handleLevelList(message: any) {
+  const guildId = message.guildId!;
+
+  const bindings = await levelRoleService.listBindings(guildId);
+
+  if (bindings.length === 0) {
+    await message.reply(t('commands.role.level.list.empty'));
+    return;
+  }
+
+  const lines: string[] = [];
+  for (let i = 0; i < bindings.length; i++) {
+    const b = bindings[i]!;
+    lines.push(
+      t('commands.role.level.list.entry', {
+        index: i + 1,
+        level: b.level,
+        roleId: b.roleId,
+      })
+    );
+  }
+
+  const embed: ReplyEmbed = {
+    title: t('commands.role.level.list.title'),
+    description: lines.join('\n'),
+    color: 0x5865f2,
+    footer: {
+      text: t('commands.role.level.list.footer', { count: bindings.length }),
+    },
+  };
 
   await message.reply({ content: '', embeds: [embed] });
 }

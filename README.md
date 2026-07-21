@@ -25,7 +25,7 @@ Have open questions, suggestions, or just want to hang out? Join the **[Astrokat
 - **Multi-platform by design** — Built on a shared command system. Write a command once, it works everywhere. Currently supports Discord and Fluxer.
 - **35+ commands** — From utility (ping, calc, QR codes, timestamps) to social (coinflip, diceroll, wheelspin, slap with animated GIFs) to knowledge (Wikipedia, thesaurus, translations) to reaction roles and task automation.
 - **Persistent reminders** — Set `!remindme in 30 minutes ...` and get pinged when the time comes.
-- **Reaction roles** — Let users self-assign roles by reacting to a message. Manage bindings via `!role reaction`.
+- **Role management** — Reaction roles, join roles, and level roles. We have all types of auto role assignment features.
 - **Task automation** — Schedule automated actions (announcements, purges) via `!task`.
 - **Docker-first** — One command to start. SQLite for small deployments, PostgreSQL for larger scale clusters.
 
@@ -233,19 +233,21 @@ npm run test:coverage   # with coverage report
 
 Astrokat is configured through environment variables set in your `.env` file. Below is the full list of supported variables. Copy `.env.example` to `.env` and fill in the values relevant to your setup. Anything left as the default can be safely omitted.
 
-| Variable                          | Required                | Default          | Description                                                                 |
-| --------------------------------- | ----------------------- | ---------------- | --------------------------------------------------------------------------- |
-| `ADAPTERS`                        | No                      | `discord,fluxer` | Which chat platforms to connect to                                          |
-| `DISCORD_TOKEN`                   | Conditional             | —                | Discord bot token (needed for Discord)                                      |
-| `FLUXER_TOKEN`                    | Conditional             | —                | Fluxer bot token (needed for Fluxer)                                        |
-| `DISCORD_ID`                      | Yes, for slash commands | —                | Discord application ID (slash commands auto-deploy on startup)              |
-| `BOT_OPERATOR_IDS`                | No                      | —                | Comma-separated user IDs allowed to run owner commands (!status, !presence) |
-| `DATABASE_URL`                    | No                      | —                | PostgreSQL connection string (unset to use SQLite)                               |
-| `RATE_LIMIT_USER_MAX`             | No                      | `10`             | Max commands per user per guild per time window                             |
-| `RATE_LIMIT_GUILD_MAX`            | No                      | `100`            | Max commands per guild per time window                                      |
-| `RATE_LIMIT_WINDOW_MS`            | No                      | `60000`          | Rate limit time window in milliseconds (default: 1 min)                     |
-| `REACTION_ROLE_PER_MESSAGE_LIMIT` | No                      | `20`             | Max reaction role bindings per message                                      |
-| `REACTION_ROLE_PER_GUILD_LIMIT`   | No                      | `50`             | Max reaction role bindings per guild                                        |
+| Variable                          | Required                | Default                  | Description                                                                 |
+| --------------------------------- | ----------------------- | ------------------------ | --------------------------------------------------------------------------- |
+| `ADAPTERS`                        | No                      | `discord,fluxer`         | Which chat platforms to connect to                                          |
+| `DISCORD_TOKEN`                   | Conditional             | —                        | Discord bot token (needed for Discord)                                      |
+| `FLUXER_TOKEN`                    | Conditional             | —                        | Fluxer bot token (needed for Fluxer)                                        |
+| `DISCORD_ID`                      | Yes, for slash commands | —                        | Discord application ID (slash commands auto-deploy on startup)              |
+| `BOT_OPERATOR_IDS`                | No                      | —                        | Comma-separated user IDs allowed to run owner commands (!status, !presence) |
+| `DATABASE_URL`                    | No                      | —                        | PostgreSQL connection string (unset to use SQLite)                          |
+| `RATE_LIMIT_USER_MAX`             | No                      | `10`                     | Max commands per user per guild per time window                             |
+| `RATE_LIMIT_GUILD_MAX`            | No                      | `100`                    | Max commands per guild per time window                                      |
+| `RATE_LIMIT_WINDOW_MS`            | No                      | `60000`                  | Rate limit time window in milliseconds (default: 1 min)                     |
+| `REACTION_ROLE_PER_MESSAGE_LIMIT` | No                      | `20`                     | Max reaction role bindings per message                                      |
+| `REACTION_ROLE_PER_GUILD_LIMIT`   | No                      | `50`                     | Max reaction role bindings per guild                                        |
+| `FLUXER_API_URL`                  | No                      | `https://api.fluxer.app` | Custom Fluxer API URL for self-hosted Fluxer instances                      |
+| `FLUXER_WEB_URL`                  | No                      | `https://web.fluxer.app` | Custom Fluxer web URL for clickable message links                           |
 
 ## 📦 Storage Backends
 

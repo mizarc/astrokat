@@ -8,7 +8,8 @@
     "executingCommand": "Executing '{commandName}' via {type} command.",
     "commandNotFound": "Command not found.",
     "rateLimitedUser": "⏳ You're sending commands too fast! Please wait **{retryAfter}s** before using another command.",
-    "rateLimitedGuild": "⏳ This server is sending too many commands! Please wait **{retryAfter}s** before using another command."
+    "rateLimitedGuild": "⏳ This community is sending too many commands! Please wait **{retryAfter}s** before using another command.",
+    "commandDisabled": "❌ The **{command}** command has been disabled in this community."
   },
   "fluxer": {
     "receivedMessage": "[FLUXER] Received message: {content} from {username}",
@@ -238,6 +239,7 @@
       "givenTitle": "⭐ Rep Given!",
       "givenDescription": "**{giver}** gave a rep point to **{receiver}**! They now have **{rep} rep**.",
       "botRep": "🤖 You can't give reputation points to bots.",
+      "disabled": "❌ The reputation system has been disabled in this server.",
       "dailyAllowanceExhausted": "⏳ You've used all **3** of your daily reputation tokens! Come back in 24 hours.",
       "targetLockout": "🔒 You've already repped this user recently. You can give them rep again in **{time}**.",
       "cooldownDays": "{days}d",
@@ -332,11 +334,12 @@
     },
     "settings": {
       "guildOnly": "❌ This command can only be used in a server.",
+      "noPermission": "❌ You need the **Manage Server** permission to change settings.",
       "help": {
         "title": "⚙️ Server Settings",
         "footer": "Use `!settings <subcommand>` to run a command."
       },
-      "unknownSubcommand": "❌ Unknown subcommand `{sub}`. Available: `prefix`.",
+      "unknownSubcommand": "❌ Unknown subcommand `{sub}`. Available: `prefix`, `commands`, `features`, `clear`.",
       "prefix": {
         "helpDescription": "View or change the command prefix.",
         "noPermission": "❌ You need the **Manage Server** permission to change the prefix.",
@@ -348,6 +351,42 @@
         "noSpaces": "❌ Prefix cannot contain spaces.",
         "setSuccess": "✅ Command prefix changed to `{prefix}`. Use `{prefix}` instead of `{defaultPrefix}` from now on.\n\nForgot your prefix? Mention me:\n{botMention} settings prefix — check current prefix\n{botMention} settings prefix reset — restore prefix to the default `{defaultPrefix}`",
         "resetSuccess": "✅ Prefix reset to `{defaultPrefix}`. All commands now use the default prefix."
+      },
+      "commands": {
+        "helpDescription": "List or toggle individual command availability.",
+        "usage": "❌ Usage: `!settings commands list` — show all commands\n`!settings commands disable <name>` — disable a command\n`!settings commands enable <name>` — re-enable a command",
+        "title": "📋 Command Availability",
+        "footer": "Use `!settings commands disable <name>` or `!settings commands enable <name>` to toggle",
+        "statusEnabled": "✅ Enabled",
+        "statusDisabled": "❌ Disabled",
+        "notFound": "❌ Unknown command `{command}`.",
+        "alreadyDisabled": "❌ `{command}` is already disabled.",
+        "alreadyEnabled": "✅ `{command}` is already enabled.",
+        "disabled": "❌ `{command}` has been disabled. Use `!settings commands enable {command}` to re-enable it.",
+        "enabled": "✅ `{command}` has been enabled.",
+        "cannotDisable": "❌ The **settings** command cannot be disabled. Otherwise you'd have no way to re-enable it!"
+      },
+      "features": {
+        "helpDescription": "Enable or disable data-storing features (XP, rep).",
+        "usage": "❌ Usage: `!settings features` — list features\n`!settings features enable xp` — enable XP\n`!settings features disable xp` — disable XP\n`!settings features enable rep` — enable rep\n`!settings features disable rep` — disable rep",
+        "title": "⚙️ Feature Toggles",
+        "footer": "Use `!settings features enable|disable <name>` to toggle",
+        "statusEnabled": "✅ On",
+        "statusDisabled": "❌ Off",
+        "unknown": "❌ Unknown feature `{feature}`. Available: `xp`, `rep`.",
+        "xpEnabled": "✅ XP and leveling have been enabled.",
+        "xpDisabled": "❌ XP and leveling have been disabled. Existing data is preserved. Use `!settings features xp enable` to re-enable.",
+        "repEnabled": "✅ Reputation has been enabled.",
+        "repDisabled": "❌ Reputation has been disabled. Existing data is preserved. Use `!settings features rep enable` to re-enable."
+      },
+      "clear": {
+        "helpDescription": "Clear stored data for this server (xp, rep, roles, or everything).",
+        "usage": "❌ Usage: `!settings clear xp` — clear XP data\n`!settings clear rep` — clear reputation data\n`!settings clear roles` — clear reaction, join, and level role bindings\n`!settings clear all` — clear everything",
+        "xpDone": "🗑️ All XP and keyword bonus data for this server has been cleared.",
+        "repDone": "🗑️ All reputation data for this server has been cleared.",
+        "rolesDone": "🗑️ All reaction role, join role, and level role bindings for this server have been cleared.",
+        "everythingDone": "🗑️ All bot data for this server has been cleared. This includes XP, reputation, and all role bindings.",
+        "unknown": "❌ Unknown target `{target}`. Available: `xp`, `rep`, `roles`, `all`."
       }
     },
     "tasks": {
@@ -491,9 +530,12 @@
     "role": {
       "guildOnly": "❌ This command can only be used in a server.",
       "noPermission": "❌ You need the **Manage Roles** permission to manage reaction roles.",
+      "noCondition": "None",
       "help": {
         "title": "📋 Role Management",
         "reactionRoles": "**Reaction Roles**",
+        "joinRoles": "**Join Roles**",
+        "levelRoles": "**Level Roles**",
         "entry": "`{usage}` — {description}"
       },
       "reaction": {
@@ -524,6 +566,74 @@
           "entry": "{index}. {emoji} → <@&{roleId}> — {msg}",
           "entryWithPreview": "{index}. {emoji} → <@&{roleId}> — {msg}\n> {preview}",
           "footer": "Page {page}/{totalPages} ({total} total) — use `!role reaction list [message_id] and/or [page]` to filter"
+        }
+      },
+      "join": {
+        "add": {
+          "description": "Add a join-role binding with optional age conditions.",
+          "usage": "❌ Usage: `!role join add <role> [member_age_minutes] [account_age_minutes]`\nExample: `!role join add @Member 60` — assigns @Member after 1 hour in the server.\nExample: `!role join add @Member 60 1440` — after 1 hour + account must be 1 day old.\nExample: `!role join add @Member` — assigns @Member immediately on join.",
+          "invalidRole": "❌ Invalid role. Please mention a role (e.g. @Role) or provide a role ID.",
+          "invalidAge": "❌ Invalid age value. Please provide a positive number of minutes.",
+          "alreadyBound": "❌ That role is already configured as a join role in this community.",
+          "maxBindings": "❌ This community already has {max} join roles, the maximum allowed.",
+          "maxMemberAge": "Member age cannot exceed {max} minutes (7 days).",
+          "maxAccountAge": "Account age cannot exceed {max} minutes (30 days).",
+          "success": "✅ <@&{roleId}> will now be assigned when members join.\nAccount age condition: **{accountAge}**\nMember age condition: **{memberAge}**",
+          "error": "❌ Failed to add join role: {error}",
+          "errorGeneric": "Failed to create join-role binding."
+        },
+        "remove": {
+          "description": "Remove a join-role binding.",
+          "usage": "❌ Usage: `!role join remove <role>`\nExample: `!role join remove @Member`",
+          "invalidRole": "❌ Invalid role. Please mention a role (e.g. @Role) or provide a role ID.",
+          "notFound": "❌ No join-role binding found for <@&{roleId}>.",
+          "success": "✅ Removed join-role binding for <@&{roleId}>."
+        },
+        "list": {
+          "description": "List all join-role bindings.",
+          "title": "📋 Join Role Bindings",
+          "empty": "📋 No join roles configured for this server.\nUse `!role join add <role>` to add one.",
+          "entry": "{index}. <@&{roleId}> — {conditions}",
+          "conditionAccountAge": "Account ≥ {age}",
+          "conditionMemberAge": "Member ≥ {age}",
+          "immediate": "Immediate",
+          "footer": "{count} binding(s)"
+        },
+        "pending": {
+          "description": "Show pending delayed role assignments.",
+          "title": "⏳ Pending Role Assignments",
+          "empty": "📋 No pending role assignments.",
+          "entry": "{index}. <@{userId}> → <@&{roleId}> — {remaining}",
+          "lessThanMinute": "<1 minute",
+          "footer": "Showing {shown}/{count} · pending assignments are polled every 30s"
+        }
+      },
+      "level": {
+        "add": {
+          "description": "Bind a role to a level. Users who reach this level get the role.",
+          "usage": "❌ Usage: `!role level add <level> <role>`\nExample: `!role level add 5 @Member`.",
+          "invalidRole": "❌ Invalid role. Please mention a role (e.g. @Role) or provide a role ID.",
+          "invalidLevel": "❌ Invalid level. Please provide a positive number.",
+          "levelAlreadyBound": "❌ Level {level} is already bound to <@&{roleId}>.",
+          "roleAlreadyBound": "❌ <@&{roleId}> is already bound to level {level}.",
+          "maxBindings": "❌ This community already has {max} level roles, the maximum allowed.",
+          "success": "✅ Level **{level}** → <@&{roleId}> set! Users who reach level {level} will get this role.",
+          "error": "❌ Failed to add level role: {error}",
+          "errorGeneric": "Failed to create level-role binding."
+        },
+        "remove": {
+          "description": "Remove a level-role binding.",
+          "usage": "❌ Usage: `!role level remove <role>`\nExample: `!role level remove @Member`",
+          "invalidRole": "❌ Invalid role. Please mention a role (e.g. @Role) or provide a role ID.",
+          "notFound": "❌ No level-role binding found for <@&{roleId}>.",
+          "success": "✅ Removed level-role binding for <@&{roleId}>."
+        },
+        "list": {
+          "description": "List all level-role bindings.",
+          "title": "📋 Level Role Bindings",
+          "empty": "📋 No level roles configured for this server.\nUse `!role level add <level> <role>` to add one.",
+          "entry": "{index}. Level **{level}** → <@&{roleId}>",
+          "footer": "{count} binding(s)"
         }
       }
     }

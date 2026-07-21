@@ -49,7 +49,7 @@ class RepService {
    * Award a reputation point to a user.
    *
    * Validates the request through a three-step gate (self-rep, daily
-   * allowance, target lockout). On success, awards the point, consumes a 
+   * allowance, target lockout). On success, awards the point, consumes a
    * daily token, and engages the 7-day lockout in a single flow.
    *
    * @param guildId - Guild ID where the command was issued.
@@ -151,6 +151,11 @@ class RepService {
    */
   async getMemberCount(guildId: string): Promise<number> {
     return this.persistence.getMemberCount(guildId);
+  }
+
+  /** Delete all rep entries, daily allowances, and target lockouts for a guild. */
+  async clearAllByGuild(guildId: string): Promise<void> {
+    await this.persistence.deleteAllByGuild(guildId);
   }
 }
 

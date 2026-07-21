@@ -54,6 +54,7 @@ export class PostgresGuildConfigStore implements GuildConfigStore {
     }
 
     const r = result.rows[0];
+
     return {
       guildId,
       rateLimitUserMax: r.rate_limit_user_max ?? null,

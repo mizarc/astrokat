@@ -1,6 +1,7 @@
 import { t } from '../../i18n.js';
 import type { BotCommand, ReplyEmbed } from '../../types.js';
 import { repService } from '../../services/rep/repService.js';
+import { guildFeatureService } from '../../services/guildconfig/guildFeatureService.js';
 
 export const RepCommand: BotCommand = {
   name: 'rep',
@@ -18,6 +19,13 @@ export const RepCommand: BotCommand = {
     const guildId = message.guildId;
     if (!guildId) {
       await message.reply(t('commands.rep.guildOnly'));
+      return;
+    }
+
+    // Check if rep is enabled in this guild
+    const repEnabled = await guildFeatureService.isEnabled(guildId, 'rep');
+    if (!repEnabled) {
+      await message.reply(t('commands.rep.disabled'));
       return;
     }
 

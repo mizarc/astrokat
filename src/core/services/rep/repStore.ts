@@ -51,4 +51,7 @@ export interface RepStore {
    * Returns true if the lockout is still active.
    */
   hasActiveTargetLockout(guildId: string, giverId: string, receiverId: string): Promise<boolean>;
+
+  /** Delete all rep entries, daily allowances, and target lockouts for a guild. */
+  deleteAllByGuild(guildId: string): Promise<void>;
 }

@@ -1,9 +1,12 @@
 import { t } from '../core/i18n.js';
 import { Client, EmbedBuilder, Events, PermissionFlags, GatewayOpcodes } from '@fluxerjs/core';
+import { SnowflakeUtil } from '@fluxerjs/util';
 import type { UnifiedMessage, UnifiedAuthor, UnifiedChannel, ReplyEmbed } from '../core/types.js';
 import { handleIncomingMessage, awardMessageXp } from '../core/router.js';
 import { reminderService } from '../core/services/reminders/reminderService.js';
 import { reactionRoleService } from '../core/services/reactionrole/reactionRoleService.js';
+import { joinRoleService } from '../core/services/joinrole/joinRoleService.js';
+import { levelRoleService } from '../core/services/levelrole/levelRoleService.js';
 import type { GuildAggregator, GuildStats, ActionDispatcher } from '../core/types.js';
 
 /** Tracks the bot's presence status so setStatus and setPresence compose cleanly. */
@@ -40,7 +43,12 @@ function toFluxerEmbeds(embeds: ReplyEmbed[]): EmbedBuilder[] {
 }
 
 export function startFluxerBot() {
-  const client = new Client({ intents: 0 });
+  const client = new Client({
+    intents: 0,
+    rest: {
+      api: process.env.FLUXER_API_URL ?? 'https://api.fluxer.app',
+    },
+  });
   const messageCache = new Map<string, any>();
 
   client.on(Events.MessageCreate, async (message) => {
@@ -212,6 +220,9 @@ export function startFluxerBot() {
       ...((message as any).guildId ? { guildId: (message as any).guildId } : {}),
       platform: 'fluxer',
       botUserId: (client as any).user?.id,
+      ...((message as any).member?.roles?.roleIds
+        ? { memberRoles: [...(message as any).member.roles.roleIds] as string[] }
+        : {}),
       deferReply: async () => {
         // Fluxer doesn't require interaction deferral — no-op
       },
@@ -302,6 +313,32 @@ export function startFluxerBot() {
 
     // Award XP for every message in a guild
     await awardMessageXp(unified);
+  });
+
+  // Register level role assigner
+  levelRoleService.setRoleAssigner(async (guildId, userId, roleId) => {
+    try {
+      const guild = await client.guilds.resolve(guildId);
+      if (!guild) return false;
+      const member = await guild.fetchMember(userId);
+      await member.roles.add(roleId);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+
+  // Register join role assigner
+  joinRoleService.setRoleAssigner(async (guildId, userId, roleId) => {
+    try {
+      const guild = await client.guilds.resolve(guildId);
+      if (!guild) return false;
+      const member = await guild.fetchMember(userId);
+      await member.roles.add(roleId);
+      return true;
+    } catch {
+      return false;
+    }
   });
 
   // Register reminder listener
@@ -424,6 +461,49 @@ export function startFluxerBot() {
   // Gracefully handle connection drops (sleep/wake, network blips)
   client.on('error', (err: Error) => {
     console.warn(t('fluxer.connectionError'), err.message);
+  });
+
+  // Join role event handlers
+  client.on(Events.GuildMemberAdd, async (member: any) => {
+    if (member.user?.bot) return;
+
+    try {
+      const guildId = member.guild?.id;
+      if (!guildId) return;
+
+      // Derive account creation date from the user's snowflake ID
+      const accountCreatedAt = Math.floor(
+        SnowflakeUtil.timestampFromSnowflake(member.user.id) / 1000
+      );
+
+      const result = await joinRoleService.handleMemberJoin(
+        guildId,
+        member.id,
+        'fluxer',
+        accountCreatedAt,
+        member.joinedAt
+          ? Math.floor(member.joinedAt.getTime() / 1000)
+          : Math.floor(Date.now() / 1000)
+      );
+
+      if (result.assigned.length > 0) {
+        console.log(
+          `[JOINROLE] Assigned ${result.assigned.length} role(s) to ${member.user.username} in ${guildId}`
+        );
+      }
+    } catch (error) {
+      console.error('[JOINROLE] Error handling Fluxer member join:', error);
+    }
+  });
+
+  client.on(Events.GuildMemberRemove, async (member: any) => {
+    try {
+      const guildId = member.guild?.id;
+      if (!guildId) return;
+      await joinRoleService.handleMemberLeave(guildId, member.id);
+    } catch (error) {
+      console.error('[JOINROLE] Error cleaning up Fluxer pending assignments:', error);
+    }
   });
 
   const fluxerToken = process.env.FLUXER_TOKEN;

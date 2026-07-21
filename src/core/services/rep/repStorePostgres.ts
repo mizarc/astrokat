@@ -133,6 +133,12 @@ export class PostgresRepStore implements RepStore {
     return result.rows.length > 0;
   }
 
+  async deleteAllByGuild(guildId: string): Promise<void> {
+    await this.pool.query('DELETE FROM rep WHERE guild_id = $1', [guildId]);
+    await this.pool.query('DELETE FROM rep_daily_allowance WHERE guild_id = $1', [guildId]);
+    await this.pool.query('DELETE FROM rep_target_lockout WHERE guild_id = $1', [guildId]);
+  }
+
   private rowToEntry(row: Record<string, unknown>): RepEntry {
     return {
       guildId: row.guild_id as string,

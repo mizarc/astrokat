@@ -3,9 +3,12 @@ import type { BotCommand, UnifiedMessage } from './types.js';
 import { readdirSync, statSync } from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { dirname, join, extname } from 'path';
-import { xpService } from './services/xp/xpService.js';
+import { xpService, levelFromXp } from './services/xp/xpService.js';
+import { levelRoleService } from './services/levelrole/levelRoleService.js';
 import { rateLimiter } from './services/ratelimit/rateLimiter.js';
 import { guildConfigService } from './services/guildconfig/guildConfigService.js';
+import { guildFeatureService } from './services/guildconfig/guildFeatureService.js';
+import { guildDisabledCommandService } from './services/guildconfig/guildDisabledCommandService.js';
 import { defaultPrefix } from './services/guildconfig/guildConfigStore.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -93,6 +96,31 @@ rateLimiter.setGuildConfigProvider(async (guildId) => {
 });
 
 /**
+ * Flatten slash command interaction options into a flat args array.
+ */
+function flattenInteractionOptions(data: readonly any[]): string[] {
+  // Check for subcommand group (type 2) with nested subcommand (type 1)
+  const group = data.find((opt) => opt.type === 2);
+  if (group && group.options) {
+    const sub = group.options.find((opt: any) => opt.type === 1);
+    if (sub) {
+      const vals =
+        sub.options?.map((o: any) => o.value?.toString() || '').filter((v: any) => v) ?? [];
+      return [group.name, sub.name, ...vals];
+    }
+  }
+  // Check for flat subcommand (type 1)
+  const sub = data.find((opt) => opt.type === 1);
+  if (sub) {
+    const vals =
+      sub.options?.map((o: any) => o.value?.toString() || '').filter((v: any) => v) ?? [];
+    return [sub.name, ...vals];
+  }
+  // No subcommands — raw args
+  return data.map((opt) => opt.value?.toString() || '').filter((v) => v);
+}
+
+/**
  * The Router: Now handles both text-based parsing and pre-parsed slash commands.
  */
 export async function handleIncomingMessage(
@@ -107,16 +135,7 @@ export async function handleIncomingMessage(
     commandName = message.interaction?.commandName.toLowerCase() || '';
     if (message.interaction?.options) {
       const data = message.interaction.options.data;
-      // Detect subcommand (type 1 = SUB_COMMAND) and prepend its name to args
-      const subCommand = data.find((opt) => opt.type === 1);
-      if (subCommand) {
-        args = [
-          subCommand.name,
-          ...(subCommand.options?.map((o) => o.value?.toString() || '').filter((v) => v) ?? []),
-        ];
-      } else {
-        args = data.map((opt) => opt.value?.toString() || '').filter((v) => v);
-      }
+      args = flattenInteractionOptions(data);
     }
   } else {
     // Legacy Command: Parse the message.
@@ -172,6 +191,16 @@ export async function handleIncomingMessage(
       }
     }
 
+    // Check if this command is disabled in the guild
+    // The settings and help commands are always allowed (otherwise disabling would be permanent)
+    if (message.guildId && commandName !== 'settings') {
+      const disabled = await guildDisabledCommandService.isDisabled(message.guildId, commandName);
+      if (disabled) {
+        await message.reply(t('system.commandDisabled', { command: commandName }));
+        return;
+      }
+    }
+
     await command.execute(message, args);
   } else {
     // Only reply if it was a text command (don't clutter Discord slash UI)
@@ -187,12 +216,29 @@ export async function handleIncomingMessage(
 export async function awardMessageXp(message: UnifiedMessage): Promise<void> {
   if (!message.guildId) return;
 
+  // Respect the guild's XP toggle
+  const xpEnabled = await guildFeatureService.isEnabled(message.guildId, 'xp');
+  if (!xpEnabled) return;
+
   const result = await xpService.awardXp(
     message.guildId,
     message.author.id,
     message.platform,
     message.content
   );
+
+  // Assigns a role if the user qualifies and doesn't already have it.
+  if (message.guildId && result.awarded) {
+    const newLevel =
+      result.levelUp?.newLevel ??
+      levelFromXp((await xpService.getEntry(message.guildId, message.author.id))?.xp ?? 0);
+    await levelRoleService.checkAndAssign(
+      message.guildId,
+      message.author.id,
+      newLevel,
+      message.memberRoles
+    );
+  }
 
   if (result.levelUp && result.xpNotifications) {
     const guildConfig = await guildConfigService.get(message.guildId);
