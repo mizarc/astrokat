@@ -410,6 +410,11 @@ class JoinRoleService {
     const all = await this.pendingStore.getAllPending();
     return all.filter((a) => a.guildId === guildId);
   }
+
+  /** Delete all join role bindings for a guild. */
+  async clearAllByGuild(guildId: string): Promise<void> {
+    await this.joinRoleStore.deleteByGuild(guildId);
+  }
 }
 
 export { JoinRoleService };

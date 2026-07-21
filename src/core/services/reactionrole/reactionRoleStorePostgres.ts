@@ -97,6 +97,10 @@ export class PostgresReactionRoleStore implements ReactionRoleStore {
     );
   }
 
+  async deleteByGuild(guildId: string): Promise<void> {
+    await this.pool.query('DELETE FROM reaction_roles WHERE guild_id = $1', [guildId]);
+  }
+
   async getAllBindings(platform?: string): Promise<ReactionRoleBinding[]> {
     let result;
     if (platform) {

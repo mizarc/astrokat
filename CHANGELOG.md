@@ -53,6 +53,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `run <name>` — Manually trigger any task immediately.
   - `history <name>` — View recent execution history.
 
+
+- **Administration:** `!settings commands` — Per-guild command toggling. View all commands with their status, disable (`!settings commands disable <name>`), or re-enable (`!settings commands enable <name>`). The settings command itself cannot be disabled. Disabled commands show an explanatory message instead of executing.
+- **Administration:** `!settings features` — Toggle data-storing features (XP/leveling and reputation) on or off without losing data. Use `!settings features enable|disable xp` or `!settings features enable|disable rep`. When a feature is disabled, existing data is preserved and can be re-enabled later.
+- **Administration:** `!settings clear` — Selective data clearing. Clear XP data, reputation data, all role bindings (reaction/join/level), or everything at once. Subcommands: `xp`, `rep`, `roles`, `all`.
+
 #### Actions
 
 - **`announce`** — Post a message or embed to a channel. Configurable message text.

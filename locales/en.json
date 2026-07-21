@@ -8,7 +8,8 @@
     "executingCommand": "Executing '{commandName}' via {type} command.",
     "commandNotFound": "Command not found.",
     "rateLimitedUser": "⏳ You're sending commands too fast! Please wait **{retryAfter}s** before using another command.",
-    "rateLimitedGuild": "⏳ This server is sending too many commands! Please wait **{retryAfter}s** before using another command."
+    "rateLimitedGuild": "⏳ This community is sending too many commands! Please wait **{retryAfter}s** before using another command.",
+    "commandDisabled": "❌ The **{command}** command has been disabled in this community."
   },
   "fluxer": {
     "receivedMessage": "[FLUXER] Received message: {content} from {username}",
@@ -238,6 +239,7 @@
       "givenTitle": "⭐ Rep Given!",
       "givenDescription": "**{giver}** gave a rep point to **{receiver}**! They now have **{rep} rep**.",
       "botRep": "🤖 You can't give reputation points to bots.",
+      "disabled": "❌ The reputation system has been disabled in this server.",
       "dailyAllowanceExhausted": "⏳ You've used all **3** of your daily reputation tokens! Come back in 24 hours.",
       "targetLockout": "🔒 You've already repped this user recently. You can give them rep again in **{time}**.",
       "cooldownDays": "{days}d",
@@ -332,11 +334,12 @@
     },
     "settings": {
       "guildOnly": "❌ This command can only be used in a server.",
+      "noPermission": "❌ You need the **Manage Server** permission to change settings.",
       "help": {
         "title": "⚙️ Server Settings",
         "footer": "Use `!settings <subcommand>` to run a command."
       },
-      "unknownSubcommand": "❌ Unknown subcommand `{sub}`. Available: `prefix`.",
+      "unknownSubcommand": "❌ Unknown subcommand `{sub}`. Available: `prefix`, `commands`, `features`, `clear`.",
       "prefix": {
         "helpDescription": "View or change the command prefix.",
         "noPermission": "❌ You need the **Manage Server** permission to change the prefix.",
@@ -348,6 +351,42 @@
         "noSpaces": "❌ Prefix cannot contain spaces.",
         "setSuccess": "✅ Command prefix changed to `{prefix}`. Use `{prefix}` instead of `{defaultPrefix}` from now on.\n\nForgot your prefix? Mention me:\n{botMention} settings prefix — check current prefix\n{botMention} settings prefix reset — restore prefix to the default `{defaultPrefix}`",
         "resetSuccess": "✅ Prefix reset to `{defaultPrefix}`. All commands now use the default prefix."
+      },
+      "commands": {
+        "helpDescription": "List or toggle individual command availability.",
+        "usage": "❌ Usage: `!settings commands list` — show all commands\n`!settings commands disable <name>` — disable a command\n`!settings commands enable <name>` — re-enable a command",
+        "title": "📋 Command Availability",
+        "footer": "Use `!settings commands disable <name>` or `!settings commands enable <name>` to toggle",
+        "statusEnabled": "✅ Enabled",
+        "statusDisabled": "❌ Disabled",
+        "notFound": "❌ Unknown command `{command}`.",
+        "alreadyDisabled": "❌ `{command}` is already disabled.",
+        "alreadyEnabled": "✅ `{command}` is already enabled.",
+        "disabled": "❌ `{command}` has been disabled. Use `!settings commands enable {command}` to re-enable it.",
+        "enabled": "✅ `{command}` has been enabled.",
+        "cannotDisable": "❌ The **settings** command cannot be disabled. Otherwise you'd have no way to re-enable it!"
+      },
+      "features": {
+        "helpDescription": "Enable or disable data-storing features (XP, rep).",
+        "usage": "❌ Usage: `!settings features` — list features\n`!settings features enable xp` — enable XP\n`!settings features disable xp` — disable XP\n`!settings features enable rep` — enable rep\n`!settings features disable rep` — disable rep",
+        "title": "⚙️ Feature Toggles",
+        "footer": "Use `!settings features enable|disable <name>` to toggle",
+        "statusEnabled": "✅ On",
+        "statusDisabled": "❌ Off",
+        "unknown": "❌ Unknown feature `{feature}`. Available: `xp`, `rep`.",
+        "xpEnabled": "✅ XP and leveling have been enabled.",
+        "xpDisabled": "❌ XP and leveling have been disabled. Existing data is preserved. Use `!settings features xp enable` to re-enable.",
+        "repEnabled": "✅ Reputation has been enabled.",
+        "repDisabled": "❌ Reputation has been disabled. Existing data is preserved. Use `!settings features rep enable` to re-enable."
+      },
+      "clear": {
+        "helpDescription": "Clear stored data for this server (xp, rep, roles, or everything).",
+        "usage": "❌ Usage: `!settings clear xp` — clear XP data\n`!settings clear rep` — clear reputation data\n`!settings clear roles` — clear reaction, join, and level role bindings\n`!settings clear all` — clear everything",
+        "xpDone": "🗑️ All XP and keyword bonus data for this server has been cleared.",
+        "repDone": "🗑️ All reputation data for this server has been cleared.",
+        "rolesDone": "🗑️ All reaction role, join role, and level role bindings for this server have been cleared.",
+        "everythingDone": "🗑️ All bot data for this server has been cleared. This includes XP, reputation, and all role bindings.",
+        "unknown": "❌ Unknown target `{target}`. Available: `xp`, `rep`, `roles`, `all`."
       }
     },
     "tasks": {

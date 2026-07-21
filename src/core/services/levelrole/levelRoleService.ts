@@ -237,6 +237,11 @@ class LevelRoleService {
       );
     }
   }
+
+  /** Delete all level role bindings for a guild. */
+  async clearAllByGuild(guildId: string): Promise<void> {
+    await this.levelRoleStore.deleteByGuild(guildId);
+  }
 }
 
 export { LevelRoleService };

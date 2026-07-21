@@ -96,6 +96,10 @@ export class PostgresLevelRoleStore implements LevelRoleStore {
     ]);
   }
 
+  async deleteByGuild(guildId: string): Promise<void> {
+    await this.pool.query('DELETE FROM level_roles WHERE guild_id = $1', [guildId]);
+  }
+
   async getAllBindings(): Promise<LevelRoleBinding[]> {
     const result = await this.pool.query('SELECT * FROM level_roles ORDER BY guild_id, level ASC');
 

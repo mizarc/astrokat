@@ -1,5 +1,5 @@
 /**
- * Join role bindings represent a mapping between a server, a role, and a 
+ * Join role bindings represent a mapping between a server, a role, and a
  * platform.
  *
  * Optional condition fields let admins delay assignment until the member's
@@ -52,6 +52,9 @@ export interface JoinRoleStore {
 
   /** Delete all bindings for a guild + role. */
   deleteByGuildAndRole(guildId: string, roleId: string): Promise<void>;
+
+  /** Delete all bindings for a guild. */
+  deleteByGuild(guildId: string): Promise<void>;
 
   /** Get all bindings across all guilds (for startup reconciliation). */
   getAllBindings(): Promise<JoinRoleBinding[]>;

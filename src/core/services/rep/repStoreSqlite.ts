@@ -157,6 +157,12 @@ export class SqliteRepStore implements RepStore {
     return row !== undefined;
   }
 
+  async deleteAllByGuild(guildId: string): Promise<void> {
+    this.db.prepare('DELETE FROM rep WHERE guild_id = ?').run(guildId);
+    this.db.prepare('DELETE FROM rep_daily_allowance WHERE guild_id = ?').run(guildId);
+    this.db.prepare('DELETE FROM rep_target_lockout WHERE guild_id = ?').run(guildId);
+  }
+
   private rowToEntry(row: Record<string, unknown>): RepEntry {
     return {
       guildId: row.guild_id as string,

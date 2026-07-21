@@ -40,7 +40,8 @@ export interface XPStore {
   /** Toggle a user's level-up notification preference. */
   setXpNotifications(guildId: string, userId: string, enabled: boolean): Promise<void>;
 
-  // ── Keyword bonuses ──────────────────────────────────────────────────────
+  /** Delete all XP entries and keyword bonuses for a guild. */
+  deleteAllByGuild(guildId: string): Promise<void>;
 
   /** Get the bonus XP for a keyword in a guild, or null if not configured. */
   getKeywordBonus(guildId: string, keyword: string): Promise<number | null>;
