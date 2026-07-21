@@ -108,7 +108,7 @@ export class PostgresRepStore implements RepStore {
 
   async recordTargetLockout(guildId: string, giverId: string, receiverId: string): Promise<void> {
     await this.pool.query(
-      `INSERT INTO rep_target_lockout (guild_id, giver_id, receiver_id, given_at)
+      `INSERT INTO rep_target_lockouts (guild_id, giver_id, receiver_id, given_at)
        VALUES ($1, $2, $3, $4)
        ON CONFLICT (guild_id, giver_id, receiver_id) DO UPDATE SET
          given_at = EXCLUDED.given_at`,
@@ -124,7 +124,7 @@ export class PostgresRepStore implements RepStore {
     const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
     const result = await this.pool.query(
       `SELECT 1
-       FROM rep_target_lockout
+       FROM rep_target_lockouts
        WHERE guild_id = $1 AND giver_id = $2
          AND receiver_id = $3 AND given_at > $4
        LIMIT 1`,
@@ -137,7 +137,7 @@ export class PostgresRepStore implements RepStore {
   async deleteAllByGuild(guildId: string): Promise<void> {
     await this.pool.query('DELETE FROM rep WHERE guild_id = $1', [guildId]);
     await this.pool.query('DELETE FROM rep_history WHERE guild_id = $1', [guildId]);
-    await this.pool.query('DELETE FROM rep_target_lockout WHERE guild_id = $1', [guildId]);
+    await this.pool.query('DELETE FROM rep_target_lockouts WHERE guild_id = $1', [guildId]);
   }
 
   private rowToEntry(row: Record<string, unknown>): RepEntry {
@@ -184,7 +184,7 @@ export class PostgresRepStore implements RepStore {
 
     // Target lockout table: tracks last rep time per giver→receiver pair
     await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS rep_target_lockout (
+      CREATE TABLE IF NOT EXISTS rep_target_lockouts (
         guild_id    TEXT NOT NULL,
         giver_id    TEXT NOT NULL,
         receiver_id TEXT NOT NULL,
