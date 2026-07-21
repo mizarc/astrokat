@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.0] - 2026-07-22
 
 ### Added
 
@@ -75,9 +75,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Join Roles**: Fluxer account age check now correctly derives the account
-  creation date from the user's snowflake ID instead of always passing
-  (Fluxer's user objects lack a `createdAt` property).
 - **Utility**: Neofetch bot version now reads from `package.json` instead of
   being hardcoded, keeping it in sync with the actual release version.
 
