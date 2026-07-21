@@ -14,6 +14,15 @@ vi.mock('../../router.js', () => ({
         },
       ],
       [
+        'role',
+        {
+          name: 'role',
+          description: 'Role management',
+          category: 'administration',
+          execute: vi.fn(),
+        },
+      ],
+      [
         'coinflip',
         {
           name: 'coinflip',
@@ -37,6 +46,24 @@ vi.mock('../../router.js', () => ({
           name: 'remindme',
           description: 'Sets a reminder',
           category: 'utility',
+          execute: vi.fn(),
+        },
+      ],
+      [
+        'system',
+        {
+          name: 'system',
+          description: 'System administration',
+          category: 'operation',
+          execute: vi.fn(),
+        },
+      ],
+      [
+        'purge',
+        {
+          name: 'purge',
+          description: 'Bulk delete messages',
+          category: 'moderation',
           execute: vi.fn(),
         },
       ],
@@ -82,9 +109,12 @@ describe('HelpCommand', () => {
 
     const reply = mockMessage.reply.mock.calls[0][0] as any;
     const desc = reply.embeds[0].description;
-    expect(desc).toContain('ping');
-    expect(desc).toContain('coinflip');
+    expect(desc).toContain('role');
     expect(desc).toContain('define');
+    expect(desc).toContain('coinflip');
+    expect(desc).toContain('system');
+    expect(desc).toContain('purge');
+    expect(desc).toContain('ping');
     expect(desc).toContain('remindme');
   });
 });
