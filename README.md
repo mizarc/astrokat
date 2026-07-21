@@ -10,9 +10,9 @@ A multi-platform chat bot that brings a shared set of fun and useful commands to
 
 We have an officially hosted public Astrokat instance ready to use! Invite it to your server with no setup required:
 
-[**Invite Astrokat on Fluxer**](https://web.fluxer.app/oauth2/authorize?client_id=1513393888411254785&scope=bot&permissions=387072)
+[**Invite Astrokat on Fluxer**](https://web.fluxer.app/oauth2/authorize?client_id=1513393888411254785&scope=bot&permissions=268822592)
 
-[**Invite Astrokat on Discord**](https://discord.com/oauth2/authorize?client_id=503580226035384340&scope=bot%20applications.commands&permissions=2147870720)
+[**Invite Astrokat on Discord**](https://discord.com/oauth2/authorize?client_id=503580226035384340&scope=bot%20applications.commands&permissions=268822592)
 
 > 💡 **Prefer to self-host?** You can run Astrokat on your own infrastructure using Docker, all it takes is a token and a couple of commands. Head over to [Getting Started](#-getting-started) to set up your own instance.
 
@@ -23,7 +23,7 @@ Have open questions, suggestions, or just want to hang out? Join the **[Astrokat
 ## ✨ Features
 
 - **Multi-platform by design** — Built on a shared command system. Write a command once, it works everywhere. Currently supports Discord and Fluxer.
-- **35+ commands** — From utility (ping, calc, QR codes, timestamps) to social (coinflip, diceroll, wheelspin, slap with animated GIFs) to knowledge (Wikipedia, thesaurus, translations) to reaction roles and task automation.
+- **34+ commands** — From utility (ping, calc, QR codes, timestamps) to social (coinflip, diceroll, wheelspin, slap with animated GIFs) to knowledge (Wikipedia, thesaurus, translations) to reaction roles and task automation.
 - **Persistent reminders** — Set `!remindme in 30 minutes ...` and get pinged when the time comes.
 - **Role management** — Reaction roles, join roles, and level roles. We have all types of auto role assignment features.
 - **Task automation** — Schedule automated actions (announcements, purges) via `!task`.
@@ -46,10 +46,12 @@ Before you can run the bot, you need to create bot applications on the platforms
 1. Go to the **OAuth2 URL Builder** section in the application settings.
 2. Under **Scopes**, select `bot`.
 3. Under **Bot Permissions**, select:
+   - `Manage Roles`
    - `Send Messages`
    - `Read Message History`
-   - `Manage Messages`
    - `Embed Links`
+   - `Add Reactions`
+   - `Manage Messages`
    - `Attach Files`
    - `Use External Emoji`
 4. Copy the generated URL, open it in your browser, and select the server to add the bot to.
@@ -71,13 +73,14 @@ Before you can run the bot, you need to create bot applications on the platforms
 2. Under **Scopes**, select `bot` and `applications.commands`.
 3. Under **Bot Permissions**, select:
    - `Use Slash Commands`
+   - `Manage Roles`
    - `Send Messages`
    - `Read Message History`
-   - `Manage Messages`
    - `Embed Links`
+   - `Add Reactions`
+   - `Manage Messages`
    - `Attach Files`
    - `Use External Emoji`
-   - `Manage Roles`
 4. Copy the generated URL, open it in your browser, and select the server to add the bot to.
 
 ## 🐳 Docker Deployment
