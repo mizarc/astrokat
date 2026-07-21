@@ -25,7 +25,7 @@ export class PostgresTriggerStore implements TriggerStore {
 
   async create(trigger: Omit<Trigger, 'id' | 'createdAt' | 'updatedAt'>): Promise<number> {
     const result = await this.pool.query(
-      `INSERT INTO guild_tasks
+      `INSERT INTO tasks
         (guild_id, cron, action, config, conditions, name, enabled)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING id`,
@@ -44,7 +44,7 @@ export class PostgresTriggerStore implements TriggerStore {
   }
 
   async get(id: number): Promise<Trigger | null> {
-    const result = await this.pool.query('SELECT * FROM guild_tasks WHERE id = $1', [id]);
+    const result = await this.pool.query('SELECT * FROM tasks WHERE id = $1', [id]);
 
     if (result.rows.length === 0) return null;
     return this.rowToTrigger(result.rows[0]);
@@ -52,7 +52,7 @@ export class PostgresTriggerStore implements TriggerStore {
 
   async getByName(guildId: string, name: string): Promise<Trigger | null> {
     const result = await this.pool.query(
-      'SELECT * FROM guild_tasks WHERE guild_id = $1 AND name = $2',
+      'SELECT * FROM tasks WHERE guild_id = $1 AND name = $2',
       [guildId, name]
     );
 
@@ -62,7 +62,7 @@ export class PostgresTriggerStore implements TriggerStore {
 
   async getByGuild(guildId: string): Promise<Trigger[]> {
     const result = await this.pool.query(
-      'SELECT * FROM guild_tasks WHERE guild_id = $1 ORDER BY created_at ASC',
+      'SELECT * FROM tasks WHERE guild_id = $1 ORDER BY created_at ASC',
       [guildId]
     );
     return result.rows.map((row) => this.rowToTrigger(row));
@@ -104,18 +104,18 @@ export class PostgresTriggerStore implements TriggerStore {
     params.push(id);
 
     await this.pool.query(
-      `UPDATE guild_tasks SET ${sets.join(', ')} WHERE id = $${paramIndex}`,
+      `UPDATE tasks SET ${sets.join(', ')} WHERE id = $${paramIndex}`,
       params
     );
   }
 
   async delete(id: number): Promise<void> {
-    await this.pool.query('DELETE FROM guild_tasks WHERE id = $1', [id]);
+    await this.pool.query('DELETE FROM tasks WHERE id = $1', [id]);
   }
 
   async logRun(run: Omit<TaskRun, 'id'>): Promise<number> {
     const result = await this.pool.query(
-      `INSERT INTO guild_task_runs
+      `INSERT INTO task_history
         (trigger_id, guild_id, started_at, finished_at, success, error_message, duration_ms)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING id`,
@@ -135,7 +135,7 @@ export class PostgresTriggerStore implements TriggerStore {
 
   async getRuns(triggerId: number, limit = 10): Promise<TaskRun[]> {
     const result = await this.pool.query(
-      'SELECT * FROM guild_task_runs WHERE trigger_id = $1 ORDER BY started_at DESC LIMIT $2',
+      'SELECT * FROM task_history WHERE trigger_id = $1 ORDER BY started_at DESC LIMIT $2',
       [triggerId, limit]
     );
 
@@ -144,9 +144,9 @@ export class PostgresTriggerStore implements TriggerStore {
 
   async pruneRuns(triggerId: number, keep: number): Promise<void> {
     await this.pool.query(
-      `DELETE FROM guild_task_runs
+      `DELETE FROM task_history
        WHERE trigger_id = $1 AND id NOT IN (
-         SELECT id FROM guild_task_runs
+         SELECT id FROM task_history
          WHERE trigger_id = $1
          ORDER BY started_at DESC
          LIMIT $2
@@ -156,14 +156,14 @@ export class PostgresTriggerStore implements TriggerStore {
   }
 
   async getEnabledCronTriggers(): Promise<Trigger[]> {
-    const result = await this.pool.query('SELECT * FROM guild_tasks WHERE enabled = true');
+    const result = await this.pool.query('SELECT * FROM tasks WHERE enabled = true');
 
     return result.rows.map((row) => this.rowToTrigger(row));
   }
 
   async updateRunResult(id: number, lastRunAt: string, lastRunResult: string): Promise<void> {
     await this.pool.query(
-      `UPDATE guild_tasks
+      `UPDATE tasks
        SET last_run_at = $1, last_run_result = $2, updated_at = NOW()
        WHERE id = $3`,
       [lastRunAt, lastRunResult, id]
@@ -212,7 +212,7 @@ export class PostgresTriggerStore implements TriggerStore {
 
   private async ensureTables(): Promise<void> {
     await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS guild_tasks (
+      CREATE TABLE IF NOT EXISTS tasks (
         id              SERIAL PRIMARY KEY,
         guild_id        TEXT NOT NULL,
         cron            TEXT,
@@ -230,9 +230,9 @@ export class PostgresTriggerStore implements TriggerStore {
     `);
 
     await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS guild_task_runs (
+      CREATE TABLE IF NOT EXISTS task_history (
         id             SERIAL PRIMARY KEY,
-        trigger_id     INTEGER NOT NULL REFERENCES guild_tasks(id) ON DELETE CASCADE,
+        trigger_id     INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
         guild_id       TEXT NOT NULL,
         started_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         finished_at    TIMESTAMPTZ,
@@ -243,10 +243,10 @@ export class PostgresTriggerStore implements TriggerStore {
     `);
 
     const indexes = [
-      'CREATE INDEX IF NOT EXISTS idx_tasks_guild ON guild_tasks(guild_id)',
+      'CREATE INDEX IF NOT EXISTS idx_tasks_guild ON tasks(guild_id)',
 
-      'CREATE INDEX IF NOT EXISTS idx_task_runs_trigger ON guild_task_runs(trigger_id)',
-      'CREATE INDEX IF NOT EXISTS idx_task_runs_guild ON guild_task_runs(guild_id)',
+      'CREATE INDEX IF NOT EXISTS idx_task_history_trigger ON task_history(trigger_id)',
+      'CREATE INDEX IF NOT EXISTS idx_task_history_guild ON task_history(guild_id)',
     ];
 
     for (const sql of indexes) {

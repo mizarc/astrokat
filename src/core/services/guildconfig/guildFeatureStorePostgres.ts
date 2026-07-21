@@ -21,7 +21,7 @@ export class PostgresGuildFeatureStore implements GuildFeatureStore {
 
   async isEnabled(guildId: string, feature: string): Promise<boolean> {
     const result = await this.pool.query(
-      'SELECT enabled FROM guild_features WHERE guild_id = $1 AND feature = $2',
+      'SELECT enabled FROM disabled_features WHERE guild_id = $1 AND feature = $2',
       [guildId, feature]
     );
     if (result.rows.length === 0) return true; // default true (opt-out)
@@ -30,7 +30,7 @@ export class PostgresGuildFeatureStore implements GuildFeatureStore {
 
   async set(guildId: string, feature: string, enabled: boolean): Promise<void> {
     await this.pool.query(
-      `INSERT INTO guild_features (guild_id, feature, enabled)
+      `INSERT INTO disabled_features (guild_id, feature, enabled)
        VALUES ($1, $2, $3)
        ON CONFLICT (guild_id, feature) DO UPDATE SET enabled = EXCLUDED.enabled`,
       [guildId, feature, enabled]
@@ -39,7 +39,7 @@ export class PostgresGuildFeatureStore implements GuildFeatureStore {
 
   async getAll(guildId: string): Promise<Record<string, boolean>> {
     const result = await this.pool.query(
-      'SELECT feature, enabled FROM guild_features WHERE guild_id = $1',
+      'SELECT feature, enabled FROM disabled_features WHERE guild_id = $1',
       [guildId]
     );
     const map: Record<string, boolean> = {};
@@ -51,7 +51,7 @@ export class PostgresGuildFeatureStore implements GuildFeatureStore {
 
   private async ensureTable(): Promise<void> {
     await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS guild_features (
+      CREATE TABLE IF NOT EXISTS disabled_features (
         guild_id TEXT NOT NULL,
         feature  TEXT NOT NULL,
         enabled  BOOLEAN NOT NULL DEFAULT true,

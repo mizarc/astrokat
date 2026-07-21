@@ -15,7 +15,7 @@ export interface PostgresGuildConfigStoreOptions {
 /**
  * PostgreSQL-backed guild config store.
  *
- * Stores all guild-level configuration in a single `guild_config`
+ * Stores all guild-level configuration in a single `guild_configs`
  * table. Auto-creates the table on construction if it does not
  * already exist.
  */
@@ -37,7 +37,7 @@ export class PostgresGuildConfigStore implements GuildConfigStore {
   }
 
   async get(guildId: string): Promise<GuildConfig> {
-    const result = await this.pool.query('SELECT * FROM guild_config WHERE guild_id = $1', [
+    const result = await this.pool.query('SELECT * FROM guild_configs WHERE guild_id = $1', [
       guildId,
     ]);
 
@@ -67,7 +67,7 @@ export class PostgresGuildConfigStore implements GuildConfigStore {
   }
 
   async set(guildId: string, config: Partial<GuildConfig>): Promise<void> {
-    const existing = await this.pool.query('SELECT * FROM guild_config WHERE guild_id = $1', [
+    const existing = await this.pool.query('SELECT * FROM guild_configs WHERE guild_id = $1', [
       guildId,
     ]);
 
@@ -112,7 +112,7 @@ export class PostgresGuildConfigStore implements GuildConfigStore {
       config.prefix !== undefined ? config.prefix : hasExisting ? existing.rows[0].prefix : null;
 
     await this.pool.query(
-      `INSERT INTO guild_config
+      `INSERT INTO guild_configs
          (guild_id, rate_limit_user_max, rate_limit_guild_max, level_up_messages, reaction_role_per_message_limit, reaction_role_per_guild_limit, prefix)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (guild_id) DO UPDATE SET
@@ -134,10 +134,10 @@ export class PostgresGuildConfigStore implements GuildConfigStore {
     );
   }
 
-  /** Ensures the `guild_config` table exists with all columns. */
+  /** Ensures the `guild_configs` table exists with all columns. */
   private async ensureTable(): Promise<void> {
     await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS guild_config (
+      CREATE TABLE IF NOT EXISTS guild_configs (
         guild_id TEXT PRIMARY KEY,
         rate_limit_user_max INTEGER,
         rate_limit_guild_max INTEGER,
@@ -149,23 +149,23 @@ export class PostgresGuildConfigStore implements GuildConfigStore {
     // PostgreSQL ignores IF NOT EXISTS when the column already
     // exists, so repeated runs are safe.
     await this.pool.query(`
-      ALTER TABLE guild_config
+      ALTER TABLE guild_configs
         ADD COLUMN IF NOT EXISTS rate_limit_user_max INTEGER
     `);
     await this.pool.query(`
-      ALTER TABLE guild_config
+      ALTER TABLE guild_configs
         ADD COLUMN IF NOT EXISTS rate_limit_guild_max INTEGER
     `);
     await this.pool.query(`
-      ALTER TABLE guild_config
+      ALTER TABLE guild_configs
         ADD COLUMN IF NOT EXISTS reaction_role_per_message_limit INTEGER
     `);
     await this.pool.query(`
-      ALTER TABLE guild_config
+      ALTER TABLE guild_configs
         ADD COLUMN IF NOT EXISTS reaction_role_per_guild_limit INTEGER
     `);
     await this.pool.query(`
-      ALTER TABLE guild_config
+      ALTER TABLE guild_configs
         ADD COLUMN IF NOT EXISTS prefix TEXT
     `);
   }

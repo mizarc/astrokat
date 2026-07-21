@@ -10,7 +10,7 @@ export interface SqliteGuildConfigStoreOptions {
 /**
  * SQLite-backed guild config store.
  *
- * Stores all guild-level configuration in a single `guild_config`
+ * Stores all guild-level configuration in a single `guild_configs`
  * table. Auto-creates the table on construction if it does not
  * already exist.
  */
@@ -29,7 +29,7 @@ export class SqliteGuildConfigStore implements GuildConfigStore {
   }
 
   async get(guildId: string): Promise<GuildConfig> {
-    const row = this.db.prepare('SELECT * FROM guild_config WHERE guild_id = ?').get(guildId) as
+    const row = this.db.prepare('SELECT * FROM guild_configs WHERE guild_id = ?').get(guildId) as
       | Record<string, unknown>
       | undefined;
 
@@ -64,7 +64,7 @@ export class SqliteGuildConfigStore implements GuildConfigStore {
 
   async set(guildId: string, config: Partial<GuildConfig>): Promise<void> {
     const existing = this.db
-      .prepare('SELECT * FROM guild_config WHERE guild_id = ?')
+      .prepare('SELECT * FROM guild_configs WHERE guild_id = ?')
       .get(guildId) as Record<string, unknown> | undefined;
 
     const rateLimitUserMax =
@@ -111,7 +111,7 @@ export class SqliteGuildConfigStore implements GuildConfigStore {
 
     this.db
       .prepare(
-        `INSERT INTO guild_config
+        `INSERT INTO guild_configs
            (guild_id, rate_limit_user_max, rate_limit_guild_max, level_up_messages, reaction_role_per_message_limit, reaction_role_per_guild_limit, prefix)
          VALUES (?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(guild_id) DO UPDATE SET
@@ -133,10 +133,10 @@ export class SqliteGuildConfigStore implements GuildConfigStore {
       );
   }
 
-  /** Ensures the `guild_config` table exists with all columns. */
+  /** Ensures the `guild_configs` table exists with all columns. */
   private ensureTable(): void {
     this.db.exec(`
-      CREATE TABLE IF NOT EXISTS guild_config (
+      CREATE TABLE IF NOT EXISTS guild_configs (
         guild_id TEXT PRIMARY KEY,
         rate_limit_user_max INTEGER,
         rate_limit_guild_max INTEGER,
@@ -149,17 +149,17 @@ export class SqliteGuildConfigStore implements GuildConfigStore {
 
     // Migrate: add columns that may be missing from older schemas
     try {
-      this.db.exec('ALTER TABLE guild_config ADD COLUMN reaction_role_per_message_limit INTEGER');
+      this.db.exec('ALTER TABLE guild_configs ADD COLUMN reaction_role_per_message_limit INTEGER');
     } catch {
       /* column already exists */
     }
     try {
-      this.db.exec('ALTER TABLE guild_config ADD COLUMN reaction_role_per_guild_limit INTEGER');
+      this.db.exec('ALTER TABLE guild_configs ADD COLUMN reaction_role_per_guild_limit INTEGER');
     } catch {
       /* column already exists */
     }
     try {
-      this.db.exec('ALTER TABLE guild_config ADD COLUMN prefix TEXT');
+      this.db.exec('ALTER TABLE guild_configs ADD COLUMN prefix TEXT');
     } catch {
       /* column already exists */
     }

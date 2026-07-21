@@ -31,7 +31,7 @@ export class PostgresReactionRoleStore implements ReactionRoleStore {
 
   async create(binding: ReactionRoleCreate): Promise<number> {
     const result = await this.pool.query(
-      `INSERT INTO reaction_roles (guild_id, message_id, emoji, role_id, platform)
+      `INSERT INTO role_reactions (guild_id, message_id, emoji, role_id, platform)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING id`,
       [binding.guildId, binding.messageId, binding.emoji, binding.roleId, binding.platform]
@@ -42,7 +42,7 @@ export class PostgresReactionRoleStore implements ReactionRoleStore {
 
   async getByGuild(guildId: string): Promise<ReactionRoleBinding[]> {
     const result = await this.pool.query(
-      'SELECT * FROM reaction_roles WHERE guild_id = $1 ORDER BY created_at ASC',
+      'SELECT * FROM role_reactions WHERE guild_id = $1 ORDER BY created_at ASC',
       [guildId]
     );
 
@@ -51,7 +51,7 @@ export class PostgresReactionRoleStore implements ReactionRoleStore {
 
   async getByMessage(guildId: string, messageId: string): Promise<ReactionRoleBinding[]> {
     const result = await this.pool.query(
-      'SELECT * FROM reaction_roles WHERE guild_id = $1 AND message_id = $2 ORDER BY created_at ASC',
+      'SELECT * FROM role_reactions WHERE guild_id = $1 AND message_id = $2 ORDER BY created_at ASC',
       [guildId, messageId]
     );
 
@@ -59,7 +59,7 @@ export class PostgresReactionRoleStore implements ReactionRoleStore {
   }
 
   async getById(id: number): Promise<ReactionRoleBinding | null> {
-    const result = await this.pool.query('SELECT * FROM reaction_roles WHERE id = $1', [id]);
+    const result = await this.pool.query('SELECT * FROM role_reactions WHERE id = $1', [id]);
 
     if (result.rows.length === 0) return null;
     return this.rowToBinding(result.rows[0]);
@@ -71,7 +71,7 @@ export class PostgresReactionRoleStore implements ReactionRoleStore {
     emoji: string
   ): Promise<ReactionRoleBinding | null> {
     const result = await this.pool.query(
-      'SELECT * FROM reaction_roles WHERE guild_id = $1 AND message_id = $2 AND emoji = $3',
+      'SELECT * FROM role_reactions WHERE guild_id = $1 AND message_id = $2 AND emoji = $3',
       [guildId, messageId, emoji]
     );
 
@@ -80,11 +80,11 @@ export class PostgresReactionRoleStore implements ReactionRoleStore {
   }
 
   async delete(id: number): Promise<void> {
-    await this.pool.query('DELETE FROM reaction_roles WHERE id = $1', [id]);
+    await this.pool.query('DELETE FROM role_reactions WHERE id = $1', [id]);
   }
 
   async deleteByMessage(guildId: string, messageId: string): Promise<void> {
-    await this.pool.query('DELETE FROM reaction_roles WHERE guild_id = $1 AND message_id = $2', [
+    await this.pool.query('DELETE FROM role_reactions WHERE guild_id = $1 AND message_id = $2', [
       guildId,
       messageId,
     ]);
@@ -92,25 +92,25 @@ export class PostgresReactionRoleStore implements ReactionRoleStore {
 
   async deleteByMessageAndEmoji(guildId: string, messageId: string, emoji: string): Promise<void> {
     await this.pool.query(
-      'DELETE FROM reaction_roles WHERE guild_id = $1 AND message_id = $2 AND emoji = $3',
+      'DELETE FROM role_reactions WHERE guild_id = $1 AND message_id = $2 AND emoji = $3',
       [guildId, messageId, emoji]
     );
   }
 
   async deleteByGuild(guildId: string): Promise<void> {
-    await this.pool.query('DELETE FROM reaction_roles WHERE guild_id = $1', [guildId]);
+    await this.pool.query('DELETE FROM role_reactions WHERE guild_id = $1', [guildId]);
   }
 
   async getAllBindings(platform?: string): Promise<ReactionRoleBinding[]> {
     let result;
     if (platform) {
       result = await this.pool.query(
-        'SELECT * FROM reaction_roles WHERE platform = $1 ORDER BY guild_id, created_at ASC',
+        'SELECT * FROM role_reactions WHERE platform = $1 ORDER BY guild_id, created_at ASC',
         [platform]
       );
     } else {
       result = await this.pool.query(
-        'SELECT * FROM reaction_roles ORDER BY guild_id, created_at ASC'
+        'SELECT * FROM role_reactions ORDER BY guild_id, created_at ASC'
       );
     }
 
@@ -118,7 +118,7 @@ export class PostgresReactionRoleStore implements ReactionRoleStore {
   }
 
   async getAllGuildIds(): Promise<string[]> {
-    const result = await this.pool.query('SELECT DISTINCT guild_id FROM reaction_roles');
+    const result = await this.pool.query('SELECT DISTINCT guild_id FROM role_reactions');
 
     return result.rows.map((row) => row.guild_id as string);
   }
@@ -142,7 +142,7 @@ export class PostgresReactionRoleStore implements ReactionRoleStore {
 
   private async ensureTable(): Promise<void> {
     await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS reaction_roles (
+      CREATE TABLE IF NOT EXISTS role_reactions (
         id          SERIAL PRIMARY KEY,
         guild_id    TEXT NOT NULL,
         message_id  TEXT NOT NULL,
@@ -157,22 +157,22 @@ export class PostgresReactionRoleStore implements ReactionRoleStore {
 
     // Add platform column to existing tables
     await this.pool.query(`
-      ALTER TABLE reaction_roles ADD COLUMN IF NOT EXISTS platform TEXT NOT NULL DEFAULT 'discord'
+      ALTER TABLE role_reactions ADD COLUMN IF NOT EXISTS platform TEXT NOT NULL DEFAULT 'discord'
     `);
 
     await this.pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_reaction_roles_lookup
-      ON reaction_roles (guild_id, message_id, emoji)
+      CREATE INDEX IF NOT EXISTS idx_role_reactions_lookup
+      ON role_reactions (guild_id, message_id, emoji)
     `);
 
     await this.pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_reaction_roles_guild
-      ON reaction_roles (guild_id)
+      CREATE INDEX IF NOT EXISTS idx_role_reactions_guild
+      ON role_reactions (guild_id)
     `);
 
     await this.pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_reaction_roles_message
-      ON reaction_roles (message_id)
+      CREATE INDEX IF NOT EXISTS idx_role_reactions_message
+      ON role_reactions (message_id)
     `);
   }
 }

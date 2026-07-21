@@ -30,7 +30,7 @@ export class SqliteLevelRoleStore implements LevelRoleStore {
 
   async create(binding: LevelRoleCreate): Promise<number> {
     const stmt = this.db.prepare(`
-      INSERT INTO level_roles (guild_id, role_id, level, platform)
+      INSERT INTO role_levels (guild_id, role_id, level, platform)
       VALUES (@guildId, @roleId, @level, @platform)
     `);
 
@@ -46,14 +46,14 @@ export class SqliteLevelRoleStore implements LevelRoleStore {
 
   async getByGuild(guildId: string): Promise<LevelRoleBinding[]> {
     const rows = this.db
-      .prepare('SELECT * FROM level_roles WHERE guild_id = ? ORDER BY level ASC')
+      .prepare('SELECT * FROM role_levels WHERE guild_id = ? ORDER BY level ASC')
       .all(guildId) as Record<string, unknown>[];
 
     return rows.map((row) => this.rowToBinding(row));
   }
 
   async getById(id: number): Promise<LevelRoleBinding | null> {
-    const row = this.db.prepare('SELECT * FROM level_roles WHERE id = ?').get(id) as
+    const row = this.db.prepare('SELECT * FROM role_levels WHERE id = ?').get(id) as
       | Record<string, unknown>
       | undefined;
 
@@ -63,7 +63,7 @@ export class SqliteLevelRoleStore implements LevelRoleStore {
 
   async getByGuildAndLevel(guildId: string, level: number): Promise<LevelRoleBinding | null> {
     const row = this.db
-      .prepare('SELECT * FROM level_roles WHERE guild_id = ? AND level = ?')
+      .prepare('SELECT * FROM role_levels WHERE guild_id = ? AND level = ?')
       .get(guildId, level) as Record<string, unknown> | undefined;
 
     if (!row) return null;
@@ -72,7 +72,7 @@ export class SqliteLevelRoleStore implements LevelRoleStore {
 
   async getByGuildAndRole(guildId: string, roleId: string): Promise<LevelRoleBinding | null> {
     const row = this.db
-      .prepare('SELECT * FROM level_roles WHERE guild_id = ? AND role_id = ?')
+      .prepare('SELECT * FROM role_levels WHERE guild_id = ? AND role_id = ?')
       .get(guildId, roleId) as Record<string, unknown> | undefined;
 
     if (!row) return null;
@@ -85,7 +85,7 @@ export class SqliteLevelRoleStore implements LevelRoleStore {
   ): Promise<LevelRoleBinding | null> {
     const row = this.db
       .prepare(
-        'SELECT * FROM level_roles WHERE guild_id = ? AND level <= ? ORDER BY level DESC LIMIT 1'
+        'SELECT * FROM role_levels WHERE guild_id = ? AND level <= ? ORDER BY level DESC LIMIT 1'
       )
       .get(guildId, userLevel) as Record<string, unknown> | undefined;
 
@@ -94,29 +94,29 @@ export class SqliteLevelRoleStore implements LevelRoleStore {
   }
 
   async delete(id: number): Promise<void> {
-    this.db.prepare('DELETE FROM level_roles WHERE id = ?').run(id);
+    this.db.prepare('DELETE FROM role_levels WHERE id = ?').run(id);
   }
 
   async deleteByGuildAndRole(guildId: string, roleId: string): Promise<void> {
     this.db
-      .prepare('DELETE FROM level_roles WHERE guild_id = ? AND role_id = ?')
+      .prepare('DELETE FROM role_levels WHERE guild_id = ? AND role_id = ?')
       .run(guildId, roleId);
   }
 
   async deleteByGuild(guildId: string): Promise<void> {
-    this.db.prepare('DELETE FROM level_roles WHERE guild_id = ?').run(guildId);
+    this.db.prepare('DELETE FROM role_levels WHERE guild_id = ?').run(guildId);
   }
 
   async getAllBindings(): Promise<LevelRoleBinding[]> {
     const rows = this.db
-      .prepare('SELECT * FROM level_roles ORDER BY guild_id, level ASC')
+      .prepare('SELECT * FROM role_levels ORDER BY guild_id, level ASC')
       .all() as Record<string, unknown>[];
 
     return rows.map((row) => this.rowToBinding(row));
   }
 
   async getAllGuildIds(): Promise<string[]> {
-    const rows = this.db.prepare('SELECT DISTINCT guild_id FROM level_roles').all() as {
+    const rows = this.db.prepare('SELECT DISTINCT guild_id FROM role_levels').all() as {
       guild_id: string;
     }[];
 
@@ -137,7 +137,7 @@ export class SqliteLevelRoleStore implements LevelRoleStore {
 
   private ensureTable(): void {
     this.db.exec(`
-      CREATE TABLE IF NOT EXISTS level_roles (
+      CREATE TABLE IF NOT EXISTS role_levels (
         id           INTEGER PRIMARY KEY AUTOINCREMENT,
         guild_id     TEXT NOT NULL,
         role_id      TEXT NOT NULL,
@@ -150,13 +150,13 @@ export class SqliteLevelRoleStore implements LevelRoleStore {
     `);
 
     this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_level_roles_guild
-      ON level_roles (guild_id)
+      CREATE INDEX IF NOT EXISTS idx_role_levels_guild
+      ON role_levels (guild_id)
     `);
 
     this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_level_roles_guild_level
-      ON level_roles (guild_id, level)
+      CREATE INDEX IF NOT EXISTS idx_role_levels_guild_level
+      ON role_levels (guild_id, level)
     `);
   }
 }

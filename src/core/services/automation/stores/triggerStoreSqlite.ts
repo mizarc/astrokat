@@ -29,7 +29,7 @@ export class SqliteTriggerStore implements TriggerStore {
 
   async create(trigger: Omit<Trigger, 'id' | 'createdAt' | 'updatedAt'>): Promise<number> {
     const stmt = this.db.prepare(`
-      INSERT INTO guild_tasks
+      INSERT INTO tasks
         (guild_id, cron, action, config, conditions, name, enabled)
       VALUES
         (@guildId, @cron, @action, @config, @conditions, @name, @enabled)
@@ -49,7 +49,7 @@ export class SqliteTriggerStore implements TriggerStore {
   }
 
   async get(id: number): Promise<Trigger | null> {
-    const row = this.db.prepare('SELECT * FROM guild_tasks WHERE id = ?').get(id) as
+    const row = this.db.prepare('SELECT * FROM tasks WHERE id = ?').get(id) as
       | Record<string, unknown>
       | undefined;
 
@@ -59,7 +59,7 @@ export class SqliteTriggerStore implements TriggerStore {
 
   async getByName(guildId: string, name: string): Promise<Trigger | null> {
     const row = this.db
-      .prepare('SELECT * FROM guild_tasks WHERE guild_id = ? AND name = ?')
+      .prepare('SELECT * FROM tasks WHERE guild_id = ? AND name = ?')
       .get(guildId, name) as Record<string, unknown> | undefined;
 
     if (!row) return null;
@@ -68,7 +68,7 @@ export class SqliteTriggerStore implements TriggerStore {
 
   async getByGuild(guildId: string): Promise<Trigger[]> {
     const rows = this.db
-      .prepare('SELECT * FROM guild_tasks WHERE guild_id = ? ORDER BY created_at ASC')
+      .prepare('SELECT * FROM tasks WHERE guild_id = ? ORDER BY created_at ASC')
       .all(guildId) as Record<string, unknown>[];
     return rows.map((row) => this.rowToTrigger(row));
   }
@@ -107,16 +107,16 @@ export class SqliteTriggerStore implements TriggerStore {
     sets.push("updated_at = datetime('now')");
     params.push(id);
 
-    this.db.prepare(`UPDATE guild_tasks SET ${sets.join(', ')} WHERE id = ?`).run(...params);
+    this.db.prepare(`UPDATE tasks SET ${sets.join(', ')} WHERE id = ?`).run(...params);
   }
 
   async delete(id: number): Promise<void> {
-    this.db.prepare('DELETE FROM guild_tasks WHERE id = ?').run(id);
+    this.db.prepare('DELETE FROM tasks WHERE id = ?').run(id);
   }
 
   async logRun(run: Omit<TaskRun, 'id'>): Promise<number> {
     const stmt = this.db.prepare(`
-      INSERT INTO guild_task_runs
+      INSERT INTO task_history
         (trigger_id, guild_id, started_at, finished_at, success, error_message, duration_ms)
       VALUES
         (@triggerId, @guildId, @startedAt, @finishedAt, @success, @errorMessage, @durationMs)
@@ -138,7 +138,7 @@ export class SqliteTriggerStore implements TriggerStore {
   async getRuns(triggerId: number, limit = 10): Promise<TaskRun[]> {
     const rows = this.db
       .prepare(
-        'SELECT * FROM guild_task_runs WHERE trigger_id = ? ORDER BY started_at DESC LIMIT ?'
+        'SELECT * FROM task_history WHERE trigger_id = ? ORDER BY started_at DESC LIMIT ?'
       )
       .all(triggerId, limit) as Record<string, unknown>[];
 
@@ -149,9 +149,9 @@ export class SqliteTriggerStore implements TriggerStore {
     this.db
       .prepare(
         `
-      DELETE FROM guild_task_runs
+      DELETE FROM task_history
       WHERE trigger_id = ? AND id NOT IN (
-        SELECT id FROM guild_task_runs
+        SELECT id FROM task_history
         WHERE trigger_id = ?
         ORDER BY started_at DESC
         LIMIT ?
@@ -162,7 +162,7 @@ export class SqliteTriggerStore implements TriggerStore {
   }
 
   async getEnabledCronTriggers(): Promise<Trigger[]> {
-    const rows = this.db.prepare('SELECT * FROM guild_tasks WHERE enabled = 1').all() as Record<
+    const rows = this.db.prepare('SELECT * FROM tasks WHERE enabled = 1').all() as Record<
       string,
       unknown
     >[];
@@ -174,7 +174,7 @@ export class SqliteTriggerStore implements TriggerStore {
     this.db
       .prepare(
         `
-      UPDATE guild_tasks
+      UPDATE tasks
       SET last_run_at = ?, last_run_result = ?, updated_at = datetime('now')
       WHERE id = ?
     `
@@ -214,7 +214,7 @@ export class SqliteTriggerStore implements TriggerStore {
 
   private ensureTables(): void {
     this.db.exec(`
-      CREATE TABLE IF NOT EXISTS guild_tasks (
+      CREATE TABLE IF NOT EXISTS tasks (
         id               INTEGER PRIMARY KEY AUTOINCREMENT,
         guild_id         TEXT NOT NULL,
         cron             TEXT,
@@ -232,9 +232,9 @@ export class SqliteTriggerStore implements TriggerStore {
     `);
 
     this.db.exec(`
-      CREATE TABLE IF NOT EXISTS guild_task_runs (
+      CREATE TABLE IF NOT EXISTS task_history (
         id             INTEGER PRIMARY KEY AUTOINCREMENT,
-        trigger_id     INTEGER NOT NULL REFERENCES guild_tasks(id) ON DELETE CASCADE,
+        trigger_id     INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
         guild_id       TEXT NOT NULL,
         started_at     TEXT NOT NULL DEFAULT (datetime('now')),
         finished_at    TEXT,
@@ -245,14 +245,14 @@ export class SqliteTriggerStore implements TriggerStore {
     `);
 
     this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_tasks_guild ON guild_tasks(guild_id)
+      CREATE INDEX IF NOT EXISTS idx_tasks_guild ON tasks(guild_id)
     `);
 
     this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_task_runs_trigger ON guild_task_runs(trigger_id)
+      CREATE INDEX IF NOT EXISTS idx_task_history_trigger ON task_history(trigger_id)
     `);
     this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_task_runs_guild ON guild_task_runs(guild_id)
+      CREATE INDEX IF NOT EXISTS idx_task_history_guild ON task_history(guild_id)
     `);
 
     // Enable foreign key enforcement
