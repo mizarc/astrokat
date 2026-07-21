@@ -7,22 +7,20 @@ import { defaultPrefix } from '../../services/guildconfig/guildConfigStore.js';
 
 const CATEGORY_ORDER = [
   'administration',
-  'automation',
-  'knowledge',
   'moderation',
+  'knowledge',
   'social',
-  'operation',
   'utility',
+  'operation',
 ] as const;
 
 const CATEGORY_LABELS: Record<string, string> = {
   administration: '🔐 Administration',
-  automation: '⚙️ Automation',
-  knowledge: '📚 Knowledge',
   moderation: '🛡️ Moderation',
+  knowledge: '📚 Knowledge',
   social: '🎮 Social',
-  operation: '🛠️ Operation',
   utility: '🔧 Utility',
+  operation: '🛠️ Operation',
 };
 
 export const HelpCommand: BotCommand = {
