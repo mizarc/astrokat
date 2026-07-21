@@ -34,7 +34,7 @@ export class SqliteReactionRoleStore implements ReactionRoleStore {
 
   async create(binding: ReactionRoleCreate): Promise<number> {
     const stmt = this.db.prepare(`
-      INSERT INTO reaction_roles (guild_id, message_id, emoji, role_id, platform)
+      INSERT INTO role_reactions (guild_id, message_id, emoji, role_id, platform)
       VALUES (@guildId, @messageId, @emoji, @roleId, @platform)
     `);
 
@@ -51,7 +51,7 @@ export class SqliteReactionRoleStore implements ReactionRoleStore {
 
   async getByGuild(guildId: string): Promise<ReactionRoleBinding[]> {
     const rows = this.db
-      .prepare('SELECT * FROM reaction_roles WHERE guild_id = ? ORDER BY created_at ASC')
+      .prepare('SELECT * FROM role_reactions WHERE guild_id = ? ORDER BY created_at ASC')
       .all(guildId) as Record<string, unknown>[];
 
     return rows.map((row) => this.rowToBinding(row));
@@ -60,7 +60,7 @@ export class SqliteReactionRoleStore implements ReactionRoleStore {
   async getByMessage(guildId: string, messageId: string): Promise<ReactionRoleBinding[]> {
     const rows = this.db
       .prepare(
-        'SELECT * FROM reaction_roles WHERE guild_id = ? AND message_id = ? ORDER BY created_at ASC'
+        'SELECT * FROM role_reactions WHERE guild_id = ? AND message_id = ? ORDER BY created_at ASC'
       )
       .all(guildId, messageId) as Record<string, unknown>[];
 
@@ -68,7 +68,7 @@ export class SqliteReactionRoleStore implements ReactionRoleStore {
   }
 
   async getById(id: number): Promise<ReactionRoleBinding | null> {
-    const row = this.db.prepare('SELECT * FROM reaction_roles WHERE id = ?').get(id) as
+    const row = this.db.prepare('SELECT * FROM role_reactions WHERE id = ?').get(id) as
       | Record<string, unknown>
       | undefined;
 
@@ -82,7 +82,7 @@ export class SqliteReactionRoleStore implements ReactionRoleStore {
     emoji: string
   ): Promise<ReactionRoleBinding | null> {
     const row = this.db
-      .prepare('SELECT * FROM reaction_roles WHERE guild_id = ? AND message_id = ? AND emoji = ?')
+      .prepare('SELECT * FROM role_reactions WHERE guild_id = ? AND message_id = ? AND emoji = ?')
       .get(guildId, messageId, emoji) as Record<string, unknown> | undefined;
 
     if (!row) return null;
@@ -90,23 +90,23 @@ export class SqliteReactionRoleStore implements ReactionRoleStore {
   }
 
   async delete(id: number): Promise<void> {
-    this.db.prepare('DELETE FROM reaction_roles WHERE id = ?').run(id);
+    this.db.prepare('DELETE FROM role_reactions WHERE id = ?').run(id);
   }
 
   async deleteByMessage(guildId: string, messageId: string): Promise<void> {
     this.db
-      .prepare('DELETE FROM reaction_roles WHERE guild_id = ? AND message_id = ?')
+      .prepare('DELETE FROM role_reactions WHERE guild_id = ? AND message_id = ?')
       .run(guildId, messageId);
   }
 
   async deleteByMessageAndEmoji(guildId: string, messageId: string, emoji: string): Promise<void> {
     this.db
-      .prepare('DELETE FROM reaction_roles WHERE guild_id = ? AND message_id = ? AND emoji = ?')
+      .prepare('DELETE FROM role_reactions WHERE guild_id = ? AND message_id = ? AND emoji = ?')
       .run(guildId, messageId, emoji);
   }
 
   async deleteByGuild(guildId: string): Promise<void> {
-    this.db.prepare('DELETE FROM reaction_roles WHERE guild_id = ?').run(guildId);
+    this.db.prepare('DELETE FROM role_reactions WHERE guild_id = ?').run(guildId);
   }
 
   async getAllBindings(platform?: string): Promise<ReactionRoleBinding[]> {
@@ -114,12 +114,12 @@ export class SqliteReactionRoleStore implements ReactionRoleStore {
     if (platform) {
       rows = this.db
         .prepare(
-          'SELECT * FROM reaction_roles WHERE platform = ? ORDER BY guild_id, created_at ASC'
+          'SELECT * FROM role_reactions WHERE platform = ? ORDER BY guild_id, created_at ASC'
         )
         .all(platform) as Record<string, unknown>[];
     } else {
       rows = this.db
-        .prepare('SELECT * FROM reaction_roles ORDER BY guild_id, created_at ASC')
+        .prepare('SELECT * FROM role_reactions ORDER BY guild_id, created_at ASC')
         .all() as Record<string, unknown>[];
     }
 
@@ -127,7 +127,7 @@ export class SqliteReactionRoleStore implements ReactionRoleStore {
   }
 
   async getAllGuildIds(): Promise<string[]> {
-    const rows = this.db.prepare('SELECT DISTINCT guild_id FROM reaction_roles').all() as {
+    const rows = this.db.prepare('SELECT DISTINCT guild_id FROM role_reactions').all() as {
       guild_id: string;
     }[];
 
@@ -149,7 +149,7 @@ export class SqliteReactionRoleStore implements ReactionRoleStore {
 
   private ensureTable(): void {
     this.db.exec(`
-      CREATE TABLE IF NOT EXISTS reaction_roles (
+      CREATE TABLE IF NOT EXISTS role_reactions (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         guild_id    TEXT NOT NULL,
         message_id  TEXT NOT NULL,
@@ -165,25 +165,25 @@ export class SqliteReactionRoleStore implements ReactionRoleStore {
     // Add platform column to existing tables (safe to run repeatedly)
     try {
       this.db.exec(
-        `ALTER TABLE reaction_roles ADD COLUMN platform TEXT NOT NULL DEFAULT 'discord'`
+        `ALTER TABLE role_reactions ADD COLUMN platform TEXT NOT NULL DEFAULT 'discord'`
       );
     } catch {
       // Column already exists — ignore
     }
 
     this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_reaction_roles_lookup
-      ON reaction_roles (guild_id, message_id, emoji)
+      CREATE INDEX IF NOT EXISTS idx_role_reactions_lookup
+      ON role_reactions (guild_id, message_id, emoji)
     `);
 
     this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_reaction_roles_guild
-      ON reaction_roles (guild_id)
+      CREATE INDEX IF NOT EXISTS idx_role_reactions_guild
+      ON role_reactions (guild_id)
     `);
 
     this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_reaction_roles_message
-      ON reaction_roles (message_id)
+      CREATE INDEX IF NOT EXISTS idx_role_reactions_message
+      ON role_reactions (message_id)
     `);
   }
 }

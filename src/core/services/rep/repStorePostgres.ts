@@ -28,10 +28,10 @@ export class PostgresRepStore implements RepStore {
   // ── Permanent Ledger ────────────────────────────────────────────────────
 
   async getEntry(guildId: string, userId: string): Promise<RepEntry | null> {
-    const result = await this.pool.query('SELECT * FROM rep WHERE guild_id = $1 AND user_id = $2', [
-      guildId,
-      userId,
-    ]);
+    const result = await this.pool.query(
+      'SELECT * FROM rep WHERE guild_id = $1 AND user_id = $2',
+      [guildId, userId]
+    );
 
     if (result.rows.length === 0) return null;
     return this.rowToEntry(result.rows[0]);
@@ -78,16 +78,17 @@ export class PostgresRepStore implements RepStore {
   }
 
   async getMemberCount(guildId: string): Promise<number> {
-    const result = await this.pool.query('SELECT COUNT(*) AS count FROM rep WHERE guild_id = $1', [
-      guildId,
-    ]);
+    const result = await this.pool.query(
+      'SELECT COUNT(*) AS count FROM rep WHERE guild_id = $1',
+      [guildId]
+    );
 
     return parseInt(result.rows[0].count, 10);
   }
 
   async recordDailyAllowance(guildId: string, giverId: string): Promise<void> {
     await this.pool.query(
-      `INSERT INTO rep_daily_allowance (guild_id, giver_id, given_at)
+      `INSERT INTO rep_history (guild_id, giver_id, given_at)
        VALUES ($1, $2, $3)`,
       [guildId, giverId, Date.now()]
     );
@@ -97,7 +98,7 @@ export class PostgresRepStore implements RepStore {
     const cutoff = Date.now() - 24 * 60 * 60 * 1000;
     const result = await this.pool.query(
       `SELECT COUNT(*) AS count
-       FROM rep_daily_allowance
+       FROM rep_history
        WHERE guild_id = $1 AND giver_id = $2 AND given_at > $3`,
       [guildId, giverId, cutoff]
     );
@@ -135,7 +136,7 @@ export class PostgresRepStore implements RepStore {
 
   async deleteAllByGuild(guildId: string): Promise<void> {
     await this.pool.query('DELETE FROM rep WHERE guild_id = $1', [guildId]);
-    await this.pool.query('DELETE FROM rep_daily_allowance WHERE guild_id = $1', [guildId]);
+    await this.pool.query('DELETE FROM rep_history WHERE guild_id = $1', [guildId]);
     await this.pool.query('DELETE FROM rep_target_lockout WHERE guild_id = $1', [guildId]);
   }
 
@@ -168,7 +169,7 @@ export class PostgresRepStore implements RepStore {
 
     // Daily allowance table: records each rep-giving action for 24h counting
     await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS rep_daily_allowance (
+      CREATE TABLE IF NOT EXISTS rep_history (
         id       BIGSERIAL,
         guild_id TEXT NOT NULL,
         giver_id TEXT NOT NULL,
@@ -178,7 +179,7 @@ export class PostgresRepStore implements RepStore {
 
     await this.pool.query(`
       CREATE INDEX IF NOT EXISTS idx_rep_daily_giver
-      ON rep_daily_allowance (guild_id, giver_id, given_at DESC)
+      ON rep_history (guild_id, giver_id, given_at DESC)
     `);
 
     // Target lockout table: tracks last rep time per giver→receiver pair

@@ -1,24 +1,39 @@
 import { t } from './core/i18n.js';
-import {
-  startDiscordBot,
-  DiscordGuildAggregator,
-  createDiscordActionDispatcher,
-} from './adapters/discord.js';
-import {
-  startFluxerBot,
-  FluxerGuildAggregator,
-  createFluxerActionDispatcher,
-} from './adapters/fluxer.js';
-import { reminderService } from './core/services/reminders/reminderService.js';
-import { joinRoleService } from './core/services/joinrole/joinRoleService.js';
-import { levelRoleService } from './core/services/levelrole/levelRoleService.js';
-import { getCommands } from './core/router.js';
-import { GuildSnapshotService } from './core/services/guildsnapshot/guildSnapshotService.js';
-import { SqliteGuildSnapshotStore } from './core/services/guildsnapshot/guildSnapshotStoreSqlite.js';
-import { PostgresGuildSnapshotStore } from './core/services/guildsnapshot/guildSnapshotStorePostgres.js';
-import { cronEngine } from './core/services/automation/taskService.js';
+import { migrateSqlite, migratePostgres } from './core/migrations.js';
+
+// Run schema migrations before any store constructors run
+if (process.env.DATABASE_URL) {
+  await migratePostgres();
+} else {
+  await migrateSqlite('data/astrokat.db');
+}
 
 console.log(t('system.starting'));
+
+// Dynamic imports — stores initialize after migration has renamed old tables
+const [
+  { startDiscordBot, DiscordGuildAggregator, createDiscordActionDispatcher },
+  { startFluxerBot, FluxerGuildAggregator, createFluxerActionDispatcher },
+  { reminderService },
+  { joinRoleService },
+  { levelRoleService },
+  { getCommands },
+  { GuildSnapshotService },
+  { SqliteGuildSnapshotStore },
+  { PostgresGuildSnapshotStore },
+  { cronEngine },
+] = await Promise.all([
+  import('./adapters/discord.js'),
+  import('./adapters/fluxer.js'),
+  import('./core/services/reminders/reminderService.js'),
+  import('./core/services/joinrole/joinRoleService.js'),
+  import('./core/services/levelrole/levelRoleService.js'),
+  import('./core/router.js'),
+  import('./core/services/guildsnapshot/guildSnapshotService.js'),
+  import('./core/services/guildsnapshot/guildSnapshotStoreSqlite.js'),
+  import('./core/services/guildsnapshot/guildSnapshotStorePostgres.js'),
+  import('./core/services/automation/taskService.js'),
+]);
 
 // Determine which adapters to start
 const adapters = (process.env.ADAPTERS ?? 'discord,fluxer')

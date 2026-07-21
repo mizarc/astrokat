@@ -105,7 +105,7 @@ export class SqliteRepStore implements RepStore {
     this.db
       .prepare(
         `
-      INSERT INTO rep_daily_allowance (guild_id, giver_id, given_at)
+      INSERT INTO rep_history (guild_id, giver_id, given_at)
       VALUES (@guildId, @giverId, @givenAt)
     `
       )
@@ -117,7 +117,7 @@ export class SqliteRepStore implements RepStore {
     const row = this.db
       .prepare(
         `SELECT COUNT(*) AS count
-         FROM rep_daily_allowance
+         FROM rep_history
          WHERE guild_id = ? AND giver_id = ? AND given_at > ?`
       )
       .get(guildId, giverId, cutoff) as { count: number };
@@ -159,7 +159,7 @@ export class SqliteRepStore implements RepStore {
 
   async deleteAllByGuild(guildId: string): Promise<void> {
     this.db.prepare('DELETE FROM rep WHERE guild_id = ?').run(guildId);
-    this.db.prepare('DELETE FROM rep_daily_allowance WHERE guild_id = ?').run(guildId);
+    this.db.prepare('DELETE FROM rep_history WHERE guild_id = ?').run(guildId);
     this.db.prepare('DELETE FROM rep_target_lockout WHERE guild_id = ?').run(guildId);
   }
 
@@ -193,7 +193,7 @@ export class SqliteRepStore implements RepStore {
 
     // Records each rep-giving action for 24h counting
     this.db.exec(`
-      CREATE TABLE IF NOT EXISTS rep_daily_allowance (
+      CREATE TABLE IF NOT EXISTS rep_history (
         guild_id TEXT NOT NULL,
         giver_id TEXT NOT NULL,
         given_at INTEGER NOT NULL
@@ -203,7 +203,7 @@ export class SqliteRepStore implements RepStore {
     // Index for daily allowance lookups
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_rep_daily_giver
-      ON rep_daily_allowance (guild_id, giver_id, given_at DESC)
+      ON rep_history (guild_id, giver_id, given_at DESC)
     `);
 
     // Target lockout table: tracks last rep time per giver→receiver pair

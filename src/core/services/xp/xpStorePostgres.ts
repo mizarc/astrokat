@@ -26,10 +26,10 @@ export class PostgresXPStore implements XPStore {
   }
 
   async getEntry(guildId: string, userId: string): Promise<XPEntry | null> {
-    const result = await this.pool.query('SELECT * FROM xp WHERE guild_id = $1 AND user_id = $2', [
-      guildId,
-      userId,
-    ]);
+    const result = await this.pool.query(
+      'SELECT * FROM xp WHERE guild_id = $1 AND user_id = $2',
+      [guildId, userId]
+    );
 
     if (result.rows.length === 0) return null;
     return this.rowToEntry(result.rows[0]);
@@ -82,9 +82,10 @@ export class PostgresXPStore implements XPStore {
   }
 
   async getMemberCount(guildId: string): Promise<number> {
-    const result = await this.pool.query('SELECT COUNT(*) AS count FROM xp WHERE guild_id = $1', [
-      guildId,
-    ]);
+    const result = await this.pool.query(
+      'SELECT COUNT(*) AS count FROM xp WHERE guild_id = $1',
+      [guildId]
+    );
 
     return parseInt(result.rows[0].count, 10);
   }
@@ -100,7 +101,7 @@ export class PostgresXPStore implements XPStore {
 
   async getKeywordBonus(guildId: string, keyword: string): Promise<number | null> {
     const result = await this.pool.query(
-      'SELECT xp_amount FROM keyword_bonuses WHERE guild_id = $1 AND keyword = $2',
+      'SELECT xp_amount FROM xp_bonuses WHERE guild_id = $1 AND keyword = $2',
       [guildId, keyword.toLowerCase()]
     );
 
@@ -109,7 +110,7 @@ export class PostgresXPStore implements XPStore {
 
   async setKeywordBonus(guildId: string, keyword: string, xpAmount: number): Promise<void> {
     await this.pool.query(
-      `INSERT INTO keyword_bonuses (guild_id, keyword, xp_amount)
+      `INSERT INTO xp_bonuses (guild_id, keyword, xp_amount)
        VALUES ($1, $2, $3)
        ON CONFLICT (guild_id, keyword) DO UPDATE SET
          xp_amount = EXCLUDED.xp_amount`,
@@ -118,7 +119,7 @@ export class PostgresXPStore implements XPStore {
   }
 
   async removeKeywordBonus(guildId: string, keyword: string): Promise<void> {
-    await this.pool.query('DELETE FROM keyword_bonuses WHERE guild_id = $1 AND keyword = $2', [
+    await this.pool.query('DELETE FROM xp_bonuses WHERE guild_id = $1 AND keyword = $2', [
       guildId,
       keyword.toLowerCase(),
     ]);
@@ -126,7 +127,7 @@ export class PostgresXPStore implements XPStore {
 
   async listKeywordBonuses(guildId: string): Promise<KeywordBonus[]> {
     const result = await this.pool.query(
-      'SELECT * FROM keyword_bonuses WHERE guild_id = $1 ORDER BY keyword',
+      'SELECT * FROM xp_bonuses WHERE guild_id = $1 ORDER BY keyword',
       [guildId]
     );
 
@@ -139,7 +140,7 @@ export class PostgresXPStore implements XPStore {
 
   async deleteAllByGuild(guildId: string): Promise<void> {
     await this.pool.query('DELETE FROM xp WHERE guild_id = $1', [guildId]);
-    await this.pool.query('DELETE FROM keyword_bonuses WHERE guild_id = $1', [guildId]);
+    await this.pool.query('DELETE FROM xp_bonuses WHERE guild_id = $1', [guildId]);
   }
 
   private rowToEntry(row: Record<string, unknown>): XPEntry {
@@ -176,7 +177,7 @@ export class PostgresXPStore implements XPStore {
     `);
 
     await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS keyword_bonuses (
+      CREATE TABLE IF NOT EXISTS xp_bonuses (
         guild_id  TEXT NOT NULL,
         keyword   TEXT NOT NULL,
         xp_amount INTEGER NOT NULL DEFAULT 0,

@@ -27,7 +27,7 @@ export class PostgresLevelRoleStore implements LevelRoleStore {
 
   async create(binding: LevelRoleCreate): Promise<number> {
     const result = await this.pool.query(
-      `INSERT INTO level_roles (guild_id, role_id, level, platform)
+      `INSERT INTO role_levels (guild_id, role_id, level, platform)
        VALUES ($1, $2, $3, $4)
        RETURNING id`,
       [binding.guildId, binding.roleId, binding.level, binding.platform]
@@ -38,7 +38,7 @@ export class PostgresLevelRoleStore implements LevelRoleStore {
 
   async getByGuild(guildId: string): Promise<LevelRoleBinding[]> {
     const result = await this.pool.query(
-      'SELECT * FROM level_roles WHERE guild_id = $1 ORDER BY level ASC',
+      'SELECT * FROM role_levels WHERE guild_id = $1 ORDER BY level ASC',
       [guildId]
     );
 
@@ -46,7 +46,7 @@ export class PostgresLevelRoleStore implements LevelRoleStore {
   }
 
   async getById(id: number): Promise<LevelRoleBinding | null> {
-    const result = await this.pool.query('SELECT * FROM level_roles WHERE id = $1', [id]);
+    const result = await this.pool.query('SELECT * FROM role_levels WHERE id = $1', [id]);
 
     if (result.rows.length === 0) return null;
     return this.rowToBinding(result.rows[0]);
@@ -54,7 +54,7 @@ export class PostgresLevelRoleStore implements LevelRoleStore {
 
   async getByGuildAndLevel(guildId: string, level: number): Promise<LevelRoleBinding | null> {
     const result = await this.pool.query(
-      'SELECT * FROM level_roles WHERE guild_id = $1 AND level = $2',
+      'SELECT * FROM role_levels WHERE guild_id = $1 AND level = $2',
       [guildId, level]
     );
 
@@ -64,7 +64,7 @@ export class PostgresLevelRoleStore implements LevelRoleStore {
 
   async getByGuildAndRole(guildId: string, roleId: string): Promise<LevelRoleBinding | null> {
     const result = await this.pool.query(
-      'SELECT * FROM level_roles WHERE guild_id = $1 AND role_id = $2',
+      'SELECT * FROM role_levels WHERE guild_id = $1 AND role_id = $2',
       [guildId, roleId]
     );
 
@@ -77,7 +77,7 @@ export class PostgresLevelRoleStore implements LevelRoleStore {
     userLevel: number
   ): Promise<LevelRoleBinding | null> {
     const result = await this.pool.query(
-      'SELECT * FROM level_roles WHERE guild_id = $1 AND level <= $2 ORDER BY level DESC LIMIT 1',
+      'SELECT * FROM role_levels WHERE guild_id = $1 AND level <= $2 ORDER BY level DESC LIMIT 1',
       [guildId, userLevel]
     );
 
@@ -86,28 +86,28 @@ export class PostgresLevelRoleStore implements LevelRoleStore {
   }
 
   async delete(id: number): Promise<void> {
-    await this.pool.query('DELETE FROM level_roles WHERE id = $1', [id]);
+    await this.pool.query('DELETE FROM role_levels WHERE id = $1', [id]);
   }
 
   async deleteByGuildAndRole(guildId: string, roleId: string): Promise<void> {
-    await this.pool.query('DELETE FROM level_roles WHERE guild_id = $1 AND role_id = $2', [
+    await this.pool.query('DELETE FROM role_levels WHERE guild_id = $1 AND role_id = $2', [
       guildId,
       roleId,
     ]);
   }
 
   async deleteByGuild(guildId: string): Promise<void> {
-    await this.pool.query('DELETE FROM level_roles WHERE guild_id = $1', [guildId]);
+    await this.pool.query('DELETE FROM role_levels WHERE guild_id = $1', [guildId]);
   }
 
   async getAllBindings(): Promise<LevelRoleBinding[]> {
-    const result = await this.pool.query('SELECT * FROM level_roles ORDER BY guild_id, level ASC');
+    const result = await this.pool.query('SELECT * FROM role_levels ORDER BY guild_id, level ASC');
 
     return result.rows.map((row) => this.rowToBinding(row));
   }
 
   async getAllGuildIds(): Promise<string[]> {
-    const result = await this.pool.query('SELECT DISTINCT guild_id FROM level_roles');
+    const result = await this.pool.query('SELECT DISTINCT guild_id FROM role_levels');
 
     return result.rows.map((row) => row.guild_id as string);
   }
@@ -130,7 +130,7 @@ export class PostgresLevelRoleStore implements LevelRoleStore {
 
   private async ensureTable(): Promise<void> {
     await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS level_roles (
+      CREATE TABLE IF NOT EXISTS role_levels (
         id           SERIAL PRIMARY KEY,
         guild_id     TEXT NOT NULL,
         role_id      TEXT NOT NULL,
@@ -143,13 +143,13 @@ export class PostgresLevelRoleStore implements LevelRoleStore {
     `);
 
     await this.pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_level_roles_guild
-      ON level_roles (guild_id)
+      CREATE INDEX IF NOT EXISTS idx_role_levels_guild
+      ON role_levels (guild_id)
     `);
 
     await this.pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_level_roles_guild_level
-      ON level_roles (guild_id, level)
+      CREATE INDEX IF NOT EXISTS idx_role_levels_guild_level
+      ON role_levels (guild_id, level)
     `);
   }
 }

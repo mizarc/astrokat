@@ -31,7 +31,7 @@ export class PostgresPendingAssignmentStore implements PendingAssignmentStore {
 
   async create(assignment: PendingAssignmentCreate): Promise<number> {
     const result = await this.pool.query(
-      `INSERT INTO pending_role_assignments (guild_id, user_id, role_id, platform, due_at)
+      `INSERT INTO role_join_queue (guild_id, user_id, role_id, platform, due_at)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING id`,
       [
@@ -47,7 +47,7 @@ export class PostgresPendingAssignmentStore implements PendingAssignmentStore {
   }
 
   async getDue(now: number, limit?: number): Promise<PendingRoleAssignment[]> {
-    let query = 'SELECT * FROM pending_role_assignments WHERE due_at <= $1 ORDER BY due_at ASC';
+    let query = 'SELECT * FROM role_join_queue WHERE due_at <= $1 ORDER BY due_at ASC';
     const params: unknown[] = [now];
 
     if (limit !== undefined) {
@@ -61,21 +61,21 @@ export class PostgresPendingAssignmentStore implements PendingAssignmentStore {
 
   async deletePending(guildId: string, userId: string, roleId: string): Promise<void> {
     await this.pool.query(
-      'DELETE FROM pending_role_assignments WHERE guild_id = $1 AND user_id = $2 AND role_id = $3',
+      'DELETE FROM role_join_queue WHERE guild_id = $1 AND user_id = $2 AND role_id = $3',
       [guildId, userId, roleId]
     );
   }
 
   async deletePendingByUser(guildId: string, userId: string): Promise<void> {
     await this.pool.query(
-      'DELETE FROM pending_role_assignments WHERE guild_id = $1 AND user_id = $2',
+      'DELETE FROM role_join_queue WHERE guild_id = $1 AND user_id = $2',
       [guildId, userId]
     );
   }
 
   async getAllPending(): Promise<PendingRoleAssignment[]> {
     const result = await this.pool.query(
-      'SELECT * FROM pending_role_assignments ORDER BY due_at ASC'
+      'SELECT * FROM role_join_queue ORDER BY due_at ASC'
     );
 
     return result.rows.map((row) => this.rowToAssignment(row));
@@ -99,7 +99,7 @@ export class PostgresPendingAssignmentStore implements PendingAssignmentStore {
 
   private async ensureTable(): Promise<void> {
     await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS pending_role_assignments (
+      CREATE TABLE IF NOT EXISTS role_join_queue (
         id           SERIAL PRIMARY KEY,
         guild_id     TEXT NOT NULL,
         user_id      TEXT NOT NULL,

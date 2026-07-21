@@ -22,7 +22,7 @@ export class SqliteGuildFeatureStore implements GuildFeatureStore {
 
   async isEnabled(guildId: string, feature: string): Promise<boolean> {
     const row = this.db
-      .prepare('SELECT enabled FROM guild_features WHERE guild_id = ? AND feature = ?')
+      .prepare('SELECT enabled FROM disabled_features WHERE guild_id = ? AND feature = ?')
       .get(guildId, feature) as { enabled: number } | undefined;
     return row ? Boolean(row.enabled) : true; // default true (opt-out)
   }
@@ -30,7 +30,7 @@ export class SqliteGuildFeatureStore implements GuildFeatureStore {
   async set(guildId: string, feature: string, enabled: boolean): Promise<void> {
     this.db
       .prepare(
-        `INSERT INTO guild_features (guild_id, feature, enabled)
+        `INSERT INTO disabled_features (guild_id, feature, enabled)
          VALUES (?, ?, ?)
          ON CONFLICT(guild_id, feature) DO UPDATE SET enabled = EXCLUDED.enabled`
       )
@@ -39,7 +39,7 @@ export class SqliteGuildFeatureStore implements GuildFeatureStore {
 
   async getAll(guildId: string): Promise<Record<string, boolean>> {
     const rows = this.db
-      .prepare('SELECT feature, enabled FROM guild_features WHERE guild_id = ?')
+      .prepare('SELECT feature, enabled FROM disabled_features WHERE guild_id = ?')
       .all(guildId) as { feature: string; enabled: number }[];
 
     const map: Record<string, boolean> = {};
@@ -51,7 +51,7 @@ export class SqliteGuildFeatureStore implements GuildFeatureStore {
 
   private ensureTable(): void {
     this.db.exec(`
-      CREATE TABLE IF NOT EXISTS guild_features (
+      CREATE TABLE IF NOT EXISTS disabled_features (
         guild_id TEXT NOT NULL,
         feature  TEXT NOT NULL,
         enabled  INTEGER NOT NULL DEFAULT 1,

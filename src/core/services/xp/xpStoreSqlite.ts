@@ -125,7 +125,7 @@ export class SqliteXPStore implements XPStore {
 
   async getKeywordBonus(guildId: string, keyword: string): Promise<number | null> {
     const row = this.db
-      .prepare('SELECT xp_amount FROM keyword_bonuses WHERE guild_id = ? AND keyword = ?')
+      .prepare('SELECT xp_amount FROM xp_bonuses WHERE guild_id = ? AND keyword = ?')
       .get(guildId, keyword.toLowerCase()) as { xp_amount: number } | undefined;
 
     return row?.xp_amount ?? null;
@@ -135,7 +135,7 @@ export class SqliteXPStore implements XPStore {
     this.db
       .prepare(
         `
-      INSERT INTO keyword_bonuses (guild_id, keyword, xp_amount)
+      INSERT INTO xp_bonuses (guild_id, keyword, xp_amount)
       VALUES (?, ?, ?)
       ON CONFLICT(guild_id, keyword) DO UPDATE SET
         xp_amount = EXCLUDED.xp_amount
@@ -146,13 +146,13 @@ export class SqliteXPStore implements XPStore {
 
   async removeKeywordBonus(guildId: string, keyword: string): Promise<void> {
     this.db
-      .prepare('DELETE FROM keyword_bonuses WHERE guild_id = ? AND keyword = ?')
+      .prepare('DELETE FROM xp_bonuses WHERE guild_id = ? AND keyword = ?')
       .run(guildId, keyword.toLowerCase());
   }
 
   async listKeywordBonuses(guildId: string): Promise<KeywordBonus[]> {
     const rows = this.db
-      .prepare('SELECT * FROM keyword_bonuses WHERE guild_id = ? ORDER BY keyword')
+      .prepare('SELECT * FROM xp_bonuses WHERE guild_id = ? ORDER BY keyword')
       .all(guildId) as Record<string, unknown>[];
 
     return rows.map((row) => ({
@@ -164,7 +164,7 @@ export class SqliteXPStore implements XPStore {
 
   async deleteAllByGuild(guildId: string): Promise<void> {
     this.db.prepare('DELETE FROM xp WHERE guild_id = ?').run(guildId);
-    this.db.prepare('DELETE FROM keyword_bonuses WHERE guild_id = ?').run(guildId);
+    this.db.prepare('DELETE FROM xp_bonuses WHERE guild_id = ?').run(guildId);
   }
 
   private ensureTable(): void {
@@ -190,7 +190,7 @@ export class SqliteXPStore implements XPStore {
 
     // Keyword bonus table
     this.db.exec(`
-      CREATE TABLE IF NOT EXISTS keyword_bonuses (
+      CREATE TABLE IF NOT EXISTS xp_bonuses (
         guild_id  TEXT NOT NULL,
         keyword   TEXT NOT NULL,
         xp_amount INTEGER NOT NULL DEFAULT 0,

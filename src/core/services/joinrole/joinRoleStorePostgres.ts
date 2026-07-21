@@ -27,7 +27,7 @@ export class PostgresJoinRoleStore implements JoinRoleStore {
 
   async create(binding: JoinRoleCreate): Promise<number> {
     const result = await this.pool.query(
-      `INSERT INTO join_roles (guild_id, role_id, platform, min_account_age_minutes, min_member_age_minutes)
+      `INSERT INTO role_joins (guild_id, role_id, platform, min_account_age_minutes, min_member_age_minutes)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING id`,
       [
@@ -44,7 +44,7 @@ export class PostgresJoinRoleStore implements JoinRoleStore {
 
   async getByGuild(guildId: string): Promise<JoinRoleBinding[]> {
     const result = await this.pool.query(
-      'SELECT * FROM join_roles WHERE guild_id = $1 ORDER BY created_at ASC',
+      'SELECT * FROM role_joins WHERE guild_id = $1 ORDER BY created_at ASC',
       [guildId]
     );
 
@@ -52,7 +52,7 @@ export class PostgresJoinRoleStore implements JoinRoleStore {
   }
 
   async getById(id: number): Promise<JoinRoleBinding | null> {
-    const result = await this.pool.query('SELECT * FROM join_roles WHERE id = $1', [id]);
+    const result = await this.pool.query('SELECT * FROM role_joins WHERE id = $1', [id]);
 
     if (result.rows.length === 0) return null;
     return this.rowToBinding(result.rows[0]);
@@ -60,7 +60,7 @@ export class PostgresJoinRoleStore implements JoinRoleStore {
 
   async getByGuildAndRole(guildId: string, roleId: string): Promise<JoinRoleBinding | null> {
     const result = await this.pool.query(
-      'SELECT * FROM join_roles WHERE guild_id = $1 AND role_id = $2',
+      'SELECT * FROM role_joins WHERE guild_id = $1 AND role_id = $2',
       [guildId, roleId]
     );
 
@@ -69,30 +69,30 @@ export class PostgresJoinRoleStore implements JoinRoleStore {
   }
 
   async delete(id: number): Promise<void> {
-    await this.pool.query('DELETE FROM join_roles WHERE id = $1', [id]);
+    await this.pool.query('DELETE FROM role_joins WHERE id = $1', [id]);
   }
 
   async deleteByGuildAndRole(guildId: string, roleId: string): Promise<void> {
-    await this.pool.query('DELETE FROM join_roles WHERE guild_id = $1 AND role_id = $2', [
+    await this.pool.query('DELETE FROM role_joins WHERE guild_id = $1 AND role_id = $2', [
       guildId,
       roleId,
     ]);
   }
 
   async deleteByGuild(guildId: string): Promise<void> {
-    await this.pool.query('DELETE FROM join_roles WHERE guild_id = $1', [guildId]);
+    await this.pool.query('DELETE FROM role_joins WHERE guild_id = $1', [guildId]);
   }
 
   async getAllBindings(): Promise<JoinRoleBinding[]> {
     const result = await this.pool.query(
-      'SELECT * FROM join_roles ORDER BY guild_id, created_at ASC'
+      'SELECT * FROM role_joins ORDER BY guild_id, created_at ASC'
     );
 
     return result.rows.map((row) => this.rowToBinding(row));
   }
 
   async getAllGuildIds(): Promise<string[]> {
-    const result = await this.pool.query('SELECT DISTINCT guild_id FROM join_roles');
+    const result = await this.pool.query('SELECT DISTINCT guild_id FROM role_joins');
 
     return result.rows.map((row) => row.guild_id as string);
   }
@@ -116,7 +116,7 @@ export class PostgresJoinRoleStore implements JoinRoleStore {
 
   private async ensureTable(): Promise<void> {
     await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS join_roles (
+      CREATE TABLE IF NOT EXISTS role_joins (
         id                      SERIAL PRIMARY KEY,
         guild_id                TEXT NOT NULL,
         role_id                 TEXT NOT NULL,
@@ -130,8 +130,8 @@ export class PostgresJoinRoleStore implements JoinRoleStore {
     `);
 
     await this.pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_join_roles_guild
-      ON join_roles (guild_id)
+      CREATE INDEX IF NOT EXISTS idx_role_joins_guild
+      ON role_joins (guild_id)
     `);
   }
 }

@@ -34,7 +34,7 @@ export class SqlitePendingAssignmentStore implements PendingAssignmentStore {
 
   async create(assignment: PendingAssignmentCreate): Promise<number> {
     const stmt = this.db.prepare(`
-      INSERT INTO pending_role_assignments (guild_id, user_id, role_id, platform, due_at)
+      INSERT INTO role_join_queue (guild_id, user_id, role_id, platform, due_at)
       VALUES (@guildId, @userId, @roleId, @platform, @dueAt)
     `);
 
@@ -50,7 +50,7 @@ export class SqlitePendingAssignmentStore implements PendingAssignmentStore {
   }
 
   async getDue(now: number, limit?: number): Promise<PendingRoleAssignment[]> {
-    let query = 'SELECT * FROM pending_role_assignments WHERE due_at <= ? ORDER BY due_at ASC';
+    let query = 'SELECT * FROM role_join_queue WHERE due_at <= ? ORDER BY due_at ASC';
     const params: unknown[] = [now];
 
     if (limit !== undefined) {
@@ -65,20 +65,20 @@ export class SqlitePendingAssignmentStore implements PendingAssignmentStore {
   async deletePending(guildId: string, userId: string, roleId: string): Promise<void> {
     this.db
       .prepare(
-        'DELETE FROM pending_role_assignments WHERE guild_id = ? AND user_id = ? AND role_id = ?'
+        'DELETE FROM role_join_queue WHERE guild_id = ? AND user_id = ? AND role_id = ?'
       )
       .run(guildId, userId, roleId);
   }
 
   async deletePendingByUser(guildId: string, userId: string): Promise<void> {
     this.db
-      .prepare('DELETE FROM pending_role_assignments WHERE guild_id = ? AND user_id = ?')
+      .prepare('DELETE FROM role_join_queue WHERE guild_id = ? AND user_id = ?')
       .run(guildId, userId);
   }
 
   async getAllPending(): Promise<PendingRoleAssignment[]> {
     const rows = this.db
-      .prepare('SELECT * FROM pending_role_assignments ORDER BY due_at ASC')
+      .prepare('SELECT * FROM role_join_queue ORDER BY due_at ASC')
       .all() as Record<string, unknown>[];
 
     return rows.map((row) => this.rowToAssignment(row));
@@ -98,7 +98,7 @@ export class SqlitePendingAssignmentStore implements PendingAssignmentStore {
 
   private ensureTable(): void {
     this.db.exec(`
-      CREATE TABLE IF NOT EXISTS pending_role_assignments (
+      CREATE TABLE IF NOT EXISTS role_join_queue (
         id           INTEGER PRIMARY KEY AUTOINCREMENT,
         guild_id     TEXT NOT NULL,
         user_id      TEXT NOT NULL,

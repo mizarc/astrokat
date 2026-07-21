@@ -21,7 +21,7 @@ export class PostgresGuildDisabledCommandStore implements GuildDisabledCommandSt
 
   async isDisabled(guildId: string, commandName: string): Promise<boolean> {
     const result = await this.pool.query(
-      'SELECT 1 FROM guild_disabled_commands WHERE guild_id = $1 AND command_name = $2',
+      'SELECT 1 FROM disabled_commands WHERE guild_id = $1 AND command_name = $2',
       [guildId, commandName]
     );
     return result.rows.length > 0;
@@ -29,7 +29,7 @@ export class PostgresGuildDisabledCommandStore implements GuildDisabledCommandSt
 
   async getAll(guildId: string): Promise<string[]> {
     const result = await this.pool.query(
-      'SELECT command_name FROM guild_disabled_commands WHERE guild_id = $1 ORDER BY command_name',
+      'SELECT command_name FROM disabled_commands WHERE guild_id = $1 ORDER BY command_name',
       [guildId]
     );
     return result.rows.map((r: { command_name: string }) => r.command_name);
@@ -37,7 +37,7 @@ export class PostgresGuildDisabledCommandStore implements GuildDisabledCommandSt
 
   async add(guildId: string, commandName: string): Promise<void> {
     await this.pool.query(
-      `INSERT INTO guild_disabled_commands (guild_id, command_name)
+      `INSERT INTO disabled_commands (guild_id, command_name)
        VALUES ($1, $2)
        ON CONFLICT (guild_id, command_name) DO NOTHING`,
       [guildId, commandName]
@@ -46,14 +46,14 @@ export class PostgresGuildDisabledCommandStore implements GuildDisabledCommandSt
 
   async remove(guildId: string, commandName: string): Promise<void> {
     await this.pool.query(
-      'DELETE FROM guild_disabled_commands WHERE guild_id = $1 AND command_name = $2',
+      'DELETE FROM disabled_commands WHERE guild_id = $1 AND command_name = $2',
       [guildId, commandName]
     );
   }
 
   private async ensureTable(): Promise<void> {
     await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS guild_disabled_commands (
+      CREATE TABLE IF NOT EXISTS disabled_commands (
         guild_id     TEXT NOT NULL,
         command_name TEXT NOT NULL,
         PRIMARY KEY (guild_id, command_name)

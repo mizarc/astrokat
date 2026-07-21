@@ -30,7 +30,7 @@ export class SqliteJoinRoleStore implements JoinRoleStore {
 
   async create(binding: JoinRoleCreate): Promise<number> {
     const stmt = this.db.prepare(`
-      INSERT INTO join_roles (guild_id, role_id, platform, min_account_age_minutes, min_member_age_minutes)
+      INSERT INTO role_joins (guild_id, role_id, platform, min_account_age_minutes, min_member_age_minutes)
       VALUES (@guildId, @roleId, @platform, @minAccountAgeMinutes, @minMemberAgeMinutes)
     `);
 
@@ -47,14 +47,14 @@ export class SqliteJoinRoleStore implements JoinRoleStore {
 
   async getByGuild(guildId: string): Promise<JoinRoleBinding[]> {
     const rows = this.db
-      .prepare('SELECT * FROM join_roles WHERE guild_id = ? ORDER BY created_at ASC')
+      .prepare('SELECT * FROM role_joins WHERE guild_id = ? ORDER BY created_at ASC')
       .all(guildId) as Record<string, unknown>[];
 
     return rows.map((row) => this.rowToBinding(row));
   }
 
   async getById(id: number): Promise<JoinRoleBinding | null> {
-    const row = this.db.prepare('SELECT * FROM join_roles WHERE id = ?').get(id) as
+    const row = this.db.prepare('SELECT * FROM role_joins WHERE id = ?').get(id) as
       | Record<string, unknown>
       | undefined;
 
@@ -64,7 +64,7 @@ export class SqliteJoinRoleStore implements JoinRoleStore {
 
   async getByGuildAndRole(guildId: string, roleId: string): Promise<JoinRoleBinding | null> {
     const row = this.db
-      .prepare('SELECT * FROM join_roles WHERE guild_id = ? AND role_id = ?')
+      .prepare('SELECT * FROM role_joins WHERE guild_id = ? AND role_id = ?')
       .get(guildId, roleId) as Record<string, unknown> | undefined;
 
     if (!row) return null;
@@ -72,29 +72,29 @@ export class SqliteJoinRoleStore implements JoinRoleStore {
   }
 
   async delete(id: number): Promise<void> {
-    this.db.prepare('DELETE FROM join_roles WHERE id = ?').run(id);
+    this.db.prepare('DELETE FROM role_joins WHERE id = ?').run(id);
   }
 
   async deleteByGuildAndRole(guildId: string, roleId: string): Promise<void> {
     this.db
-      .prepare('DELETE FROM join_roles WHERE guild_id = ? AND role_id = ?')
+      .prepare('DELETE FROM role_joins WHERE guild_id = ? AND role_id = ?')
       .run(guildId, roleId);
   }
 
   async deleteByGuild(guildId: string): Promise<void> {
-    this.db.prepare('DELETE FROM join_roles WHERE guild_id = ?').run(guildId);
+    this.db.prepare('DELETE FROM role_joins WHERE guild_id = ?').run(guildId);
   }
 
   async getAllBindings(): Promise<JoinRoleBinding[]> {
     const rows = this.db
-      .prepare('SELECT * FROM join_roles ORDER BY guild_id, created_at ASC')
+      .prepare('SELECT * FROM role_joins ORDER BY guild_id, created_at ASC')
       .all() as Record<string, unknown>[];
 
     return rows.map((row) => this.rowToBinding(row));
   }
 
   async getAllGuildIds(): Promise<string[]> {
-    const rows = this.db.prepare('SELECT DISTINCT guild_id FROM join_roles').all() as {
+    const rows = this.db.prepare('SELECT DISTINCT guild_id FROM role_joins').all() as {
       guild_id: string;
     }[];
 
@@ -116,7 +116,7 @@ export class SqliteJoinRoleStore implements JoinRoleStore {
 
   private ensureTable(): void {
     this.db.exec(`
-      CREATE TABLE IF NOT EXISTS join_roles (
+      CREATE TABLE IF NOT EXISTS role_joins (
         id                      INTEGER PRIMARY KEY AUTOINCREMENT,
         guild_id                TEXT NOT NULL,
         role_id                 TEXT NOT NULL,
@@ -130,8 +130,8 @@ export class SqliteJoinRoleStore implements JoinRoleStore {
     `);
 
     this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_join_roles_guild
-      ON join_roles (guild_id)
+      CREATE INDEX IF NOT EXISTS idx_role_joins_guild
+      ON role_joins (guild_id)
     `);
   }
 }
