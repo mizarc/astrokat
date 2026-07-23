@@ -1,6 +1,6 @@
 {
   "name": "astrokat",
-  "version": "0.4.0",
+  "version": "0.5.0-dev",
   "description": "A modular, multi-platform chatbot with useful features to enhance the chat experience.",
   "type": "module",
   "main": "dist/index.js",
