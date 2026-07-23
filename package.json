@@ -29,7 +29,7 @@
     "multi-platform"
   ],
   "author": "Mizarc <contact@mizarc.dev>",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "dependencies": {
     "@fluxerjs/core": "^1.4.0",
     "@fluxerjs/util": "^1.4.0",
