@@ -124,7 +124,7 @@ Before you can run the bot, you need to create bot applications on the platforms
 
 3. **Start the bot:**
    ```bash
-   docker compose up
+   docker compose --profile sqlite up
    ```
    Astrokat is now running with SQLite storage, no external database needed.
 
@@ -150,14 +150,14 @@ Set `ADAPTERS` in your `.env` file:
 
 ```bash
 docker compose up -d
-docker compose --profile postgres up -d
+docker compose --profile <profile_name> up -d
 ```
 
 ### Stop
 
 ```bash
 docker compose down
-docker compose --profile postgres down
+docker compose --profile <profile_name> down
 ```
 
 ### View logs
