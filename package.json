@@ -31,8 +31,8 @@
   "author": "Mizarc <contact@mizarc.dev>",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
-    "@fluxerjs/core": "^1.4.0",
-    "@fluxerjs/util": "^1.4.0",
+    "@fluxerjs/core": "^2.0.3",
+    "@fluxerjs/util": "^2.0.0",
     "better-sqlite3": "^12.11.1",
     "chrono-node": "^2.10.1",
     "discord.js": "^14.27.0",
