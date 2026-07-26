@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-07-26
+
+### Added
+
+#### General
+
+- Custom status text and presence (online/idle/dnd/invisible) set via `system status` and `system presence` are now persisted and stored upon restart.
+
+### Fixed
+
+- Added missing task console translation keys used by the task service to eliminate `[i18n] Missing translation key` warnings.
+- Invalid language codes now show a clear message explaining the correct format instead of the misleading "Translation service is currently unavailable" error.
+
 ## [0.4.0] - 2026-07-22
 
 ### Added
