@@ -71,7 +71,7 @@ export class CronEngine {
 
     const triggers = await this.store.getEnabledCronTriggers();
     if (triggers.length === 0) {
-      console.log(t('tasks.cronNoTriggers'));
+      console.log(t('task.cronNoTriggers'));
       return;
     }
 
@@ -87,7 +87,7 @@ export class CronEngine {
     let scheduledCount = 0;
     for (const [expression, group] of grouped) {
       if (!cron.validate(expression)) {
-        console.log(t('tasks.cronInvalidExpression', { expr: expression, count: group.length }));
+        console.log(t('task.cronInvalidExpression', { expr: expression, count: group.length }));
         continue;
       }
 
@@ -100,7 +100,7 @@ export class CronEngine {
     }
 
     console.log(
-      t('tasks.cronScheduled', { count: scheduledCount, unique: this.scheduledJobs.size })
+      t('task.cronScheduled', { count: scheduledCount, unique: this.scheduledJobs.size })
     );
   }
 
@@ -113,7 +113,7 @@ export class CronEngine {
     }
     this.scheduledJobs.clear();
     this.running = false;
-    console.log(t('tasks.cronStopped'));
+    console.log(t('task.cronStopped'));
   }
 
   /**
