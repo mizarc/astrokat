@@ -1,6 +1,7 @@
 import { t } from '../../../../i18n.js';
 import { get as unicodeEmoji } from 'node-emoji';
 import type { UnifiedMessage } from '../../../../types.js';
+import { botConfigService } from '../../../../services/botconfig/botConfigService.js';
 
 /**
  * Matches a leading custom emoji (<:name:id>), animated (<a:name:id>),
@@ -61,6 +62,10 @@ export async function handleStatus(message: UnifiedMessage, args: string[]) {
   }
 
   await message.setStatus({ text, emojiName, emojiId });
+
+  // Persist so the status survives bot restarts
+  await botConfigService.saveStatus(text, emojiName, emojiId, message.platform);
+
   const display = emojiName ? `${emojiName} ${text}` : text;
   await message.reply(t('commands.system.status.success', { text: display }));
 }

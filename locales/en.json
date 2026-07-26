@@ -224,7 +224,8 @@
         "notOwner": "❌ Only the bot owner can change my status.",
         "usage": "❌ Usage: `system status <text>`\nExample: `system status 🔧 Maintenance mode`",
         "notAvailable": "❌ This platform doesn't support status updates.",
-        "success": "✅ Custom status set to: **{text}**"
+        "success": "✅ Custom status set to: **{text}**",
+        "restored": "[BOT-CONFIG] Restored saved status & presence."
       },
       "trends": {
         "notOwner": "❌ Only bot operators can view trends.",
