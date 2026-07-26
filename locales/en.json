@@ -55,9 +55,9 @@
     },
     "translate": {
       "noInput": "Please provide a language code and text. Example: `!translate es Hello` or `!translate fr:es Bonjour`",
-      "translating": "Translating {sourceLang} → {targetLang}: \"{text}\"",
       "result": "🌍 **Translation ({sourceLang} → {targetLang}):** {translation}",
-      "error": "Translation service is currently unavailable."
+      "invalidLang": "❌ \"{lang}\" isn't a valid language code. Use standard codes like `en`, `es`, `fr`, `ja`, `de`. Example: `!translate es Hello`",
+      "error": "❌ Translation service is currently unavailable."
     },
     "wiki": {
       "noSearchTerm": "Please provide a search term.",
