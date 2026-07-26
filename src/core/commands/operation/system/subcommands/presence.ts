@@ -1,5 +1,6 @@
 import { t } from '../../../../i18n.js';
 import type { UnifiedMessage } from '../../../../types.js';
+import { botConfigService } from '../../../../services/botconfig/botConfigService.js';
 
 const VALID_STATUSES = ['online', 'idle', 'dnd', 'invisible'] as const;
 
@@ -36,5 +37,9 @@ export async function handlePresence(message: UnifiedMessage, args: string[]) {
   }
 
   await message.setPresence(status);
+
+  // Persist so the presence survives bot restarts
+  await botConfigService.savePresence(status, message.platform);
+
   await message.reply(t('commands.system.presence.success', { status }));
 }

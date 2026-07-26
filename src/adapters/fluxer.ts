@@ -7,6 +7,7 @@ import { reminderService } from '../core/services/reminders/reminderService.js';
 import { reactionRoleService } from '../core/services/reactionrole/reactionRoleService.js';
 import { joinRoleService } from '../core/services/joinrole/joinRoleService.js';
 import { levelRoleService } from '../core/services/levelrole/levelRoleService.js';
+import { botConfigService } from '../core/services/botconfig/botConfigService.js';
 import type { GuildAggregator, GuildStats, ActionDispatcher } from '../core/types.js';
 
 /** Tracks the bot's presence status so setStatus and setPresence compose cleanly. */
@@ -342,7 +343,45 @@ export function startFluxerBot() {
   });
 
   // Register reminder listener
-  client.on('ready', () => {
+  client.on('ready', async () => {
+    // Restore saved status and presence across restarts
+    try {
+      const snapshot = await botConfigService.loadStatusAndPresence('fluxer');
+      if (snapshot.presence) {
+        const presenceStatus = snapshot.presence as 'online' | 'idle' | 'dnd' | 'invisible';
+        setPresenceStatus(presenceStatus);
+        client.sendToGateway(0, {
+          op: GatewayOpcodes.PresenceUpdate as number,
+          d: {
+            status: presenceStatus,
+            since: null,
+            afk: false,
+          },
+        });
+      }
+      if (snapshot.statusText) {
+        const customStatus: Record<string, string | null> = {
+          text: snapshot.statusText,
+          emoji_name: snapshot.statusEmojiName ?? null,
+        };
+        if (snapshot.statusEmojiId) {
+          customStatus.emoji_id = snapshot.statusEmojiId;
+        }
+        client.sendToGateway(0, {
+          op: GatewayOpcodes.PresenceUpdate as number,
+          d: {
+            status: currentPresenceStatus,
+            since: null,
+            afk: false,
+            custom_status: customStatus,
+          },
+        });
+      }
+      console.log(t('botConfig.restored', { platform: 'fluxer' }));
+    } catch (err) {
+      console.error(t('botConfig.failedRestore', { platform: 'fluxer' }), err);
+    }
+
     reminderService.on('reminderDue', async ({ reminder }) => {
       if (reminder.platform !== 'fluxer') return;
       try {

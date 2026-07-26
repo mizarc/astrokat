@@ -7,6 +7,7 @@ import { reminderService } from '../core/services/reminders/reminderService.js';
 import { reactionRoleService } from '../core/services/reactionrole/reactionRoleService.js';
 import { joinRoleService } from '../core/services/joinrole/joinRoleService.js';
 import { levelRoleService } from '../core/services/levelrole/levelRoleService.js';
+import { botConfigService } from '../core/services/botconfig/botConfigService.js';
 import type { GuildAggregator, GuildStats, ActionDispatcher } from '../core/types.js';
 
 /** Tracks the bot's presence status so setStatus and setPresence compose cleanly. */
@@ -50,6 +51,33 @@ export function startDiscordBot() {
   client.once(Events.ClientReady, async () => {
     // Auto-deploy slash commands on startup (unless unchanged)
     deployCommands();
+
+    // Restore saved status and presence across restarts
+    botConfigService
+      .loadStatusAndPresence('discord')
+      .then(async (snapshot) => {
+        if (snapshot.presence) {
+          currentPresenceStatus = snapshot.presence as 'online' | 'idle' | 'dnd' | 'invisible';
+          await client.user?.setPresence({ status: currentPresenceStatus });
+        }
+        if (snapshot.statusText) {
+          const displayEmoji =
+            snapshot.statusEmojiId && snapshot.statusEmojiName
+              ? `<:${snapshot.statusEmojiName}:${snapshot.statusEmojiId}>`
+              : snapshot.statusEmojiName;
+          const activityName = displayEmoji
+            ? `${displayEmoji} ${snapshot.statusText}`
+            : snapshot.statusText;
+          await client.user?.setPresence({
+            activities: [{ name: activityName, type: 4 }],
+            status: currentPresenceStatus,
+          });
+        }
+        console.log(t('botConfig.restored', { platform: 'discord' }));
+      })
+      .catch((err) => {
+        console.error(t('botConfig.failedRestore', { platform: 'discord' }), err);
+      });
 
     reminderService.on('reminderDue', async ({ reminder }) => {
       if (reminder.platform !== 'discord') return;

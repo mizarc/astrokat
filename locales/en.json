@@ -638,6 +638,18 @@
       }
     }
   },
+  "task": {
+    "backend": "[TASKS] Using {backend} backend.",
+    "cronNoTriggers": "[TASKS] No cron triggers found — nothing to schedule.",
+    "cronInvalidExpression": "[TASKS] Invalid cron expression \"{expr}\" for {count} trigger(s) — skipping.",
+    "cronScheduled": "[TASKS] Scheduled {count} trigger(s) across {unique} unique cron expression(s).",
+    "cronStopped": "[TASKS] Cron engine stopped."
+  },
+  "botConfig": {
+    "backend": "[BOT_CONFIG] Using {backend} backend.",
+    "restored": "[BOT_CONFIG] Restored saved status & presence for {platform}.",
+    "failedRestore": "[BOT_CONFIG] Failed to restore status for {platform}:"
+  },
   "guildSnapshot": {
     "recorded": "[GUILD_SNAPSHOT][{platform}] Recorded: {guilds} guilds, {members} members.",
     "error": "[GUILD_SNAPSHOT] Failed to record snapshot:",
