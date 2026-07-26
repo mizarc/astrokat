@@ -357,7 +357,7 @@ const triggerStore: TriggerStore = process.env.DATABASE_URL
   ? new PostgresTriggerStore()
   : new SqliteTriggerStore();
 
-console.log(t('tasks.backend', { backend: process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite' }));
+console.log(t('task.backend', { backend: process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite' }));
 
 export const cronEngine = new CronEngine(triggerStore);
 export const taskService = new TaskService(triggerStore, cronEngine);
